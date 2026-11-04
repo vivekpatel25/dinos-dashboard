@@ -186,7 +186,8 @@ skill_outcomes <- function(d, section) {
 }
 
 skill_card <- function(title, tag, outcomes, bench=NULL,
-                       opponent_bench=NULL, show_opponent=FALSE) {
+                       opponent_bench=NULL, show_opponent=FALSE,
+                       detail_text=NULL) {
   if (is.null(outcomes) || !nrow(outcomes) || sum(outcomes$count)<=0)
     return(div(class="skill-card",div(class="skill-card-head",span(title),span(tag)),
                div(class="skill-card-empty","No skill data available.")))
@@ -218,23 +219,37 @@ skill_card <- function(title, tag, outcomes, bench=NULL,
       span(class="skill-legend-count",as.character(outcomes$count[i]))
     ))
 
-  # Defense outer ring represents the conversion rate using the same
-  # numerator/denominator supplied by the corrected export.
   conversion_value <- NA_real_
+  converted_n <- NA_real_
+  in_play_n <- NA_real_
   if (title=="DEFENSE" && !is.null(bench) && nrow(bench)) {
     conversion_value <- suppressWarnings(as.numeric(bench$metric_value[1]))
+    converted_n <- suppressWarnings(as.numeric(bench$numerator[1]))
+    in_play_n <- suppressWarnings(as.numeric(bench$denominator[1]))
   }
 
   donut <- div(class="skill-donut",style=paste0("background:conic-gradient(",grad,");"),
     div(class="skill-donut-hole",strong(center),tags$small(center_label)))
 
+  # Outer ring is deliberately separated from the inner dig-outcome donut.
   if (title=="DEFENSE" && is.finite(conversion_value)) {
     ring_pct <- max(0,min(100,conversion_value))
     donut <- div(class="skill-conversion-ring",
-      style=paste0("background:conic-gradient(#C8102E 0 ",ring_pct,
+      style=paste0("background:conic-gradient(#159B69 0 ",ring_pct,
                    "%, #e5ebf0 ",ring_pct,"% 100%);"),
-      donut
+      div(class="skill-conversion-ring-inner",donut)
     )
+    conv_col <- "#159B69"
+    legend <- c(legend, list(
+      div(class="skill-legend-row skill-converted-row",
+        span(class="skill-swatch",style=paste0("background:",conv_col)),
+        span(class="skill-legend-name","Converted"),
+        strong(class="skill-legend-pct",
+          if (is.finite(conversion_value)) sprintf("%.0f%%",conversion_value) else "—"),
+        span(class="skill-legend-count",
+          if (is.finite(converted_n)) as.character(round(converted_n)) else "—")
+      )
+    ))
   }
 
   benchmark_ui <- NULL
@@ -273,6 +288,8 @@ skill_card <- function(title, tag, outcomes, bench=NULL,
     div(class="skill-card-body",
       div(class="skill-donut-wrap",donut),
       div(class="skill-legend",legend)),
+    if (!is.null(detail_text) && nzchar(detail_text))
+      div(class="skill-detail",detail_text),
     benchmark_ui
   ))
 }
@@ -305,7 +322,8 @@ skill_area_panel_ui <- function(ids, show_opponent=FALSE) {
       if (nrow(b0)) {
         num <- sum(as.numeric(b0$numerator),na.rm=TRUE)
         den <- sum(as.numeric(b0$denominator),na.rm=TRUE)
-        b <- data.frame(metric_name=bn,metric_value=if(den>0)100*num/den else NA_real_)
+        b <- data.frame(metric_name=bn,numerator=num,denominator=den,
+                        metric_value=if(den>0)100*num/den else NA_real_)
       }
       if (isTRUE(show_opponent) && length(ids)==1) {
         ob0 <- all_skill_area[all_skill_area$match_id %in% as.character(ids) &
@@ -315,7 +333,34 @@ skill_area_panel_ui <- function(ids, show_opponent=FALSE) {
         if (nrow(ob0)) ob <- ob0[1,,drop=FALSE]
       }
     }
-    skill_card(z$title,z$tag,out,b,ob,show_opponent=show_opponent)
+
+    # Compact coach-facing data line beneath each skill card.
+    n_for <- function(label) {
+      sum(out$count[out$label==label],na.rm=TRUE)
+    }
+    detail <- switch(z$section,
+      Attack = {
+        swings <- sum(out$count,na.rm=TRUE)
+        kills <- n_for("Kills")
+        paste0("Kill% ",if(swings>0)sprintf("%.0f%%",100*kills/swings) else "—",
+               " · ",swings," swings")
+      },
+      Reception = paste0(sum(out$count,na.rm=TRUE)," receptions"),
+      Block = paste0(n_for("Stuff")," stuffs · ",n_for("Errors")," errors"),
+      Serve = paste0(sum(out$count,na.rm=TRUE)," serves · ",
+                     n_for("Aces")," aces · ",n_for("Serve Error")," errors"),
+      Dig = {
+        converted <- if(nrow(b)) as.numeric(b$numerator[1]) else NA_real_
+        playable <- if(nrow(b)) as.numeric(b$denominator[1]) else NA_real_
+        if(is.finite(converted) && is.finite(playable))
+          paste0(round(converted)," of ",round(playable),
+                 " in-play digs converted to a kill")
+        else "In-play dig conversion"
+      }
+    )
+
+    skill_card(z$title,z$tag,out,b,ob,show_opponent=show_opponent,
+               detail_text=detail)
   })
   div(class="skill-area-panel",div(class="skill-area-heading","BY SKILL AREA"),
       div(class="skill-grid",cards))
@@ -614,8 +659,9 @@ ui <- fluidPage(
       .skill-card-body{min-height:170px;padding:16px 12px 8px;display:grid;grid-template-columns:minmax(88px,42%) minmax(0,1fr);gap:10px;align-items:center;}
       .skill-donut-wrap{width:124px;max-width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;margin:auto;}
       .skill-donut{width:100%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:auto;}
-      .skill-conversion-ring{width:124px;max-width:100%;aspect-ratio:1;border-radius:50%;padding:5px;display:flex;align-items:center;justify-content:center;margin:auto;box-sizing:border-box;}
-      .skill-conversion-ring .skill-donut{width:100%;height:100%;}
+      .skill-conversion-ring{width:146px;max-width:100%;aspect-ratio:1;border-radius:50%;padding:7px;display:flex;align-items:center;justify-content:center;margin:auto;box-sizing:border-box;}
+      .skill-conversion-ring-inner{width:calc(100% - 14px);height:calc(100% - 14px);border-radius:50%;background:#fff;padding:7px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;}
+      .skill-conversion-ring-inner .skill-donut{width:100%;height:100%;}
       .skill-donut-hole{width:66%;height:66%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
       .skill-donut-hole strong{font-family:'Barlow Condensed';font-size:27px;line-height:1;color:#263746;}
       .skill-donut-hole small{font-size:8px;letter-spacing:.6px;color:#6f7f8d;margin-top:3px;}
@@ -626,6 +672,7 @@ ui <- fluidPage(
       .skill-legend-pct{font-family:'Barlow Condensed';font-size:14px;color:#263746;}
       .skill-legend-count{font-size:9px;text-align:right;color:#87939e;}
       .skill-card-empty,.skill-empty{padding:24px 12px;color:#82909d;font-size:12px;text-align:center;}
+      .skill-detail{border-top:1px dashed #dce4eb;margin:0 12px 9px;padding:8px 0 2px;text-align:center;font-size:9px;color:#718096;line-height:1.3;}
       .skill-benchmark{border-top:1px dashed #dce4eb;margin:0 12px 10px;padding-top:9px;display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9px;color:#788999;}
       .skill-benchmark strong{font-family:'Barlow Condensed';font-size:15px;color:#263746;}
       .skill-benchmark-track{grid-column:1/-1;height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;margin-top:8px;}
