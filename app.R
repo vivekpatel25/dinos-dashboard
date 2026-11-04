@@ -217,7 +217,7 @@ skill_card <- function(title, tag, outcomes, bench=NULL) {
     div(class="skill-card-head",span(title),span(tag)),
     div(class="skill-card-body",
       div(class="skill-donut",style=paste0("background:conic-gradient(",grad,");"),
-        div(class="skill-donut-hole",strong(center),small(center_label))),
+        div(class="skill-donut-hole",strong(center),tags$small(center_label))),
       div(class="skill-legend",legend)),
     if (!is.null(bench) && nrow(bench)) {
       val <- as.numeric(bench$metric_value[1])
@@ -318,7 +318,11 @@ if (nrow(all_metrics)) {
 # Optional metadata file remains supported, but the new match CSV already
 # carries match_result and match_set_score.
 MATCH_METADATA_PATH <- "data/exports/match_metadata.csv"
-match_metadata <- read_csv_safe(MATCH_METADATA_PATH)
+match_metadata <- if (file.exists(MATCH_METADATA_PATH)) {
+  read_csv_safe(MATCH_METADATA_PATH)
+} else {
+  NULL
+}
 if (!is.null(match_metadata) && nrow(match_metadata) &&
     "match_id" %in% names(match_metadata)) {
   match_index <- merge(match_index, match_metadata, by = "match_id",
