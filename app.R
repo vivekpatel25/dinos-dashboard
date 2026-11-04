@@ -1,7 +1,7 @@
 
 # ============================================================
 # DINOS VOLLEYBALL ANALYTICS
-# University of Calgary | Canada West | 2026/27
+# CALGARY | CANADA WEST | 2026/27
 # ============================================================
 
 library(shiny)
@@ -11,7 +11,6 @@ source("R/helper_functions.R")
 
 # ------------------------------------------------------------
 # DATA PATHS
-# CSV DATA WILL BE CONNECTED AFTER INITIAL DEPLOYMENT
 # ------------------------------------------------------------
 
 DATA <- list(
@@ -47,486 +46,339 @@ DATA <- list(
 )
 
 # ------------------------------------------------------------
-# REUSABLE MODULE PAGE
+# ANALYSIS SECTION PLACEHOLDERS
 # ------------------------------------------------------------
 
-module_page <- function(kicker, title, description,
-                        feature_names, expected_files) {
+analysis_section <- function(title, description, files) {
 
   div(
-    class = "page-content",
+    class = "content-panel analysis-section",
 
     div(
-      class = "section-heading",
-
-      div(
-        tags$div(class = "section-kicker", kicker),
-        h2(title),
-        p(description)
-      ),
-
-      div(
-        class = "data-pill",
-        icon("database"),
-        "Awaiting season exports"
-      )
+      class = "panel-heading",
+      h3(title),
+      span(class = "panel-tag", "ANALYSIS")
     ),
 
-    div(
-      class = "feature-grid",
-
-      lapply(seq_along(feature_names), function(i) {
-
-        div(
-          class = "feature-tile",
-
-          div(
-            class = "feature-number",
-            sprintf("%02d", i)
-          ),
-
-          div(
-            class = "feature-name",
-            feature_names[[i]]
-          )
-        )
-      })
-    ),
-
-    div(
-      class = "content-panel module-placeholder",
-
-      empty_state(
-        paste(title, "dashboard is ready for data"),
-
-        "The page layout and navigation are in place. Upload the corresponding CSV exports and we will connect the charts, tables, player selectors and match filters.",
-
-        expected_files
-      )
+    empty_state(
+      paste(title, "will appear here"),
+      description,
+      files
     )
   )
 }
 
 # ------------------------------------------------------------
-# APPLICATION UI
+# PERIOD PAGE
+# Each period will eventually filter all analysis modules.
 # ------------------------------------------------------------
 
-ui <- page_navbar(
+period_page <- function(period_name, period_description) {
 
-  title = NULL,
+  div(
+    class = "period-content",
 
-  id = "main_nav",
+    # Page heading
+    div(
+      class = "section-heading",
 
-  selected = "Overview",
+      div(
+        tags$div(
+          class = "section-kicker",
+          "TEAM PERFORMANCE"
+        ),
 
-  fillable = FALSE,
+        h2(period_name),
 
-  collapsible = TRUE,
-
-  header = tagList(
-
-    tags$head(
-
-      tags$title("Dinos Volleyball Analytics"),
-
-      tags$link(
-        rel = "stylesheet",
-        href = "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        p(period_description)
       ),
 
-      tags$link(
-        rel = "stylesheet",
-        type = "text/css",
-        href = "style.css"
-      ),
-
-      tags$link(
-        rel = "stylesheet",
-        type = "text/css",
-        href = "app.css"
+      div(
+        class = "data-pill",
+        icon("database"),
+        "DATA NOT CONNECTED"
       )
     ),
 
-    # --------------------------------------------------------
-    # LARGE DINOS HEADER
-    # --------------------------------------------------------
-
+    # KPI cards
     div(
-      class = "dinos-dashboard-header",
+      class = "metric-grid",
 
-      div(
-        class = "dinos-brand-area",
-
-        if (file.exists("www/dinos_logo.png")) {
-
-          tags$img(
-            src = "dinos_logo.png",
-            class = "dinos-team-logo",
-            alt = "University of Calgary Dinos"
-          )
-
-        } else {
-
-          div(
-            class = "logo-placeholder",
-            "DINOS"
-          )
-        },
-
-        div(
-          class = "dinos-brand-copy",
-
-          h1("DINOS VOLLEYBALL ANALYTICS"),
-
-          div(
-            class = "dinos-season-label",
-
-            span("CALGARY"),
-            span(class = "meta-dot", "·"),
-            span("CANADA WEST"),
-            span(class = "meta-dot", "·"),
-            span("2026/27")
-          )
-        )
+      kpi_card(
+        "MATCHES PLAYED",
+        "—",
+        "Matches in selected period"
       ),
 
-      div(
-        class = "header-right",
+      kpi_card(
+        "MATCH WIN %",
+        "—",
+        "Overall match results"
+      ),
 
-        div(
-          class = "header-context",
+      kpi_card(
+        "ATTACK EFFICIENCY",
+        "—",
+        "Kills minus errors per attempt"
+      ),
 
-          div(
-            class = "header-context-label",
-            "TEAM"
-          ),
-
-          div(
-            class = "header-context-value",
-            "University of Calgary"
-          ),
-
-          div(
-            class = "header-context-note",
-            "Women's Volleyball"
-          )
-        ),
-
-        div(
-          class = "header-divider"
-        ),
-
-        div(
-          class = "header-season-mark",
-
-          div(
-            class = "header-season-label",
-            "SEASON"
-          ),
-
-          div(
-            class = "header-season-value",
-            "2026/27"
-          )
-        )
+      kpi_card(
+        "SIDEOUT %",
+        "—",
+        "Reception phase conversion"
       )
-    )
-  ),
+    ),
 
-  # ----------------------------------------------------------
-  # OVERVIEW
-  # ----------------------------------------------------------
-
-  nav_panel(
-
-    "Overview",
-
-    value = "Overview",
-
-    div(
-      class = "page-content",
-
-      div(
-        class = "section-heading",
-
-        div(
-          tags$div(
-            class = "section-kicker",
-            "TEAM SNAPSHOT"
-          ),
-
-          h2("Season overview"),
-
-          p(
-            "A central view of the Dinos' performance across the season."
-          )
-        ),
-
-        div(
-          class = "data-pill",
-          icon("database"),
-          "CSV data not uploaded yet"
-        )
-      ),
-
-      div(
-        class = "metric-grid",
-
-        kpi_card(
-          "MATCHES PLAYED",
-          "—",
-          "Season match count"
-        ),
-
-        kpi_card(
-          "MATCH WIN %",
-          "—",
-          "Overall team result"
-        ),
-
-        kpi_card(
-          "ATTACK EFFICIENCY",
-          "—",
-          "Kills minus errors per attempt"
-        ),
-
-        kpi_card(
-          "SIDEOUT %",
-          "—",
-          "Reception phase conversion"
-        )
-      ),
-
-      div(
-        class = "content-grid overview-grid",
-
-        div(
-          class = "content-panel panel-wide",
-
-          div(
-            class = "panel-heading",
-
-            h3("Performance by skill area"),
-
-            span(
-              class = "panel-tag",
-              "SEASON"
-            )
-          ),
-
-          empty_state(
-            "Skill-area performance will appear here",
-
-            "This section will compare the team's attack, serve, reception, block and other available skill metrics once the season CSV files are uploaded.",
-
-            c(
-              "SKILL_AREA_SEASON_SUMMARY.csv",
-              "SKILL_AREA_ALL_MATCHES.csv"
-            )
-          )
-        ),
-
-        div(
-          class = "content-panel",
-
-          div(
-            class = "panel-heading",
-
-            h3("Team benchmarks"),
-
-            span(
-              class = "panel-tag",
-              "COMPARISON"
-            )
-          ),
-
-          empty_state(
-            "Benchmark comparison",
-
-            "Team-only benchmark metrics will populate this panel when the benchmark export is available.",
-
-            "BENCHMARK_METRICS_UOFC_ONLY.csv"
-          )
-        ),
-
-        div(
-          class = "content-panel",
-
-          div(
-            class = "panel-heading",
-
-            h3("Match-by-match trend"),
-
-            span(
-              class = "panel-tag",
-              "MATCHES"
-            )
-          ),
-
-          empty_state(
-            "Match results and trends",
-
-            "The match-level performance timeline will appear here after the overview CSVs are added.",
-
-            "KEY_METRICS_ALL_MATCHES.csv"
-          )
-        )
-      )
-    )
-  ),
-
-  # ----------------------------------------------------------
-  # ATTACK
-  # ----------------------------------------------------------
-
-  nav_panel(
-
-    "Attack",
-
-    value = "Attack",
-
-    module_page(
-      "ATTACK ANALYSIS",
-
-      "Attack performance",
-
-      "Explore team and player attacking efficiency, attack distribution and court-location tendencies.",
-
+    # Key performance profile
+    analysis_section(
+      "KEY METRICS · PERFORMANCE PROFILE",
+      "Team performance across game phase, passing, attacking, serving and defensive metrics.",
       c(
-        "Attack details",
-        "Attack maps",
-        "Player comparison"
-      ),
+        "KEY_METRICS_SEASON_SUMMARY.csv",
+        "KEY_METRICS_ALL_MATCHES.csv"
+      )
+    ),
 
+    # Skill area
+    analysis_section(
+      "PERFORMANCE BY SKILL AREA",
+      "Compare the Dinos' performance across attack, reception, serving, blocking and other available skill metrics.",
+      c(
+        "SKILL_AREA_SEASON_SUMMARY.csv",
+        "SKILL_AREA_ALL_MATCHES.csv"
+      )
+    ),
+
+    # Attack
+    analysis_section(
+      "ATTACK ANALYSIS",
+      "Explore attack efficiency, attack distribution, player contributions and attack locations.",
       c(
         "UOFC_ATTACK_DETAILS_SEASON.csv",
         "UOFC_ATTACK_DETAILS_PLAYER_SEASON.csv",
-        "UOFC_ATTACK_MAP_EVENTS.csv",
-        "UOFC_ATTACK_MAP_TEAM_SUMMARY.csv"
+        "UOFC_ATTACK_MAP_EVENTS.csv"
       )
-    )
-  ),
+    ),
 
-  # ----------------------------------------------------------
-  # ROTATION
-  # ----------------------------------------------------------
-
-  nav_panel(
-
-    "Rotation",
-
-    value = "Rotation",
-
-    module_page(
+    # Rotation
+    analysis_section(
       "ROTATION ANALYSIS",
-
-      "Performance by rotation",
-
-      "Compare sideout and breakpoint performance across the six rotations, with season and match context.",
-
-      c(
-        "Rotation performance",
-        "Sideout trends",
-        "Rotation comparison"
-      ),
-
+      "Compare sideout and breakpoint performance across the six rotations.",
       c(
         "ROTATION_DETAILS_SEASON_SUMMARY.csv",
         "ROTATION_DETAILS_ALL_MATCHES.csv"
       )
-    )
-  ),
+    ),
 
-  # ----------------------------------------------------------
-  # PASSING
-  # ----------------------------------------------------------
-
-  nav_panel(
-
-    "Passing",
-
-    value = "Passing",
-
-    module_page(
-      "RECEPTION ANALYSIS",
-
-      "Passing performance",
-
-      "Review reception quality, pass destinations and individual passer contributions.",
-
-      c(
-        "Reception quality",
-        "Pass destination map",
-        "Individual passers"
-      ),
-
+    # Passing
+    analysis_section(
+      "PASSING ANALYSIS",
+      "Review reception quality, pass destinations, individual passers and attack outcomes following reception.",
       c(
         "UOFC_PASSING_MAP_EVENTS.csv",
         "UOFC_PASSING_CATEGORY_SUMMARY.csv",
         "UOFC_PASSING_PLAYER_SUMMARY.csv"
       )
-    )
-  ),
+    ),
 
-  # ----------------------------------------------------------
-  # SERVING
-  # ----------------------------------------------------------
-
-  nav_panel(
-
-    "Serving",
-
-    value = "Serving",
-
-    module_page(
-      "SERVE ANALYSIS",
-
-      "Serving performance",
-
+    # Serving
+    analysis_section(
+      "SERVING ANALYSIS",
       "Explore serve locations, reception pressure, serving outcomes and individual server performance.",
-
-      c(
-        "Serve distribution",
-        "Reception pressure",
-        "Individual servers"
-      ),
-
       c(
         "UOFC_SERVING_MAP_EVENTS.csv",
         "UOFC_SERVING_MAP_TEAM_BY_ZONE.csv",
         "UOFC_SERVING_MAP_PLAYER_TOTALS.csv"
       )
-    )
-  ),
+    ),
 
-  # ----------------------------------------------------------
-  # BLOCKING
-  # ----------------------------------------------------------
-
-  nav_panel(
-
-    "Blocking",
-
-    value = "Blocking",
-
-    module_page(
+    # Blocking
+    analysis_section(
       "BLOCKING ANALYSIS",
-
-      "Blocking vs opponent attack types",
-
-      "Evaluate how the Dinos' block performs against opponent attack combinations and individual blockers.",
-
-      c(
-        "Block outcomes by attack type",
-        "Individual blockers",
-        "Block-point and positive-touch rates"
-      ),
-
+      "Evaluate block points, positive and negative block outcomes, and blocking performance against opponent attack types.",
       c(
         "UOFC_BLOCKING_VS_ATTACK_EVENTS.csv",
         "UOFC_BLOCKING_BY_ATTACK_TYPE.csv",
         "UOFC_INDIVIDUAL_BLOCKING_BY_ATTACK_TYPE.csv",
         "UOFC_INDIVIDUAL_BLOCKING_TOTALS.csv"
+      )
+    ),
+
+    # Benchmark
+    analysis_section(
+      "TEAM BENCHMARKS",
+      "Compare team performance against the available benchmark metrics.",
+      "BENCHMARK_METRICS_UOFC_ONLY.csv"
+    )
+  )
+}
+
+# ------------------------------------------------------------
+# USER INTERFACE
+# ------------------------------------------------------------
+
+ui <- fluidPage(
+
+  tags$head(
+
+    tags$title("Dinos Volleyball Analytics"),
+
+    tags$link(
+      rel = "stylesheet",
+      href = "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    ),
+
+    tags$link(
+      rel = "stylesheet",
+      href = "style.css"
+    ),
+
+    tags$link(
+      rel = "stylesheet",
+      href = "app.css"
+    )
+  ),
+
+  # ----------------------------------------------------------
+  # LARGE DINOS HEADER
+  # ----------------------------------------------------------
+
+  div(
+    class = "dinos-dashboard-header",
+
+    div(
+      class = "dinos-brand-area",
+
+      if (file.exists("www/dinos_logo.png")) {
+
+        tags$img(
+          src = "dinos_logo.png",
+          class = "dinos-team-logo",
+          alt = "University of Calgary Dinos"
+        )
+
+      } else {
+
+        div(
+          class = "logo-placeholder",
+          "DINOS"
+        )
+      },
+
+      div(
+        class = "dinos-brand-copy",
+
+        h1("DINOS VOLLEYBALL ANALYTICS"),
+
+        div(
+          class = "dinos-season-label",
+
+          span("CALGARY"),
+          span(class = "meta-dot", "·"),
+          span("CANADA WEST"),
+          span(class = "meta-dot", "·"),
+          span("2026/27")
+        )
+      )
+    ),
+
+    div(
+      class = "header-right",
+
+      div(
+        class = "header-context",
+
+        div(
+          class = "header-context-label",
+          "TEAM"
+        ),
+
+        div(
+          class = "header-context-value",
+          "University of Calgary"
+        ),
+
+        div(
+          class = "header-context-note",
+          "Women's Volleyball"
+        )
+      ),
+
+      div(class = "header-divider"),
+
+      div(
+        class = "header-season-mark",
+
+        div(
+          class = "header-season-label",
+          "SEASON"
+        ),
+
+        div(
+          class = "header-season-value",
+          "2026/27"
+        )
+      )
+    )
+  ),
+
+  # ----------------------------------------------------------
+  # FIVE PERIOD SELECTORS
+  # ----------------------------------------------------------
+
+  navset_pill(
+
+    id = "period_view",
+
+    selected = "MOST RECENT MATCH",
+
+    nav_panel(
+      "MOST RECENT MATCH",
+      value = "MOST RECENT MATCH",
+
+      period_page(
+        "Most Recent Match",
+        "Team performance overview for the latest completed match."
+      )
+    ),
+
+    nav_panel(
+      "PREVIOUS MATCH",
+      value = "PREVIOUS MATCH",
+
+      period_page(
+        "Previous Match",
+        "Team performance overview for the match immediately before the latest match."
+      )
+    ),
+
+    nav_panel(
+      "LAST 5",
+      value = "LAST 5",
+
+      period_page(
+        "Last 5 Matches",
+        "Performance trends and team analysis across the five most recent completed matches."
+      )
+    ),
+
+    nav_panel(
+      "LAST 10",
+      value = "LAST 10",
+
+      period_page(
+        "Last 10 Matches",
+        "Performance trends and team analysis across the ten most recent completed matches."
+      )
+    ),
+
+    nav_panel(
+      "FULL SEASON",
+      value = "FULL SEASON",
+
+      period_page(
+        "Full Season",
+        "Complete season performance, player contributions and team tendencies."
       )
     )
   ),
@@ -535,7 +387,7 @@ ui <- page_navbar(
   # FOOTER
   # ----------------------------------------------------------
 
-  footer = tags$div(
+  div(
     class = "app-footer",
     "DINOS VOLLEYBALL ANALYTICS  •  CALGARY  •  CANADA WEST  •  2026/27"
   )
@@ -546,6 +398,9 @@ ui <- page_navbar(
 # ------------------------------------------------------------
 
 server <- function(input, output, session) {
+
+  # Load any available CSV files.
+  # Missing files are expected during initial deployment.
 
   dashboard_data <- reactive({
 
