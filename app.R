@@ -237,14 +237,14 @@ lower_is_better <- function(metric_name) {
   grepl("aced|disruption", metric_name, ignore.case = TRUE)
 }
 
-metric_row_ui <- function(uoc_row, opp_row = NULL) {
+metric_row_ui <- function(uoc_row, opp_row = NULL, show_opponent = TRUE) {
   metric_name <- as.character(uoc_row$metric_name[1])
   category <- as.character(uoc_row$metric_category[1])
   uoc_raw <- as.numeric(uoc_row$metric_value[1])
   uoc_value <- metric_value_for_display(uoc_raw, metric_name)
 
   opp_raw <- NA_real_
-  if (!is.null(opp_row) && nrow(opp_row)) {
+  if (isTRUE(show_opponent) && !is.null(opp_row) && nrow(opp_row)) {
     opp_raw <- as.numeric(opp_row$metric_value[1])
   }
   opp_value <- if (!is.na(opp_raw)) {
@@ -290,7 +290,7 @@ metric_row_ui <- function(uoc_row, opp_row = NULL) {
   )
 }
 
-metrics_panel_ui <- function(data, title_suffix = NULL) {
+metrics_panel_ui <- function(data, title_suffix = NULL, show_opponent = TRUE) {
   if (is.null(data) || !nrow(data)) {
     return(div(class = "empty-message", "No key metrics are available for this match."))
   }
@@ -316,7 +316,8 @@ metrics_panel_ui <- function(data, title_suffix = NULL) {
         lapply(seq_len(nrow(cat_rows)), function(i) {
           opp_row <- opp[opp$metric_name == cat_rows$metric_name[i], , drop = FALSE]
           metric_row_ui(cat_rows[i, , drop = FALSE],
-                        if (nrow(opp_row)) opp_row[1, , drop = FALSE] else NULL)
+                        if (nrow(opp_row)) opp_row[1, , drop = FALSE] else NULL,
+                        show_opponent = show_opponent)
         })
       )
     })
@@ -666,7 +667,24 @@ server <- function(input, output, session) {
     is_pct <- !is_efficiency_metric(agg$metric_name)
     agg$metric_value[is_pct] <- 100 * agg$metric_value[is_pct]
     agg$match_id <- "aggregate"
-    agg$metric_formula <- ""
+    # Retain the metric descriptions/formulas from the latest match so that
+    # rolling and season views explain each metric just like match views.
+    formula_reference <- reference_rows[
+      grepl("University of Calgary", reference_rows$team, ignore.case = TRUE),
+      c("metric_category", "metric_name", "metric_formula"),
+      drop = FALSE
+    ]
+    formula_reference <- formula_reference[!duplicated(
+      formula_reference[c("metric_category", "metric_name")]
+    ), , drop = FALSE]
+    agg <- merge(
+      agg,
+      formula_reference,
+      by = c("metric_category", "metric_name"),
+      all.x = TRUE,
+      sort = FALSE
+    )
+    agg$metric_formula[is.na(agg$metric_formula)] <- ""
 
     agg$metric_category <- factor(agg$metric_category, levels = category_order)
     agg$metric_name <- factor(agg$metric_name, levels = metric_order)
@@ -676,7 +694,7 @@ server <- function(input, output, session) {
 
     div(class = "metric-section",
       div(class = "metric-section-title", "KEY METRICS · COMBINED PERIOD"),
-      metrics_panel_ui(agg)
+      metrics_panel_ui(agg, show_opponent = FALSE)
     )
   })
 
