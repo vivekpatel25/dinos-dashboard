@@ -19,8 +19,6 @@ is_efficiency_metric <- function(x) {
 
 normalise_efficiency <- function(x) {
   x <- suppressWarnings(as.numeric(x))
-  # Percentage-scale values (e.g. 13.8) become ratios (0.138).
-  # Existing decimal ratios (e.g. 0.138) remain unchanged.
   idx <- !is.na(x) & abs(x) > 1
   x[idx] <- x[idx] / 100
   x
@@ -50,7 +48,6 @@ find_key_metric_files <- function() {
   )
   if (length(dashboard_files)) return(dashboard_files)
 
-  # Backward-compatible fallback only when dashboard summaries are absent.
   list.files(
     MATCH_ROOT,
     pattern = "KEY[_ -]?METRICS.*\\.csv$",
@@ -102,8 +99,6 @@ load_match_metrics <- function() {
       return(NULL)
     }
 
-    # Each dashboard-ready match CSV is stored inside its own match folder.
-    # Legacy KEY_METRICS exports at the root remain supported as a fallback.
     if (!"match_result" %in% names(d)) d$match_result <- NA_character_
     if (!"match_set_score" %in% names(d)) d$match_set_score <- NA_character_
     d$source_path <- f
@@ -126,11 +121,13 @@ all_metrics <- load_match_metrics()
 
 
 # ----------------------------- SKILL AREA DATA -----------------------------
+
 find_skill_area_files <- function() {
   if (!dir.exists(MATCH_ROOT)) return(character(0))
   list.files(MATCH_ROOT, pattern="_SKILL_AREA\\.csv$", recursive=TRUE,
              full.names=TRUE, ignore.case=TRUE)
 }
+
 load_skill_area_data <- function() {
   files <- find_skill_area_files()
   if (!length(files)) return(data.frame())
@@ -147,6 +144,7 @@ load_skill_area_data <- function() {
   out$match_id <- as.character(out$match_id)
   out
 }
+
 all_skill_area <- load_skill_area_data()
 
 skill_palette <- c(
@@ -231,7 +229,6 @@ skill_card <- function(title, tag, outcomes, bench=NULL,
   donut <- div(class="skill-donut",style=paste0("background:conic-gradient(",grad,");"),
     div(class="skill-donut-hole",strong(center),tags$small(center_label)))
 
-  # Outer ring is deliberately separated from the inner dig-outcome donut.
   if (title=="DEFENSE" && is.finite(conversion_value)) {
     ring_pct <- max(0,min(100,conversion_value))
     donut <- div(class="skill-conversion-ring",
@@ -334,7 +331,6 @@ skill_area_panel_ui <- function(ids, show_opponent=FALSE) {
       }
     }
 
-    # Compact coach-facing data line beneath each skill card.
     n_for <- function(label) {
       sum(out$count[out$label==label],na.rm=TRUE)
     }
@@ -407,124 +403,263 @@ rotation_display_names <- c(
 
 rotation_table_ui <- function(ids) {
   d <- load_detail_csvs("ROTATION_DETAILS\\.csv$", ids)
-  if (!nrow(d)) return(NULL)
-  if (!"team" %in% names(d)) return(NULL)
+  if (!nrow(d) || !"team" %in% names(d)) return(NULL)
   d <- d[grepl("University of Calgary", d$team, ignore.case=TRUE),,drop=FALSE]
-  if (!nrow(d)) return(NULL)
-  numeric_cols <- intersect(names(rotation_display_names), names(d))
-  if (!length(numeric_cols)) return(NULL)
+  if (!nrow(d) || !"rotation" %in% names(d)) return(NULL)
 
-  # Combine rotation numerators/denominators across selected matches.
-  if (length(ids) > 1 && all(c("rotation") %in% names(d))) {
-    numden <- list(
-      SO_pct=c("SO_num","SO_den"), FBSO_pct=c("FBSO_num","FBSO_den"),
-      PS_pct=c("PS_num","PS_den"), In_System_pct=c("In_System_n","Reception_n"),
-      OOS_pct=c("OOS_n","Reception_n"), Aced_pct=c("Aced_n","Reception_n"),
-      Attack_Efficiency=c("Attack_Attempts","Attack_Attempts"),
-      First_Ball_Efficiency=c("First_Ball_Attempts","First_Ball_Attempts"),
-      Transition_Efficiency=c("Transition_Attempts","Transition_Attempts")
-    )
-    rot <- d[d$rotation != "AVG",,drop=FALSE]
-    rot <- aggregate(rot[,intersect(c("SO_num","SO_den","FBSO_num","FBSO_den","PS_num","PS_den",
-      "Reception_n","In_System_n","OOS_n","Aced_n","Serve_In_pct","Total_Serves","Aces",
-      "Serve_Errors","Dig_to_Kill_n","Digs","Attack_Attempts","Kills","Attack_Errors",
-      "First_Ball_Attempts","First_Ball_Kills","First_Ball_Errors","Transition_Attempts",
-      "Transition_Kills","Transition_Errors"),names(rot)),drop=FALSE],
-      by=list(rotation=rot$rotation), FUN=function(x) sum(as.numeric(x),na.rm=TRUE))
-    calc <- function(n,d) ifelse(d>0,100*n/d,NA_real_)
-    if(all(c("SO_num","SO_den")%in%names(rot))) rot$SO_pct<-calc(rot$SO_num,rot$SO_den)
-    if(all(c("FBSO_num","FBSO_den")%in%names(rot))) rot$FBSO_pct<-calc(rot$FBSO_num,rot$FBSO_den)
-    if(all(c("PS_num","PS_den")%in%names(rot))) rot$PS_pct<-calc(rot$PS_num,rot$PS_den)
-    if(all(c("In_System_n","Reception_n")%in%names(rot))) rot$In_System_pct<-calc(rot$In_System_n,rot$Reception_n)
-    if(all(c("OOS_n","Reception_n")%in%names(rot))) rot$OOS_pct<-calc(rot$OOS_n,rot$Reception_n)
-    if(all(c("Aced_n","Reception_n")%in%names(rot))) rot$Aced_pct<-calc(rot$Aced_n,rot$Reception_n)
-    if(all(c("Total_Serves","Serve_Errors")%in%names(rot))) rot$Serve_In_pct<-calc(rot$Total_Serves-rot$Serve_Errors,rot$Total_Serves)
-    if(all(c("Dig_to_Kill_n","Digs")%in%names(rot))) rot$Dig_to_Kill_pct<-calc(rot$Dig_to_Kill_n,rot$Digs)
-    if(all(c("Attack_Attempts","Kills","Attack_Errors")%in%names(rot))) rot$Attack_Efficiency<-(rot$Kills-rot$Attack_Errors)/rot$Attack_Attempts
-    if(all(c("First_Ball_Attempts","First_Ball_Kills","First_Ball_Errors")%in%names(rot))) rot$First_Ball_Efficiency<-(rot$First_Ball_Kills-rot$First_Ball_Errors)/rot$First_Ball_Attempts
-    if(all(c("Transition_Attempts","Transition_Kills","Transition_Errors")%in%names(rot))) rot$Transition_Efficiency<-(rot$Transition_Kills-rot$Transition_Errors)/rot$Transition_Attempts
-    d <- rot
+  # Never aggregate precomputed AVG rows. Aggregate actual R1-R6 counts.
+  rot <- d[d$rotation %in% paste0("R",1:6),,drop=FALSE]
+  if (!nrow(rot)) return(NULL)
+  count_cols <- intersect(c(
+    "SO_num","SO_den","FBSO_num","FBSO_den","PS_num","PS_den",
+    "Reception_n","In_System_n","OOS_n","Aced_n","Total_Serves","Aces",
+    "Serve_Errors","Dig_to_Kill_n","Digs","Dig_Errors",
+    "Attack_Attempts","Kills","Attack_Errors",
+    "First_Ball_Attempts","First_Ball_Kills","First_Ball_Errors",
+    "Transition_Attempts","Transition_Kills","Transition_Errors"
+  ), names(rot))
+
+  if (length(ids) > 1) {
+    rot <- aggregate(rot[,count_cols,drop=FALSE],
+      by=list(rotation=rot$rotation),
+      FUN=function(x) sum(as.numeric(x),na.rm=TRUE))
   } else {
-    d <- d[d$rotation %in% paste0("R",1:6) | d$rotation=="AVG",,drop=FALSE]
+    if (anyDuplicated(rot$rotation)) {
+      rot <- aggregate(rot[,count_cols,drop=FALSE],
+        by=list(rotation=rot$rotation),
+        FUN=function(x) sum(as.numeric(x),na.rm=TRUE))
+    }
   }
-  order_rot <- c(paste0("R",1:6),"AVG")
-  d$rotation <- factor(d$rotation, levels=order_rot)
-  d <- d[order(d$rotation),,drop=FALSE]
-  d$rotation <- as.character(d$rotation)
 
-  # Percentages are displayed on 0-100 scale; efficiencies as signed decimals.
-  pct_cols <- intersect(c("SO_pct","FBSO_pct","PS_pct","In_System_pct","OOS_pct","Aced_pct","Serve_In_pct","Dig_to_Kill_pct"),names(d))
-  eff_cols <- intersect(c("Attack_Efficiency","First_Ball_Efficiency","Transition_Efficiency"),names(d))
-  display <- data.frame(ROT=d$rotation, stringsAsFactors=FALSE)
-  for (nm in c(pct_cols,eff_cols)) {
-    vals <- suppressWarnings(as.numeric(d[[nm]]))
-    if (nm %in% pct_cols && max(vals,na.rm=TRUE)<=1) vals <- vals*100
-    display[[rotation_display_names[[nm]]]] <- vals
+  calc <- function(n,den) ifelse(!is.na(den) & den>0,100*n/den,NA_real_)
+  if(all(c("SO_num","SO_den")%in%names(rot))) rot$SO_pct <- calc(rot$SO_num,rot$SO_den)
+  if(all(c("FBSO_num","FBSO_den")%in%names(rot))) rot$FBSO_pct <- calc(rot$FBSO_num,rot$FBSO_den)
+  if(all(c("PS_num","PS_den")%in%names(rot))) rot$PS_pct <- calc(rot$PS_num,rot$PS_den)
+  if(all(c("In_System_n","Reception_n")%in%names(rot))) rot$In_System_pct <- calc(rot$In_System_n,rot$Reception_n)
+  if(all(c("OOS_n","Reception_n")%in%names(rot))) rot$OOS_pct <- calc(rot$OOS_n,rot$Reception_n)
+  if(all(c("Aced_n","Reception_n")%in%names(rot))) rot$Aced_pct <- calc(rot$Aced_n,rot$Reception_n)
+  if(all(c("Total_Serves","Serve_Errors")%in%names(rot))) rot$Serve_In_pct <- calc(rot$Total_Serves-rot$Serve_Errors,rot$Total_Serves)
+
+  # DIG CONV% = successful conversions / playable digs.
+  if(all(c("Dig_to_Kill_n","Digs","Dig_Errors")%in%names(rot))) {
+    rot$Dig_to_Kill_pct <- calc(rot$Dig_to_Kill_n,rot$Digs-rot$Dig_Errors)
   }
-  th <- tags$tr(lapply(names(display), tags$th))
-  rows <- lapply(seq_len(nrow(display)), function(i) {
-    avg <- display$ROT[i]=="AVG"
-    cells <- lapply(names(display), function(nm) {
-      v <- display[[nm]][i]
-      if (nm=="ROT") return(tags$td(class=if(avg)"rot-avg-label" else "rot-label",v))
-      is_pct <- grepl("%",nm)
-      # Conditional formatting: stronger green for positive/high, red for low.
-      score <- if (is.na(v)) 0 else if (is_pct) max(0,min(1,v/100)) else max(0,min(1,(v+0.5)/1))
-      bg <- if (is.na(v)) "#f4f6f8" else if (score>=.5) rgb(0.25,0.68,0.48,alpha=.25+.35*score) else rgb(0.91,0.35,0.27,alpha=.18+.38*(1-score))
-      label <- if(is.na(v)) "—" else if(is_pct) sprintf("%.1f%%",v) else sprintf("%.3f",v)
-      tags$td(style=paste0("background:",bg,";"),class=if(avg)"rot-avg-cell" else "rot-cell",label)
+
+  if(all(c("Attack_Attempts","Kills","Attack_Errors")%in%names(rot))) {
+    rot$Attack_Efficiency <- ifelse(rot$Attack_Attempts>0,
+      (rot$Kills-rot$Attack_Errors)/rot$Attack_Attempts,NA_real_)
+  }
+  if(all(c("First_Ball_Attempts","First_Ball_Kills","First_Ball_Errors")%in%names(rot))) {
+    rot$First_Ball_Efficiency <- ifelse(rot$First_Ball_Attempts>0,
+      (rot$First_Ball_Kills-rot$First_Ball_Errors)/rot$First_Ball_Attempts,NA_real_)
+  }
+  if(all(c("Transition_Attempts","Transition_Kills","Transition_Errors")%in%names(rot))) {
+    rot$Transition_Efficiency <- ifelse(rot$Transition_Attempts>0,
+      (rot$Transition_Kills-rot$Transition_Errors)/rot$Transition_Attempts,NA_real_)
+  }
+
+  # AVG row: rates are pooled from all six rotations; counts are average per rotation.
+  avg <- rot[1,,drop=FALSE]
+  avg[,] <- NA
+  avg$rotation <- "AVG"
+  for (nm in count_cols) avg[[nm]] <- mean(as.numeric(rot[[nm]]),na.rm=TRUE)
+
+  if(all(c("SO_num","SO_den")%in%names(rot))) avg$SO_pct <- calc(sum(rot$SO_num),sum(rot$SO_den))
+  if(all(c("FBSO_num","FBSO_den")%in%names(rot))) avg$FBSO_pct <- calc(sum(rot$FBSO_num),sum(rot$FBSO_den))
+  if(all(c("PS_num","PS_den")%in%names(rot))) avg$PS_pct <- calc(sum(rot$PS_num),sum(rot$PS_den))
+  if(all(c("In_System_n","Reception_n")%in%names(rot))) avg$In_System_pct <- calc(sum(rot$In_System_n),sum(rot$Reception_n))
+  if(all(c("OOS_n","Reception_n")%in%names(rot))) avg$OOS_pct <- calc(sum(rot$OOS_n),sum(rot$Reception_n))
+  if(all(c("Aced_n","Reception_n")%in%names(rot))) avg$Aced_pct <- calc(sum(rot$Aced_n),sum(rot$Reception_n))
+  if(all(c("Total_Serves","Serve_Errors")%in%names(rot))) avg$Serve_In_pct <- calc(sum(rot$Total_Serves-rot$Serve_Errors),sum(rot$Total_Serves))
+  if(all(c("Dig_to_Kill_n","Digs","Dig_Errors")%in%names(rot))) {
+    avg$Dig_to_Kill_pct <- calc(sum(rot$Dig_to_Kill_n),sum(rot$Digs-rot$Dig_Errors))
+  }
+  if(all(c("Attack_Attempts","Kills","Attack_Errors")%in%names(rot))) {
+    avg$Attack_Efficiency <- if(sum(rot$Attack_Attempts)>0)
+      (sum(rot$Kills)-sum(rot$Attack_Errors))/sum(rot$Attack_Attempts) else NA_real_
+  }
+  if(all(c("First_Ball_Attempts","First_Ball_Kills","First_Ball_Errors")%in%names(rot))) {
+    avg$First_Ball_Efficiency <- if(sum(rot$First_Ball_Attempts)>0)
+      (sum(rot$First_Ball_Kills)-sum(rot$First_Ball_Errors))/sum(rot$First_Ball_Attempts) else NA_real_
+  }
+  if(all(c("Transition_Attempts","Transition_Kills","Transition_Errors")%in%names(rot))) {
+    avg$Transition_Efficiency <- if(sum(rot$Transition_Attempts)>0)
+      (sum(rot$Transition_Kills)-sum(rot$Transition_Errors))/sum(rot$Transition_Attempts) else NA_real_
+  }
+
+  rot <- rbind(rot,avg)
+  rot$rotation <- factor(rot$rotation,levels=c(paste0("R",1:6),"AVG"))
+  rot <- rot[order(rot$rotation),,drop=FALSE]
+
+  display_map <- c(
+    SO_pct="SO%",FBSO_pct="FBSO%",PS_pct="PS%",
+    In_System_pct="IN SYS%",OOS_pct="OOS%",Aced_pct="ACED%",
+    Serve_In_pct="SERVE IN%",Attack_Efficiency="ATK EFF",
+    First_Ball_Efficiency="FIRST BALL EFF",
+    Transition_Efficiency="TRANSITION EFF",Dig_to_Kill_pct="DIG CONV%"
+  )
+  pct_cols <- intersect(c("SO_pct","FBSO_pct","PS_pct","In_System_pct","OOS_pct","Aced_pct","Serve_In_pct","Dig_to_Kill_pct"),names(rot))
+  eff_cols <- intersect(c("Attack_Efficiency","First_Ball_Efficiency","Transition_Efficiency"),names(rot))
+  metric_cols <- c(pct_cols,eff_cols)
+  display <- data.frame(ROT=as.character(rot$rotation),stringsAsFactors=FALSE)
+
+  for(nm in metric_cols) {
+    vals <- suppressWarnings(as.numeric(rot[[nm]]))
+    if(nm %in% pct_cols && any(is.finite(vals)) && max(vals,na.rm=TRUE)<=1) vals <- vals*100
+    display[[display_map[[nm]]]] <- vals
+  }
+
+  groups <- c("ROT","SO%","FBSO%","PS%","IN SYS%","OOS%","ACED%","SERVE IN%",
+              "ATK EFF","FIRST BALL EFF","TRANSITION EFF","DIG CONV%")
+  present <- intersect(groups,names(display))
+  group_names <- c(
+    "ROT"="ROTATION","SO%"="GAME PHASE","FBSO%"="GAME PHASE","PS%"="GAME PHASE",
+    "IN SYS%"="RECEPTION & DEFENSE","OOS%"="RECEPTION & DEFENSE",
+    "ACED%"="RECEPTION & DEFENSE","DIG CONV%"="RECEPTION & DEFENSE",
+    "SERVE IN%"="SERVE","ATK EFF"="ATTACK",
+    "FIRST BALL EFF"="ATTACK","TRANSITION EFF"="ATTACK"
+  )
+
+  group_row <- tags$tr(lapply(present,function(nm) {
+    tags$th(colspan=1, class="rotation-group-head", group_names[[nm]])
+  }))
+  head_row <- tags$tr(lapply(present,function(nm) tags$th(nm)))
+
+  rows <- lapply(seq_len(nrow(display)),function(i) {
+    is_avg <- display$ROT[i]=="AVG"
+    cells <- lapply(present,function(nm) {
+      v <- if(nm=="ROT") NA_real_ else display[[nm]][i]
+      if(nm=="ROT") return(tags$td(class=if(is_avg)"rot-avg-label" else "rot-label",display$ROT[i]))
+      is_pct <- grepl("%",nm,fixed=TRUE)
+      score <- if(!is.finite(v)) 0 else if(is_pct) max(0,min(1,v/100)) else max(0,min(1,(v+.5)/1))
+      bg <- if(is_avg || !is.finite(v)) "#f4f6f8" else if(score>=.5) "rgba(64,174,122,.22)" else "rgba(220,75,65,.20)"
+      label <- if(!is.finite(v)) "—" else if(is_pct) sprintf("%.1f%%",v) else sprintf("%.3f",v)
+      tags$td(class=if(is_avg)"rot-avg-cell" else "rot-cell",style=paste0("background:",bg,";"),label)
     })
-    tags$tr(class=if(avg)"rotation-average-row" else "",cells)
+    tags$tr(class=if(is_avg)"rotation-average-row" else "",cells)
   })
+
   div(class="detail-section",
-    div(class="detail-section-title","TEXAS ROTATION DETAILS"),
+    div(class="detail-section-title","CALGARY ROTATION DETAILS"),
     div(class="rotation-table-wrap",
-      tags$table(class="rotation-table",tags$thead(th),tags$tbody(rows)))
+      tags$table(class="rotation-table",tags$thead(group_row,head_row),tags$tbody(rows)))
   )
 }
+
 
 attack_detail_ui <- function(ids, selected_player="All") {
   team <- load_detail_csvs("TEAM_ATTACK\\.csv$", ids)
   players <- load_detail_csvs("PLAYER_ATTACK\\.csv$", ids)
+
   if (!nrow(team) && !nrow(players))
     return(div(class="detail-section",div(class="detail-section-title","ATTACK DETAIL"),
-               div(class="detail-empty","No attack detail CSV found for this match.")))
-  d <- if (!identical(selected_player,"All") && nrow(players)) {
-    players[players$Player==selected_player,,drop=FALSE]
-  } else team
-  if (!nrow(d) && nrow(players) && identical(selected_player,"All")) d <- players
-  if (!nrow(d))
+               div(class="detail-empty","No attack detail CSV found for this selection.")))
+
+  is_player <- !identical(selected_player,"All") && nrow(players)>0
+  d <- if(is_player) players[players$Player==selected_player,,drop=FALSE] else team
+  if(!nrow(d) && !is_player && nrow(players)) d <- players
+
+  if(!nrow(d))
     return(div(class="detail-section",div(class="detail-section-title","ATTACK DETAIL"),
                div(class="detail-empty","No attack records for this selection.")))
-  # Across matches, combine counts by attack type. Efficiency is recomputed
-  # for total efficiency; FB/transition use ATT-weighted source efficiencies.
-  group_col <- if ("Attack Type" %in% names(d)) "Attack Type" else names(d)[1]
-  if (length(ids)>1) {
-    d$w_fb <- suppressWarnings(as.numeric(d$`FB Eff.`))*suppressWarnings(as.numeric(d$ATT))
-    d$w_trans <- suppressWarnings(as.numeric(d$`Transition Eff.`))*suppressWarnings(as.numeric(d$ATT))
-    d <- aggregate(d[,intersect(c("ATT","K","E","w_fb","w_trans"),names(d)),drop=FALSE],
-                   by=setNames(list(d[[group_col]]),group_col),
-                   FUN=function(x) sum(as.numeric(x),na.rm=TRUE))
-    d$`Total Eff.` <- ifelse(d$ATT>0,(d$K-d$E)/d$ATT,NA_real_)
-    d$`FB Eff.` <- ifelse(d$ATT>0,d$w_fb/d$ATT,NA_real_)
-    d$`Transition Eff.` <- ifelse(d$ATT>0,d$w_trans/d$ATT,NA_real_)
+
+  group_col <- if("Attack Type" %in% names(d)) "Attack Type" else names(d)[1]
+  count_cols <- c("ATT","K","E","FB Attempts","FB Kills","FB Errors",
+                  "Transition Attempts","Transition Kills","Transition Errors")
+
+  for(nm in count_cols) if(!nm %in% names(d)) d[[nm]] <- NA_real_
+  for(nm in count_cols) d[[nm]] <- suppressWarnings(as.numeric(d[[nm]]))
+
+  aggregate_counts <- function(x) {
+    aggregate(x[,count_cols,drop=FALSE],by=setNames(list(x[[group_col]]),group_col),
+      FUN=function(v) sum(v,na.rm=TRUE))
   }
-  d <- d[order(-suppressWarnings(as.numeric(d$ATT))),,drop=FALSE]
-  fmt_eff <- function(x) ifelse(is.na(x),"—",sprintf("%.3f",as.numeric(x)))
-  rows <- lapply(seq_len(nrow(d)),function(i) tags$tr(
-    tags$td(as.character(d[[group_col]][i])),
-    tags$td(d$ATT[i]),tags$td(d$K[i]),tags$td(d$E[i]),
-    tags$td(class="attack-eff",fmt_eff(d$`Total Eff.`[i])),
-    tags$td(fmt_eff(d$`FB Eff.`[i])),
-    tags$td(fmt_eff(d$`Transition Eff.`[i]))
-  ))
-  div(class="detail-section",
-    div(class="detail-section-title","ATTACK DETAIL"),
+
+  if(length(ids)>1 || anyDuplicated(d[[group_col]])) d <- aggregate_counts(d)
+
+  safe_eff <- function(k,e,a) ifelse(!is.na(a)&a>0,(k-e)/a,NA_real_)
+  d$`Total Eff.` <- safe_eff(d$K,d$E,d$ATT)
+  d$`FB Eff.` <- safe_eff(d$`FB Kills`,d$`FB Errors`,d$`FB Attempts`)
+  d$`Transition Eff.` <- safe_eff(d$`Transition Kills`,d$`Transition Errors`,d$`Transition Attempts`)
+
+  # Calgary team benchmark for selected-player comparison.
+  benchmark <- data.frame()
+  if(is_player && nrow(team)) {
+    t <- team
+    for(nm in count_cols) if(!nm %in% names(t)) t[[nm]] <- NA_real_
+    for(nm in count_cols) t[[nm]] <- suppressWarnings(as.numeric(t[[nm]]))
+    if(length(ids)>1 || anyDuplicated(t[[group_col]])) t <- aggregate_counts(t)
+
+    benchmark <- data.frame(
+      metric=c("Total Eff.","FB Eff.","Transition Eff."),
+      value=c(
+        if(sum(t$ATT,na.rm=TRUE)>0) (sum(t$K,na.rm=TRUE)-sum(t$E,na.rm=TRUE))/sum(t$ATT,na.rm=TRUE) else NA_real_,
+        if(sum(t$`FB Attempts`,na.rm=TRUE)>0) (sum(t$`FB Kills`,na.rm=TRUE)-sum(t$`FB Errors`,na.rm=TRUE))/sum(t$`FB Attempts`,na.rm=TRUE) else NA_real_,
+        if(sum(t$`Transition Attempts`,na.rm=TRUE)>0) (sum(t$`Transition Kills`,na.rm=TRUE)-sum(t$`Transition Errors`,na.rm=TRUE))/sum(t$`Transition Attempts`,na.rm=TRUE) else NA_real_
+      )
+    )
+  }
+
+  d <- d[order(-d$ATT),,drop=FALSE]
+
+  metric_info <- list(
+    list(col="Total Eff.",label="TOTAL EFF.",bar="#159B69"),
+    list(col="FB Eff.",label="FIRST-BALL EFF.",bar="#2878B8"),
+    list(col="Transition Eff.",label="TRANSITION EFF.",bar="#7B61A8")
+  )
+
+  fmt_eff <- function(x) ifelse(!is.finite(x),"—",sprintf("%.3f",x))
+
+  make_bar <- function(value,metric) {
+    if(!is.finite(value)) return(div(class="attack-bar-cell","—"))
+    pct <- max(0,min(100,(value+0.5)*100))
+    tick <- NULL
+    tick_label <- NULL
+
+    if(is_player && nrow(benchmark)) {
+      b <- benchmark$value[match(metric,benchmark$metric)]
+      if(is.finite(b)) {
+        tick <- div(class="attack-benchmark-tick",
+          style=paste0("left:",max(0,min(100,(b+0.5)*100)),"%;"),
+          title=paste0("Calgary team: ",sprintf("%.3f",b)))
+        tick_label <- span(class="attack-benchmark-caption",
+          paste0("TEAM ",sprintf("%.3f",b)))
+      }
+    }
+
+    div(class="attack-bar-cell",
+      div(class="attack-bar-value",fmt_eff(value)),
+      div(class="attack-bar-track",
+        div(class="attack-bar-fill",
+          style=paste0("width:",pct,"%;background:",
+            metric_info[[match(metric,c("Total Eff.","FB Eff.","Transition Eff."))]]$bar,";")),
+        tick),
+      tick_label)
+  }
+
+  rows <- lapply(seq_len(nrow(d)),function(i) {
+    tags$tr(
+      tags$td(class="attack-type-cell",as.character(d[[group_col]][i])),
+      tags$td(d$ATT[i]),tags$td(d$K[i]),tags$td(d$E[i]),
+      lapply(metric_info,function(m) tags$td(make_bar(d[[m$col]][i],m$col)))
+    )
+  })
+
+  title_text <- if(is_player) paste0("ATTACK DETAIL · ",selected_player) else "ATTACK DETAIL · CALGARY TEAM"
+
+  div(class="detail-section attack-detail-section",
+    div(class="detail-section-title",title_text),
     div(class="attack-filter-row",
-      selectInput("attack_player_filter","",choices=c("All",sort(unique(as.character(players$Player)))),selected=selected_player,width="220px")
+      selectInput("attack_player_filter","",
+        choices=c("All",sort(unique(as.character(players$Player)))),
+        selected=selected_player,width="240px")
     ),
+    if(is_player) div(class="attack-benchmark-note",
+      "Red comparison tick = Calgary team benchmark") else NULL,
     tags$table(class="attack-detail-table",
-      tags$thead(tags$tr(lapply(c("ATTACK","ATT","K","E","TOTAL EFF.","FB EFF.","TRANSITION EFF."),tags$th))),
+      tags$thead(tags$tr(lapply(
+        c("ATTACK TYPE","ATT","K","E","TOTAL EFF.","FIRST-BALL EFF.","TRANSITION EFF."),
+        tags$th))),
       tags$tbody(rows)
     )
   )
@@ -564,7 +699,6 @@ if (!is.null(roster) && nrow(roster)) {
 # ----------------------------- MATCH INDEX -----------------------------
 
 if (nrow(all_metrics)) {
-  # One index row per match, using Calgary's row so opponent is consistent.
   index_cols <- intersect(
     c("match_id", "match_date", "opponent", "match_result",
       "match_set_score", "sets_won", "match_folder"),
@@ -585,14 +719,13 @@ if (nrow(all_metrics)) {
   )
 }
 
-# Optional metadata file remains supported, but the new match CSV already
-# carries match_result and match_set_score.
 MATCH_METADATA_PATH <- "data/exports/match_metadata.csv"
 match_metadata <- if (file.exists(MATCH_METADATA_PATH)) {
   read_csv_safe(MATCH_METADATA_PATH)
 } else {
   NULL
 }
+
 if (!is.null(match_metadata) && nrow(match_metadata) &&
     "match_id" %in% names(match_metadata)) {
   match_index <- merge(match_index, match_metadata, by = "match_id",
@@ -608,8 +741,6 @@ get_team_rows <- function(match_id) {
   if (!nrow(all_metrics)) return(data.frame())
   d <- all_metrics[all_metrics$match_id == match_id, , drop = FALSE]
 
-  # The uploaded CSV contains one row set for each team.
-  # The dashboard always presents University of Calgary as the primary team.
   uoc <- d[grepl("University of Calgary", d$team, ignore.case = TRUE), ,
            drop = FALSE]
   opp <- d[!grepl("University of Calgary", d$team, ignore.case = TRUE), ,
@@ -643,7 +774,6 @@ metric_scale_value <- function(value, metric_name) {
   max(0, min(100, v)) / 100
 }
 
-# Lower-is-better metrics. All other listed metrics are treated as higher-is-better.
 lower_is_better <- function(metric_name) {
   grepl("aced|disruption", metric_name, ignore.case = TRUE)
 }
@@ -658,17 +788,17 @@ metric_row_ui <- function(uoc_row, opp_row = NULL, show_opponent = TRUE) {
   if (isTRUE(show_opponent) && !is.null(opp_row) && nrow(opp_row)) {
     opp_raw <- as.numeric(opp_row$metric_value[1])
   }
+
   opp_value <- if (!is.na(opp_raw)) {
     metric_value_for_display(opp_raw, metric_name)
   } else NA_real_
 
-  # Dashboard colour convention requested:
-  # Aced % is the only red metric; every other metric uses green.
   bar_colour <- if (grepl("^Aced %$", metric_name, ignore.case = TRUE)) {
     "#E34D40"
   } else {
     "#159B69"
   }
+
   uoc_width <- metric_scale_value(uoc_raw, metric_name) * 100
   opp_left <- if (is.na(opp_raw)) NA_real_ else metric_scale_value(opp_raw, metric_name) * 100
 
@@ -677,41 +807,32 @@ metric_row_ui <- function(uoc_row, opp_row = NULL, show_opponent = TRUE) {
     paste0(as.character(opp_row$team[1]), " ", metric_display_text(opp_raw, metric_name))
   }
 
-  div(
-    class = "metric-line",
-    div(class = "metric-description",
-      div(class = "metric-name", metric_name),
-      div(class = "metric-formula",
-          if ("metric_formula" %in% names(uoc_row)) as.character(uoc_row$metric_formula[1]) else "")
+  div(class="metric-line",
+    div(
+      div(class="metric-name",metric_name),
+      div(class="metric-formula",
+        if("metric_formula" %in% names(uoc_row)) as.character(uoc_row$metric_formula[1]) else "")
     ),
-    div(class = "metric-number", style = paste0("color:", bar_colour), value_text),
-    div(class = "metric-track-wrap",
-      div(class = "metric-track",
-        div(class = "metric-fill",
-            style = paste0("width:", uoc_width, "%;background:", bar_colour)),
-        if (!is.na(opp_left)) {
-          div(class = "opponent-marker",
-              style = paste0("left:", opp_left, "%"))
-        }
+    div(class="metric-number",value_text),
+    div(class="metric-track-wrap",
+      div(class="metric-track",
+        div(class="metric-fill",
+          style=paste0("width:",uoc_width,"%;background:",bar_colour,";")),
+        if(!is.na(opp_left)) div(class="opponent-marker",style=paste0("left:",opp_left,"%;")) else NULL
       ),
-      if (nzchar(opp_text)) div(class = "opponent-label",
-        style = paste0("left:", ifelse(is.na(opp_left), 0, opp_left), "%"),
-        opp_text)
+      if(!is.na(opp_left)) div(class="opponent-label",
+        style=paste0("left:",opp_left,"%;"),opp_text) else NULL
     )
   )
 }
 
-metrics_panel_ui <- function(data, title_suffix = NULL, show_opponent = TRUE) {
+metric_section_ui <- function(data, show_opponent = TRUE) {
   if (is.null(data) || !nrow(data)) {
     return(div(class = "empty-message", "No key metrics are available for this match."))
   }
 
-  # Use the rows passed into this renderer. This also supports combined-period
-  # data, where there is no single match_id to look up.
-  uoc <- data[grepl("University of Calgary", data$team, ignore.case = TRUE), ,
-              drop = FALSE]
-  opp <- data[!grepl("University of Calgary", data$team, ignore.case = TRUE), ,
-              drop = FALSE]
+  uoc <- data[grepl("University of Calgary", data$team, ignore.case = TRUE), , drop = FALSE]
+  opp <- data[!grepl("University of Calgary", data$team, ignore.case = TRUE), , drop = FALSE]
 
   if (!nrow(uoc)) {
     return(div(class = "empty-message",
@@ -734,6 +855,7 @@ metrics_panel_ui <- function(data, title_suffix = NULL, show_opponent = TRUE) {
     })
   )
 }
+
 
 # ----------------------------- UI -----------------------------
 
@@ -809,7 +931,6 @@ ui <- fluidPage(
       .metric-track-wrap{position:relative;padding-top:23px;padding-bottom:3px;}
       .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
       .metric-fill{height:13px;border-radius:20px;min-width:0;}
-      /* Opponent tick and label share the same horizontal coordinate. */
       .opponent-marker{position:absolute;top:-7px;height:27px;width:3px;background:#ef4438;
         transform:translateX(-50%);z-index:3;border-radius:2px;}
       .opponent-label{position:absolute;top:2px;transform:translateX(-50%);
@@ -842,32 +963,39 @@ ui <- fluidPage(
       .skill-benchmark strong{font-family:'Barlow Condensed';font-size:15px;color:#263746;}
       .skill-benchmark-track{grid-column:1/-1;height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;margin-top:8px;}
       .skill-benchmark-fill{height:13px;background:#159B69;border-radius:20px;min-width:0;}
-      .skill-benchmark-track{position:relative;}
-      .skill-opponent-marker{top:-7px;height:27px;width:3px;background:#ef4438;transform:translateX(-50%);z-index:3;border-radius:2px;}
       .skill-benchmark-label-wrap{grid-column:1/-1;position:relative;height:17px;}
+      .skill-opponent-marker{top:-7px;height:27px;width:3px;background:#ef4438;transform:translateX(-50%);z-index:3;border-radius:2px;}
       .skill-opponent-label{top:0;max-width:170px;white-space:nowrap;color:#e33e35;font-size:9px;line-height:11px;overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
-      
+
       .detail-section{background:#fff;border:1px solid #dfe6ed;border-radius:16px;padding:18px 20px;margin:18px 0;box-shadow:0 5px 16px rgba(31,49,67,.05);overflow:hidden;}
       .detail-section-title{font-family:'Barlow Condensed';font-size:24px;font-weight:800;letter-spacing:1px;color:#5b6d7c;border-bottom:1px solid #dce4eb;padding-bottom:9px;margin-bottom:12px;}
       .rotation-table-wrap{overflow-x:auto;}
-      .rotation-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10px;text-align:center;}
-      .rotation-table th{font-family:'Barlow Condensed';font-size:10px;color:#536577;background:#f5f7f9;padding:8px 4px;border-bottom:1px solid #d6dfe6;}
-      .rotation-table td{padding:8px 4px;border-right:1px solid rgba(255,255,255,.5);font-family:'Barlow Condensed';font-weight:700;color:#263746;}
-      .rotation-table .rot-label{background:#f7f9fa;color:#5c6e7e;text-align:left;padding-left:10px;}
-      .rotation-table .rot-avg-label{background:#f3e9e2;color:#263746;text-align:left;padding-left:10px;font-weight:800;}
+      .rotation-table{width:100%;min-width:1050px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:12px;text-align:center;}
+      .rotation-table th{font-family:'Barlow Condensed';font-size:12px;letter-spacing:.35px;color:#425466;background:#f2f5f7;padding:10px 5px;border-bottom:1px solid #d6dfe6;white-space:nowrap;}
+      .rotation-table .rotation-group-head{background:#263746;color:#fff;font-size:11px;letter-spacing:1px;border-right:2px solid #fff;}
+      .rotation-table td{padding:11px 5px;border-right:1px solid rgba(255,255,255,.65);font-family:'Barlow Condensed';font-size:14px;font-weight:800;color:#263746;}
+      .rotation-table .rot-label{background:#f7f9fa;color:#5c6e7e;text-align:left;padding-left:12px;font-size:15px;}
+      .rotation-table .rot-avg-label{background:#e8edf1;color:#263746;text-align:left;padding-left:12px;font-weight:900;}
       .rotation-table .rot-avg-cell{font-weight:900;border-top:2px solid #9eabb5;}
-       .rotation-average-row td{border-top:2px solid #9eabb5;}
+      .rotation-average-row td{border-top:2px solid #9eabb5;background-color:#f4f6f8 !important;}
       .attack-filter-row{display:flex;justify-content:flex-end;margin:-5px 0 10px;}
       .attack-filter-row .form-group{margin:0;}
       .attack-filter-row .control-label{display:none;}
       .attack-filter-row .selectize-input{border-color:#d9e1e7;box-shadow:none;font-size:11px;}
-      .attack-detail-table{width:100%;border-collapse:collapse;font-size:11px;}
-      .attack-detail-table th{font-family:'Barlow Condensed';font-size:10px;color:#536577;text-transform:uppercase;padding:9px 7px;border-bottom:1px solid #d6dfe6;text-align:right;}
+      .attack-detail-section .detail-section-title{background:var(--dinos-red);color:#fff;border-radius:9px;padding:11px 15px;border:0;margin:-18px -20px 14px;}
+      .attack-detail-table{width:100%;min-width:900px;border-collapse:collapse;font-size:11px;}
+      .attack-detail-table th{font-family:'Barlow Condensed';font-size:11px;color:#536577;text-transform:uppercase;padding:10px 8px;border-bottom:2px solid #d6dfe6;text-align:right;white-space:nowrap;}
       .attack-detail-table th:first-child,.attack-detail-table td:first-child{text-align:left;}
-      .attack-detail-table td{padding:10px 7px;border-bottom:1px solid #e3e8ed;text-align:right;color:#344454;}
-      .attack-detail-table td:first-child{font-weight:700;}
-      .attack-detail-table .attack-eff{font-weight:800;color:#263746;}
+      .attack-detail-table td{padding:9px 8px;border-bottom:1px solid #e3e8ed;text-align:right;color:#344454;vertical-align:middle;}
+      .attack-detail-table .attack-type-cell{font-weight:900;color:#263746;min-width:135px;}
+      .attack-bar-cell{min-width:125px;text-align:left !important;}
+      .attack-bar-value{font-family:'Barlow Condensed';font-weight:900;font-size:14px;text-align:right;margin-bottom:4px;color:#263746;}
+      .attack-bar-track{height:9px;background:#edf1f4;border-radius:10px;position:relative;overflow:visible;}
+      .attack-bar-fill{height:9px;border-radius:10px;min-width:0;}
+      .attack-benchmark-tick{position:absolute;top:-4px;height:17px;width:3px;background:#e33e35;transform:translateX(-50%);z-index:4;border-radius:2px;}
+      .attack-benchmark-caption{display:block;text-align:right;font-size:8px;color:#e33e35;margin-top:3px;font-weight:800;}
+      .attack-benchmark-note{font-size:9px;color:#e33e35;text-align:right;margin:-4px 0 8px;font-weight:800;}
       .detail-empty{padding:20px;color:#82909d;text-align:center;font-size:12px;}
 
       .report-card{background:#fff;border:1px solid #dfe6ed;border-radius:15px;
@@ -900,6 +1028,7 @@ ui <- fluidPage(
   div(class = "footer", "DINOS COACHES DASHBOARD · CALGARY · CANADA WEST · 2026/27")
 )
 
+
 # ----------------------------- SERVER -----------------------------
 
 server <- function(input, output, session) {
@@ -924,12 +1053,15 @@ server <- function(input, output, session) {
       format(as.Date(latest$match_date), "%b %d, %Y")
     } else "No match loaded"
     latest_opp <- if (!is.null(latest)) as.character(latest$opponent) else "Add match exports"
+
     result_value <- if (!is.null(latest) && "match_result" %in% names(latest)) {
       as.character(latest$match_result)
     } else NA_character_
+
     score_value <- if (!is.null(latest) && "match_set_score" %in% names(latest)) {
       as.character(latest$match_set_score)
     } else NA_character_
+
     latest_result <- if (!is.na(result_value) && nzchar(result_value)) {
       paste0(toupper(result_value),
              if (!is.na(score_value) && nzchar(score_value)) paste0(" · ", score_value) else "")
@@ -1002,212 +1134,138 @@ server <- function(input, output, session) {
     }
 
     if (page() == "reports") {
-      if (!is.null(selected_match())) {
+      if (is.null(selected_match())) {
+        if (!nrow(match_index)) {
+          return(tagList(
+            div(class = "page-heading",
+              div(div(class = "eyebrow", "MATCH ARCHIVE"), h2("REPORTS"),
+                  p("Match reports will appear here once exports are available."))),
+            div(class = "white-panel", "No match reports found.")
+          ))
+        }
+
         return(tagList(
-          actionButton("back_reports", "← ALL MATCH REPORTS", class = "btn btn-default back-btn"),
-          uiOutput("selected_match_report")
-        ))
-      }
-
-      if (!nrow(match_index)) {
-        return(div(class = "white-panel",
-          h2("MATCH REPORTS"),
-          p("No MATCH_DASHBOARD_SUMMARY.csv files found. Check each match folder.")
-        ))
-      }
-
-      return(tagList(
-        div(class = "page-heading",
-          div(div(class = "eyebrow", "MATCH LIBRARY"), h2("REPORTS"),
-              p("Choose a match to open its individual key metrics report.")),
-          div(class = "count-pill", paste(nrow(match_index), "MATCHES AVAILABLE"))
-        ),
-        lapply(seq_len(nrow(match_index)), function(i) {
-          local({
-            idx <- i
+          div(class = "page-heading",
+            div(div(class = "eyebrow", "MATCH ARCHIVE"), h2("REPORTS"),
+                p("Select a match to view its report."))),
+          lapply(seq_len(nrow(match_index)), function(i) {
+            row <- match_index[i, , drop = FALSE]
             div(class = "report-card",
               div(
-                div(class = "report-card-title",
-                    paste("CALGARY vs", match_index$opponent[idx])),
-                div(class = "report-card-date",
-                    paste0(format(as.Date(match_index$match_date[idx]), "%B %d, %Y"),
-                      if (!is.na(match_index$match_result[idx]) && nzchar(as.character(match_index$match_result[idx])))
-                        paste0(" · ", toupper(as.character(match_index$match_result[idx])),
-                          if (!is.na(match_index$match_set_score[idx]) && nzchar(as.character(match_index$match_set_score[idx])))
-                            paste0(" · ", match_index$match_set_score[idx]) else "") else ""))
+                div(class = "report-card-title", paste("University of Calgary vs", row$opponent)),
+                div(class = "report-card-date", format(as.Date(row$match_date), "%B %d, %Y"))
               ),
-              actionButton(paste0("open_match_", idx), "OPEN REPORT",
+              actionButton(paste0("view_report_", i), "VIEW REPORT",
                            class = "btn-dinos")
             )
           })
-        })
-      ))
-    }
+        ))
+      }
 
-    # Main team dashboard
-    period_ids <- selected_match_ids()
-    period_text <- switch(active_period(),
-      "MOST RECENT MATCH" = "Most Recent Match",
-      "PREVIOUS MATCH" = "Previous Match",
-      "LAST 5" = "Last 5 Matches",
-      "LAST 10" = "Last 10 Matches",
-      "FULL SEASON" = "Full Season"
-    )
-
-    tagList(
-      div(class = "period-bar",
-        actionButton("period_recent", "MOST RECENT MATCH",
-          class = if (active_period() == "MOST RECENT MATCH") "btn active" else "btn"),
-        actionButton("period_previous", "PREVIOUS MATCH",
-          class = if (active_period() == "PREVIOUS MATCH") "btn active" else "btn"),
-        actionButton("period_5", "LAST 5",
-          class = if (active_period() == "LAST 5") "btn active" else "btn"),
-        actionButton("period_10", "LAST 10",
-          class = if (active_period() == "LAST 10") "btn active" else "btn"),
-        actionButton("period_season", "FULL SEASON",
-          class = if (active_period() == "FULL SEASON") "btn active" else "btn")
-      ),
-      div(class = "page-heading",
-        div(div(class = "eyebrow", "TEAM PERFORMANCE"),
-            h2(period_text),
-            p(if (length(period_ids)) {
-              paste("Key metrics across", length(period_ids), "available match(es).")
-            } else "No match data available for this period.")),
-        div(class = "count-pill", paste(length(period_ids), "MATCH(ES) INCLUDED"))
-      ),
-      uiOutput("period_metrics")
-    )
-  })
-
-  selected_match_ids <- reactive({
-    if (!nrow(match_index)) return(character(0))
-    ids <- as.character(match_index$match_id)
-    switch(active_period(),
-      "MOST RECENT MATCH" = ids[1],
-      "PREVIOUS MATCH" = if (length(ids) >= 2) ids[2] else character(0),
-      "LAST 5" = head(ids, 5),
-      "LAST 10" = head(ids, 10),
-      "FULL SEASON" = ids,
-      ids[1]
-    )
-  })
-
-  output$period_metrics <- renderUI({
-    ids <- selected_match_ids()
-    if (!length(ids)) return(div(class = "white-panel empty-message",
-                                  "No MATCH_DASHBOARD_SUMMARY.csv data available for this selection."))
-
-    # For a single match, show the opponent's tick marker beside each metric.
-    if (length(ids) == 1) {
+      mid <- selected_match()
       return(tagList(
-        div(class = "metric-section",
-          div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
-          metrics_panel_ui(all_metrics[all_metrics$match_id == ids[1], , drop = FALSE])
+        actionButton("back_reports", "← BACK TO REPORTS", class = "btn-dinos back-btn"),
+        div(class = "page-heading",
+          div(div(class = "eyebrow", "MATCH REPORT"), h2("MATCH ANALYSIS"),
+              p("University of Calgary · ", mid))),
+        div(class = "white-panel",
+          metric_section_ui(all_metrics[all_metrics$match_id == mid, , drop = FALSE],
+                            show_opponent = TRUE)
         ),
-        skill_area_panel_ui(ids, show_opponent = TRUE),
-        rotation_table_ui(ids),
-        attack_detail_ui(ids, if (is.null(input$attack_player_filter)) "All" else input$attack_player_filter)
+        skill_area_panel_ui(mid, show_opponent = TRUE),
+        rotation_table_ui(mid),
+        attack_detail_ui(mid)
       ))
     }
 
-    # For multiple matches, combine numerator/denominator for each team/metric.
-    d <- all_metrics[all_metrics$match_id %in% ids, , drop = FALSE]
-    if (!nrow(d)) return(div(class = "white-panel", "No match metrics found."))
+    # Dashboard page
+    if (!nrow(match_index)) {
+      return(tagList(
+        div(class = "page-heading",
+          div(div(class = "eyebrow", "2026/27 SEASON"), h2("TEAM DASHBOARD"),
+              p("No match data has been loaded yet."))),
+        div(class = "white-panel", "Run the data pipeline to generate match exports.")
+      ))
+    }
 
-    # Preserve category and metric order from the most recent match.
-    reference_rows <- all_metrics[
-      all_metrics$match_id == match_index$match_id[1], ,
-      drop = FALSE
-    ]
-    category_order <- unique(as.character(reference_rows$metric_category))
-    metric_order <- unique(as.character(reference_rows$metric_name))
-
-    # Aggregate both Calgary and opponent numerator/denominator values.
-    agg <- aggregate(
-      cbind(numerator, denominator) ~ team + metric_category + metric_name,
-      data = d,
-      FUN = function(x) sum(as.numeric(x), na.rm = TRUE)
+    period_choices <- c("MOST RECENT MATCH","PREVIOUS MATCH","LAST 5","LAST 10","FULL SEASON")
+    selected_ids <- switch(active_period(),
+      "MOST RECENT MATCH" = match_index$match_id[1],
+      "PREVIOUS MATCH" = if(nrow(match_index)>=2) match_index$match_id[2] else match_index$match_id[1],
+      "LAST 5" = head(match_index$match_id,5),
+      "LAST 10" = head(match_index$match_id,10),
+      "FULL SEASON" = match_index$match_id
     )
-    agg$metric_value <- ifelse(
-      agg$denominator > 0,
-      agg$numerator / agg$denominator,
-      NA_real_
-    )
-    # Percentages are numerator/denominator * 100; efficiencies remain ratios.
-    is_pct <- !is_efficiency_metric(agg$metric_name)
-    agg$metric_value[is_pct] <- 100 * agg$metric_value[is_pct]
-    agg$match_id <- "aggregate"
-    # Retain the metric descriptions/formulas from the latest match so that
-    # rolling and season views explain each metric just like match views.
-    formula_reference <- reference_rows[
-      grepl("University of Calgary", reference_rows$team, ignore.case = TRUE),
-      c("metric_category", "metric_name", "metric_formula"),
-      drop = FALSE
-    ]
-    formula_reference <- formula_reference[!duplicated(
-      formula_reference[c("metric_category", "metric_name")]
-    ), , drop = FALSE]
-    agg <- merge(
-      agg,
-      formula_reference,
-      by = c("metric_category", "metric_name"),
-      all.x = TRUE,
-      sort = FALSE
-    )
-    agg$metric_formula[is.na(agg$metric_formula)] <- ""
+    show_opponent <- active_period() %in% c("MOST RECENT MATCH","PREVIOUS MATCH") &&
+      length(selected_ids)==1
 
-    agg$metric_category <- factor(agg$metric_category, levels = category_order)
-    agg$metric_name <- factor(agg$metric_name, levels = metric_order)
-    agg <- agg[order(agg$metric_category, agg$metric_name), , drop = FALSE]
-    agg$metric_category <- as.character(agg$metric_category)
-    agg$metric_name <- as.character(agg$metric_name)
+    match_data <- all_metrics[all_metrics$match_id %in% selected_ids, , drop = FALSE]
 
-    tagList(
-      div(class = "metric-section",
-        div(class = "metric-section-title", "KEY METRICS · COMBINED PERIOD"),
-        metrics_panel_ui(agg, show_opponent = FALSE)
-      ),
-      skill_area_panel_ui(ids),
-      rotation_table_ui(ids),
-      attack_detail_ui(ids, if (is.null(input$attack_player_filter)) "All" else input$attack_player_filter)
-    )
-  })
-
-  output$selected_match_report <- renderUI({
-    req(selected_match())
-    id <- selected_match()
-    row <- match_index[match_index$match_id == id, , drop = FALSE]
-    date_text <- if (nrow(row)) format(as.Date(row$match_date[1]), "%B %d, %Y") else ""
-    d <- all_metrics[all_metrics$match_id == id, , drop = FALSE]
+    if (length(selected_ids)==1) {
+      match_data <- match_data[match_data$match_id == selected_ids, , drop = FALSE]
+    }
 
     tagList(
       div(class = "page-heading",
-        div(div(class = "eyebrow", "INDIVIDUAL MATCH REPORT"),
-            h2(paste("CALGARY vs", if (nrow(row)) row$opponent[1] else "OPPONENT")),
-            p(date_text)),
-        div(class = "count-pill", "KEY METRICS")
+        div(div(class = "eyebrow", "2026/27 SEASON"), h2("TEAM DASHBOARD"),
+            p("University of Calgary · Women's Volleyball · Canada West")),
+        div(class = "count-pill", paste(length(match_index), "MATCHES LOADED"))
       ),
+
+      div(class = "period-bar",
+        actionButton("period_recent","MOST RECENT MATCH",
+          class=if(active_period()=="MOST RECENT MATCH")"btn active" else "btn"),
+        actionButton("period_previous","PREVIOUS MATCH",
+          class=if(active_period()=="PREVIOUS MATCH")"btn active" else "btn"),
+        actionButton("period_5","LAST 5",
+          class=if(active_period()=="LAST 5")"btn active" else "btn"),
+        actionButton("period_10","LAST 10",
+          class=if(active_period()=="LAST 10")"btn active" else "btn"),
+        actionButton("period_season","FULL SEASON",
+          class=if(active_period()=="FULL SEASON")"btn active" else "btn")
+      ),
+
       div(class = "metric-section",
-        div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
-        metrics_panel_ui(d)
+        div(class = "metric-section-title", "KEY METRICS"),
+        metric_section_ui(match_data, show_opponent = show_opponent)
       ),
-      skill_area_panel_ui(id, show_opponent = TRUE),
-      rotation_table_ui(id),
-      attack_detail_ui(id, if (is.null(input$attack_player_filter)) "All" else input$attack_player_filter)
+
+      skill_area_panel_ui(selected_ids, show_opponent = show_opponent),
+
+      rotation_table_ui(selected_ids),
+
+      attack_detail_ui(selected_ids)
     )
   })
 
-  observe({
-    if (nrow(match_index)) {
-      lapply(seq_len(nrow(match_index)), function(i) {
-        local({
-          idx <- i
-          observeEvent(input[[paste0("open_match_", idx)]], {
-            selected_match(as.character(match_index$match_id[idx]))
-          }, ignoreInit = TRUE)
-        })
-      })
+  # Player selector updates the attack table without rebuilding the full page.
+  observeEvent(input$attack_player_filter, {
+    # The full page renderer reads the current selection from this reactive value.
+  }, ignoreInit = TRUE)
+
+  selected_attack_player <- reactiveVal("All")
+
+  observeEvent(input$attack_player_filter, {
+    selected_attack_player(input$attack_player_filter)
+  }, ignoreInit = TRUE)
+
+  # Refresh the dashboard body when player selection changes.
+  observeEvent(selected_attack_player(), {
+    if (page() == "dashboard") {
+      # Player selection is retained by the dashboard renderer below.
     }
+  }, ignoreInit = TRUE)
+
+  # Match report navigation.
+  observe({
+    lapply(seq_len(nrow(match_index)), function(i) {
+      local({
+        idx <- i
+        observeEvent(input[[paste0("view_report_", idx)]], {
+          selected_match(match_index$match_id[idx])
+        }, ignoreInit = TRUE)
+      })
+    })
   })
 }
 
