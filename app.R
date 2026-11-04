@@ -268,7 +268,7 @@ ui <- fluidPage(
       div(
         class = "dinos-brand-copy",
 
-        h1("DINOS VOLLEYBALL ANALYTICS"),
+        h1("DINOS COACHES DASHBOARD"),
 
         div(
           class = "dinos-season-label",
