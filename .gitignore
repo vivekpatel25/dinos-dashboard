@@ -1,0 +1,30 @@
+# R files
+.Rhistory
+.RData
+.Ruserdata
+
+# RStudio
+.Rproj.user/
+
+# Original DataVolley files
+*.dvw
+
+# Processed source datasets
+*.parquet
+*.rds
+
+# Excel workbooks
+*.xlsx
+*.xls
+
+# Temporary files
+*.tmp
+*.log
+
+# Operating system
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local project configuration
+*.Rproj
