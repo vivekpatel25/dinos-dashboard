@@ -1225,27 +1225,39 @@ attack_detail_ui <- function(ids, selected_player = "All",
   })
 
   # Two summary bars below the table.
+  # Efficiency bars use a fixed visual scale from -0.500 to +0.500.
+  # The value fill and comparison tick use the exact same scale.
+  efficiency_position <- function(x) {
+    if (length(x) == 0 || !is.finite(x)) return(NA_real_)
+    max(0, min(100, (as.numeric(x) + 0.5) * 100))
+  }
+
   make_summary_bar <- function(metric, label, colour) {
 
     value <- unname(bar_values[metric])
     benchmark <- unname(bar_bench[metric])
 
-    if (!is.finite(value)) value <- NA_real_
-
-    width <- if (is.finite(value)) {
-      max(0, min(100, (value + 0.5) * 100))
-    } else {
-      0
+    if (length(value) == 0 || !is.finite(value)) value <- NA_real_
+    if (length(benchmark) == 0 || !is.finite(benchmark)) {
+      benchmark <- NA_real_
     }
 
-    tick <- if (is.finite(benchmark)) {
-      div(
+    width <- if (is.finite(value)) efficiency_position(value) else 0
+    benchmark_position <- if (is.finite(benchmark)) {
+      efficiency_position(benchmark)
+    } else {
+      NA_real_
+    }
+
+    tick <- if (is.finite(benchmark_position)) {
+      tags$span(
         class = "attack-benchmark-tick",
-        style = paste0(
-          "left:", max(0, min(100, (benchmark + 0.5) * 100)), "%;"
-        ),
+        style = paste0("left:", benchmark_position, "%;"),
         title = paste0(
           bench_label, ": ", sprintf("%.3f", benchmark)
+        ),
+        `aria-label` = paste0(
+          bench_label, " ", sprintf("%.3f", benchmark)
         )
       )
     } else NULL
@@ -1270,13 +1282,11 @@ attack_detail_ui <- function(ids, selected_player = "All",
         tick
       ),
 
-      if (is.finite(benchmark)) {
+      if (is.finite(benchmark_position)) {
         div(
           class = "attack-summary-benchmark",
           span(
-            style = paste0(
-              "left:", max(0, min(100, (benchmark + 0.5) * 100)), "%;"
-            ),
+            style = paste0("left:", benchmark_position, "%;"),
             paste0(
               bench_label, " ", sprintf("%.3f", benchmark)
             )
@@ -1923,11 +1933,22 @@ ui <- fluidPage(
 
       .attack-summary-heading strong{font-family:'Barlow Condensed';font-size:23px;color:#159B69;}
 
-      .attack-summary-track{height:12px;background:#f3e9e2;border-radius:20px;position:relative;overflow:visible;}
-      .attack-summary-fill{height:12px;border-radius:20px;min-width:0;}
+      .attack-summary-track{
+        height:12px;background:#f3e9e2;border-radius:20px;
+        position:relative;overflow:visible;isolation:isolate;
+      }
+      .attack-summary-fill{
+        position:relative;height:12px;border-radius:20px;min-width:0;z-index:1;
+      }
 
-      .attack-benchmark-tick{position:absolute;top:-7px;height:26px;width:3px;background:#ef4438;
-        transform:translateX(-50%);z-index:4;border-radius:2px;}
+      /* Opponent / team benchmark tick: rendered above the efficiency bar. */
+      .attack-benchmark-tick{
+        position:absolute !important;display:block !important;
+        top:-8px !important;height:28px !important;width:4px !important;
+        background:#E53935 !important;border:1px solid #ffffff;
+        border-radius:2px;transform:translateX(-50%);
+        z-index:20 !important;pointer-events:auto;
+      }
 
       .attack-summary-benchmark{position:relative;height:17px;font-size:9px;color:#e33e35;font-weight:700;}
       .attack-summary-benchmark span{position:absolute;transform:translateX(-50%);white-space:nowrap;top:1px;}
