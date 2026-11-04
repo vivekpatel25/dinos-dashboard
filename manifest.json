@@ -453,8 +453,8 @@
       }
     },
     "datavolley": {
-      "Source": "https://openvolley.r-universe.dev",
-      "Repository": null,
+      "Source": "openvolley",
+      "Repository": "https://openvolley.r-universe.dev",
       "description": {
         "Package": "datavolley",
         "Title": "Reading and Analyzing DataVolley Scout Files",
@@ -1850,8 +1850,8 @@
       }
     },
     "vscoututils": {
-      "Source": "https://openvolley.r-universe.dev",
-      "Repository": null,
+      "Source": "openvolley",
+      "Repository": "https://openvolley.r-universe.dev",
       "description": {
         "Package": "vscoututils",
         "Title": "Utility Functions for Volleyball Scout Files",
