@@ -1115,52 +1115,72 @@ attack_detail_ui <- function(ids, selected_player = "All",
     c(`FB Eff.` = NA_real_, `Transition Eff.` = NA_real_)
   }
 
-  # Opponent values come from the existing Key Metrics export.
+  # Opponent comparison values are read directly from the match KEY_METRICS.csv.
+  # This deliberately does not use MATCH_DASHBOARD_SUMMARY.csv / all_metrics,
+  # because that export may contain a different set of metric rows.
   opponent_metric <- function(kind) {
 
-    if (!isTRUE(show_opponent) || length(ids) != 1 ||
-        !nrow(metric_data)) {
+    if (!isTRUE(show_opponent) || length(ids) != 1) {
       return(NA_real_)
     }
 
-    z <- metric_data[
-      metric_data$match_id %in% as.character(ids) &
-        !grepl("University of Calgary", metric_data$team, ignore.case = TRUE),
+    key_metrics <- load_detail_csvs("KEY_METRICS.*\\.csv$", ids)
+
+    if (!nrow(key_metrics)) {
+      return(NA_real_)
+    }
+
+    required_cols <- c("team", "metric_name", "metric_value")
+    if (!all(required_cols %in% names(key_metrics))) {
+      return(NA_real_)
+    }
+
+    # Keep only the selected match when the identifier is present.
+    if ("match_id" %in% names(key_metrics)) {
+      key_metrics <- key_metrics[
+        as.character(key_metrics$match_id) %in% as.character(ids),
+        ,
+        drop = FALSE
+      ]
+    }
+
+    if (!nrow(key_metrics)) {
+      return(NA_real_)
+    }
+
+    # The opponent is the team row that is not University of Calgary.
+    opponent_rows <- key_metrics[
+      !grepl("University of Calgary", key_metrics$team, ignore.case = TRUE),
       ,
       drop = FALSE
     ]
 
-    if (!nrow(z)) return(NA_real_)
-
-    # Key Metrics may label these as "First Ball Attack Efficiency",
-    # "First-Ball Eff.", "FB Eff.", or similar. Match the phase and
-    # efficiency wording without requiring the word "attack".
-    nm <- tolower(gsub(
-      "[^a-z0-9]+", " ",
-      trimws(as.character(z$metric_name))
-    ))
-
-    is_eff <- grepl("eff|efficiency", nm)
-
-    if (kind == "FB Eff.") {
-      is_phase <- grepl("first.*ball", nm) |
-        grepl("(^| )fb( |$)", nm)
-    } else {
-      is_phase <- grepl("transition", nm)
+    if (!nrow(opponent_rows)) {
+      return(NA_real_)
     }
 
-    hit <- is_phase & is_eff
+    metric_names <- tolower(trimws(as.character(opponent_rows$metric_name)))
+    metric_names <- gsub("[^a-z0-9]+", " ", metric_names)
+    metric_names <- trimws(metric_names)
 
-    vals <- suppressWarnings(as.numeric(z$metric_value[hit]))
+    if (kind == "FB Eff.") {
+      # Exact Key Metrics label: "First Ball Atk Eff"
+      hit <- grepl("^first ball atk eff$", metric_names)
+    } else {
+      # Exact Key Metrics label: "Transition Atk Eff"
+      hit <- grepl("^transition atk eff$", metric_names)
+    }
+
+    vals <- suppressWarnings(as.numeric(opponent_rows$metric_value[hit]))
     vals <- vals[is.finite(vals)]
 
     if (!length(vals)) {
-      NA_real_
-    } else {
-      # Key Metrics can store efficiencies as either decimals or
-      # percentages. Convert to the decimal scale used by the attack bars.
-      normalise_efficiency(vals[1])
+      return(NA_real_)
     }
+
+    # Key Metrics efficiencies are decimals (e.g. 0.295), while the
+    # attack summary bars also use decimal efficiency values.
+    normalise_efficiency(vals[1])
   }
 
   if (is_player) {
@@ -1356,7 +1376,7 @@ attack_detail_ui <- function(ids, selected_player = "All",
     } else if (isTRUE(show_opponent)) {
       div(
         class = "attack-benchmark-note",
-        "Red comparison tick = opponent value from Key Metrics"
+        "Red comparison tick = opponent value from match KEY_METRICS.csv"
       )
     }
   )
