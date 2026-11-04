@@ -248,12 +248,34 @@ skill_area_panel_ui <- function(ids) {
     out <- skill_outcomes(d,z$section)
     bn <- if(z$section=="Serve") "Disruption %" else if(z$section=="Dig") "Conversion %" else NA_character_
     b <- if (is.na(bn)) data.frame() else
-      d[d$export_type=="benchmark" & d$metric_name==bn &
-        d$benchmark_side=="UofC value",,drop=FALSE]
-    if(nrow(b)) {
-      b$numerator <- as.numeric(b$numerator); b$event_count <- as.numeric(b$event_count)
-      b <- aggregate(cbind(numerator,event_count)~metric_name,b,sum,na.rm=TRUE)
-      b$metric_value <- ifelse(b$event_count>0,100*b$numerator/b$event_count,NA_real_)
+      d[d$export_type == "benchmark" &
+          d$metric_name == bn &
+          d$benchmark_side == "UofC value", , drop = FALSE]
+
+    # Benchmark exports store the denominator in `denominator`.
+    # `event_count` is intentionally blank for these rows, so aggregating
+    # event_count caused aggregate.data.frame() to drop every row.
+    if (nrow(b) && all(c("numerator", "denominator") %in% names(b))) {
+      b$numerator <- suppressWarnings(as.numeric(b$numerator))
+      b$denominator <- suppressWarnings(as.numeric(b$denominator))
+      b <- b[is.finite(b$numerator) & is.finite(b$denominator) &
+               b$denominator > 0, , drop = FALSE]
+    }
+
+    if (nrow(b)) {
+      b <- stats::aggregate(
+        cbind(numerator, denominator) ~ metric_name,
+        data = b,
+        FUN = sum,
+        na.rm = TRUE
+      )
+      b$metric_value <- ifelse(
+        b$denominator > 0,
+        100 * b$numerator / b$denominator,
+        NA_real_
+      )
+    } else {
+      b <- data.frame()
     }
     skill_card(z$title,z$tag,out,b)
   })
