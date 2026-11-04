@@ -510,3 +510,40 @@ body {
     font-size: 15px;
   }
 }
+/* ==========================================
+   ATTACK EFFICIENCY – OPPONENT TICK MARKERS
+   ========================================== */
+
+.attack-bar-track {
+    position: relative !important;
+    overflow: visible !important;
+    isolation: isolate;
+}
+
+.attack-bar-fill {
+    position: relative;
+    z-index: 1;
+}
+
+.attack-benchmark-tick {
+    position: absolute !important;
+    top: -5px !important;
+    height: 19px !important;
+    width: 4px !important;
+    background: #E53935 !important;
+    border: 1px solid #ffffff;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    z-index: 20 !important;
+    display: block !important;
+    pointer-events: auto;
+}
+
+.attack-benchmark-caption {
+    display: block !important;
+    color: #E53935 !important;
+    font-size: 9px;
+    font-weight: 800;
+    text-align: right;
+    margin-top: 4px;
+}
