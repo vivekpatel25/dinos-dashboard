@@ -1,5 +1,8 @@
-/* Dinos Volleyball Analytics - app shell additions
-   Load after the shared red style.css. */
+
+/* ============================================================
+   DINOS VOLLEYBALL ANALYTICS
+   Header inspired by Huskies Coaches Dashboard
+   ============================================================ */
 
 :root {
   --dinos-red: #C8102E;
@@ -8,123 +11,174 @@
   --dinos-ink: #263746;
 }
 
-body {
-  background: #f3f4f6;
-  color: var(--dinos-ink);
-  font-family: "Inter", sans-serif;
-}
+/* NAVIGATION */
 
 .navbar {
   background: #ffffff !important;
-  border-bottom: 3px solid var(--dinos-red) !important;
-  box-shadow: 0 3px 14px rgba(25, 45, 65, 0.07);
+  border-bottom: 1px solid #e2e7eb !important;
+  box-shadow: 0 2px 10px rgba(25, 45, 65, 0.045);
+  min-height: 56px;
 }
 
-.navbar .navbar-brand,
+.navbar .navbar-brand {
+  display: none !important;
+}
+
 .navbar .nav-link {
-  color: #263746 !important;
+  color: #536170 !important;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 16px;
   font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 17px 19px !important;
 }
 
-.navbar .nav-link.active,
-.navbar .nav-link:hover {
+.navbar .nav-link:hover,
+.navbar .nav-link.active {
   color: var(--dinos-red) !important;
 }
 
 .navbar .nav-link.active {
-  border-bottom: 3px solid var(--dinos-red);
+  box-shadow: inset 0 -3px 0 var(--dinos-red);
 }
 
-.navbar-brand-wrap {
+/* LARGE TEAM HEADER */
+
+.dinos-dashboard-header {
+  width: calc(100% - 38px);
+  max-width: 1680px;
+  min-height: 142px;
+  margin: 18px auto 16px;
+  padding: 20px 30px;
+  background: #ffffff;
+  border: 1px solid #e2e7eb;
+  border-radius: 20px;
+  box-shadow: 0 7px 20px rgba(25, 45, 65, 0.075);
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.navbar-logo {
-  width: 42px;
-  height: 42px;
-  object-fit: contain;
-}
-
-.navbar-title {
-  color: var(--dinos-red);
-  font-family: "Barlow Condensed", sans-serif;
-  font-size: 25px;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-
-.navbar-subtitle {
-  color: #697785;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  margin-left: 3px;
-}
-
-.app-intro {
-  max-width: 1500px;
-  margin: 22px auto 8px;
-  padding: 26px 30px;
-  border-radius: 18px;
-  background: linear-gradient(115deg, #ffffff 0%, #fff8f9 100%);
-  border: 1px solid #f0d8dd;
-  box-shadow: 0 6px 20px rgba(60, 25, 35, 0.06);
-  display: flex;
   justify-content: space-between;
+  gap: 28px;
+}
+
+.dinos-brand-area {
+  display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 26px;
+  min-width: 0;
 }
 
-.intro-kicker,
-.section-kicker {
+.dinos-team-logo {
+  width: 168px;
+  height: 105px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.logo-placeholder {
+  width: 150px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--dinos-red);
-  font-size: 10px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 34px;
   font-weight: 800;
-  letter-spacing: 1.7px;
-  margin-bottom: 7px;
 }
 
-.app-intro h1 {
+.dinos-brand-copy {
+  min-width: 0;
+}
+
+.dinos-brand-copy h1 {
+  color: #263746;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: clamp(30px, 3.2vw, 49px);
+  font-weight: 800;
+  letter-spacing: 0.15px;
+  line-height: 0.98;
   margin: 0;
-  color: #202b36;
-  font-family: "Barlow Condensed", sans-serif;
-  font-size: clamp(32px, 4vw, 48px);
-  font-weight: 800;
-  line-height: 1;
+  white-space: nowrap;
 }
 
-.app-intro p {
-  color: #75818d;
-  margin: 9px 0 0;
+.dinos-season-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #748292;
+  font-family: "Inter", sans-serif;
   font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  margin-top: 12px;
 }
 
-.season-chip {
-  min-width: 112px;
-  padding: 12px 18px;
-  border-radius: 12px;
-  background: var(--dinos-red);
-  color: white;
-  text-align: center;
+.dinos-season-label .meta-dot {
+  color: var(--dinos-red);
+  font-weight: 800;
+  font-size: 17px;
 }
 
-.season-chip-label {
-  display: block;
-  font-size: 9px;
+/* HEADER RIGHT SIDE */
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.header-context-label,
+.header-season-label {
+  color: #82909d;
+  font-size: 10px;
   letter-spacing: 1.5px;
-  opacity: 0.85;
+  font-weight: 700;
 }
 
-.season-chip strong {
-  display: block;
+.header-context-value {
+  color: #263746;
   font-family: "Barlow Condensed", sans-serif;
-  font-size: 22px;
+  font-size: 23px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.header-context-note {
+  color: #82909d;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.header-divider {
+  height: 62px;
+  width: 1px;
+  background: #e0e5ea;
+}
+
+.header-season-mark {
+  min-width: 105px;
+}
+
+.header-season-value {
+  color: var(--dinos-red);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+/* MAIN CONTENT */
+
+body {
+  background: #eef1f4;
+  color: var(--dinos-ink);
+  font-family: "Inter", sans-serif;
 }
 
 .page-content {
-  max-width: 1500px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 20px 24px 34px;
 }
@@ -138,7 +192,7 @@ body {
 }
 
 .section-heading h2 {
-  color: #202b36;
+  color: #263746;
   font-family: "Barlow Condensed", sans-serif;
   font-size: 32px;
   font-weight: 700;
@@ -149,6 +203,14 @@ body {
   color: #77838e;
   font-size: 13px;
   margin: 5px 0 0;
+}
+
+.section-kicker {
+  color: var(--dinos-red);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.7px;
+  margin-bottom: 7px;
 }
 
 .data-pill,
@@ -166,6 +228,8 @@ body {
   padding: 7px 11px;
   white-space: nowrap;
 }
+
+/* KPI CARDS */
 
 .metric-grid {
   display: grid;
@@ -209,6 +273,8 @@ body {
   font-size: 10px;
 }
 
+/* CONTENT PANELS */
+
 .content-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -240,6 +306,8 @@ body {
   font-weight: 700;
   margin: 0;
 }
+
+/* EMPTY DATA STATE */
 
 .empty-state {
   min-height: 210px;
@@ -287,6 +355,8 @@ body {
   padding-left: 18px;
 }
 
+/* MODULE FEATURE TILES */
+
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -318,6 +388,8 @@ body {
   margin-top: 16px;
 }
 
+/* FOOTER */
+
 .app-footer {
   color: #9aa3ac;
   font-size: 9px;
@@ -327,38 +399,54 @@ body {
   text-align: center;
 }
 
-@media (max-width: 900px) {
-  .metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* RESPONSIVE */
+
+@media (max-width: 1000px) {
+
+  .dinos-dashboard-header {
+    padding: 18px 22px;
   }
 
-  .app-intro {
-    margin: 14px 12px 8px;
+  .dinos-team-logo {
+    width: 125px;
+    height: 90px;
   }
 
-  .page-content {
-    padding: 16px 14px 28px;
+  .dinos-brand-area {
+    gap: 16px;
+  }
+
+  .header-right {
+    gap: 14px;
+  }
+
+  .header-context-value {
+    font-size: 19px;
   }
 }
 
-@media (max-width: 600px) {
-  .navbar-subtitle {
-    display: none;
-  }
+@media (max-width: 760px) {
 
-  .app-intro {
-    align-items: flex-start;
-    padding: 20px;
-  }
-
-  .season-chip {
-    min-width: 88px;
-    padding: 9px 11px;
-  }
-
-  .section-heading {
+  .dinos-dashboard-header {
     align-items: flex-start;
     flex-direction: column;
+    gap: 15px;
+  }
+
+  .dinos-brand-copy h1 {
+    white-space: normal;
+    font-size: 34px;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: flex-end;
+    border-top: 1px solid #e7eaee;
+    padding-top: 12px;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .content-grid,
@@ -369,13 +457,50 @@ body {
   .panel-wide {
     grid-column: auto;
   }
+}
 
-  .metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
+@media (max-width: 520px) {
+
+  .dinos-dashboard-header {
+    width: calc(100% - 20px);
+    margin: 10px auto;
+    padding: 15px;
   }
 
-  .metric-card {
-    padding: 13px;
+  .dinos-team-logo {
+    width: 85px;
+    height: 75px;
+  }
+
+  .dinos-brand-area {
+    gap: 12px;
+  }
+
+  .dinos-brand-copy h1 {
+    font-size: 27px;
+  }
+
+  .dinos-season-label {
+    gap: 5px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    flex-wrap: wrap;
+  }
+
+  .header-context-value {
+    font-size: 17px;
+  }
+
+  .page-content {
+    padding: 14px 12px 26px;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .navbar .nav-link {
+    padding: 12px 10px !important;
   }
 }
