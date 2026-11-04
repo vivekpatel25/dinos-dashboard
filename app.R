@@ -366,6 +366,171 @@ skill_area_panel_ui <- function(ids, show_opponent=FALSE) {
       div(class="skill-grid",cards))
 }
 
+
+# ----------------------------- ROTATION + ATTACK DETAIL DATA -----------------------------
+
+MATCH_DETAIL_ROOT <- MATCH_ROOT
+
+match_dates_for_ids <- function(ids) {
+  if (!length(ids) || !nrow(match_index)) return(character(0))
+  as.character(match_index$match_date[match_index$match_id %in% ids])
+}
+
+find_detail_files <- function(pattern, ids) {
+  dates <- match_dates_for_ids(ids)
+  if (!length(dates) || !dir.exists(MATCH_DETAIL_ROOT)) return(character(0))
+  files <- list.files(MATCH_DETAIL_ROOT, pattern=pattern, recursive=TRUE,
+                      full.names=TRUE, ignore.case=TRUE)
+  files[vapply(files, function(f) {
+    any(vapply(dates, function(dt) grepl(gsub("-", "[-_]", dt), basename(f)),
+               logical(1)))
+  }, logical(1))]
+}
+
+load_detail_csvs <- function(pattern, ids) {
+  files <- find_detail_files(pattern, ids)
+  if (!length(files)) return(data.frame())
+  z <- lapply(files, read_csv_safe)
+  z <- Filter(function(x) !is.null(x) && nrow(x), z)
+  if (!length(z)) return(data.frame())
+  do.call(rbind, z)
+}
+
+rotation_display_names <- c(
+  SO_pct="SO%", FBSO_pct="FBSO%", PS_pct="PS%",
+  In_System_pct="IN SYS%", OOS_pct="OOS%", Aced_pct="ACED%",
+  Serve_In_pct="SERVE IN%", Attack_Efficiency="ATK EFF",
+  First_Ball_Efficiency="FIRST BALL EFF",
+  Transition_Efficiency="TRANSITION EFF",
+  Dig_to_Kill_pct="DIG CONV%"
+)
+
+rotation_table_ui <- function(ids) {
+  d <- load_detail_csvs("ROTATION_DETAILS\\.csv$", ids)
+  if (!nrow(d)) return(NULL)
+  if (!"team" %in% names(d)) return(NULL)
+  d <- d[grepl("University of Calgary", d$team, ignore.case=TRUE),,drop=FALSE]
+  if (!nrow(d)) return(NULL)
+  numeric_cols <- intersect(names(rotation_display_names), names(d))
+  if (!length(numeric_cols)) return(NULL)
+
+  # Combine rotation numerators/denominators across selected matches.
+  if (length(ids) > 1 && all(c("rotation") %in% names(d))) {
+    numden <- list(
+      SO_pct=c("SO_num","SO_den"), FBSO_pct=c("FBSO_num","FBSO_den"),
+      PS_pct=c("PS_num","PS_den"), In_System_pct=c("In_System_n","Reception_n"),
+      OOS_pct=c("OOS_n","Reception_n"), Aced_pct=c("Aced_n","Reception_n"),
+      Attack_Efficiency=c("Attack_Attempts","Attack_Attempts"),
+      First_Ball_Efficiency=c("First_Ball_Attempts","First_Ball_Attempts"),
+      Transition_Efficiency=c("Transition_Attempts","Transition_Attempts")
+    )
+    rot <- d[d$rotation != "AVG",,drop=FALSE]
+    rot <- aggregate(rot[,intersect(c("SO_num","SO_den","FBSO_num","FBSO_den","PS_num","PS_den",
+      "Reception_n","In_System_n","OOS_n","Aced_n","Serve_In_pct","Total_Serves","Aces",
+      "Serve_Errors","Dig_to_Kill_n","Digs","Attack_Attempts","Kills","Attack_Errors",
+      "First_Ball_Attempts","First_Ball_Kills","First_Ball_Errors","Transition_Attempts",
+      "Transition_Kills","Transition_Errors"),names(rot)),drop=FALSE],
+      by=list(rotation=rot$rotation), FUN=function(x) sum(as.numeric(x),na.rm=TRUE))
+    calc <- function(n,d) ifelse(d>0,100*n/d,NA_real_)
+    if(all(c("SO_num","SO_den")%in%names(rot))) rot$SO_pct<-calc(rot$SO_num,rot$SO_den)
+    if(all(c("FBSO_num","FBSO_den")%in%names(rot))) rot$FBSO_pct<-calc(rot$FBSO_num,rot$FBSO_den)
+    if(all(c("PS_num","PS_den")%in%names(rot))) rot$PS_pct<-calc(rot$PS_num,rot$PS_den)
+    if(all(c("In_System_n","Reception_n")%in%names(rot))) rot$In_System_pct<-calc(rot$In_System_n,rot$Reception_n)
+    if(all(c("OOS_n","Reception_n")%in%names(rot))) rot$OOS_pct<-calc(rot$OOS_n,rot$Reception_n)
+    if(all(c("Aced_n","Reception_n")%in%names(rot))) rot$Aced_pct<-calc(rot$Aced_n,rot$Reception_n)
+    if(all(c("Total_Serves","Serve_Errors")%in%names(rot))) rot$Serve_In_pct<-calc(rot$Total_Serves-rot$Serve_Errors,rot$Total_Serves)
+    if(all(c("Dig_to_Kill_n","Digs")%in%names(rot))) rot$Dig_to_Kill_pct<-calc(rot$Dig_to_Kill_n,rot$Digs)
+    if(all(c("Attack_Attempts","Kills","Attack_Errors")%in%names(rot))) rot$Attack_Efficiency<-(rot$Kills-rot$Attack_Errors)/rot$Attack_Attempts
+    if(all(c("First_Ball_Attempts","First_Ball_Kills","First_Ball_Errors")%in%names(rot))) rot$First_Ball_Efficiency<-(rot$First_Ball_Kills-rot$First_Ball_Errors)/rot$First_Ball_Attempts
+    if(all(c("Transition_Attempts","Transition_Kills","Transition_Errors")%in%names(rot))) rot$Transition_Efficiency<-(rot$Transition_Kills-rot$Transition_Errors)/rot$Transition_Attempts
+    d <- rot
+  } else {
+    d <- d[d$rotation %in% paste0("R",1:6) | d$rotation=="AVG",,drop=FALSE]
+  }
+  order_rot <- c(paste0("R",1:6),"AVG")
+  d$rotation <- factor(d$rotation, levels=order_rot)
+  d <- d[order(d$rotation),,drop=FALSE]
+  d$rotation <- as.character(d$rotation)
+
+  # Percentages are displayed on 0-100 scale; efficiencies as signed decimals.
+  pct_cols <- intersect(c("SO_pct","FBSO_pct","PS_pct","In_System_pct","OOS_pct","Aced_pct","Serve_In_pct","Dig_to_Kill_pct"),names(d))
+  eff_cols <- intersect(c("Attack_Efficiency","First_Ball_Efficiency","Transition_Efficiency"),names(d))
+  display <- data.frame(ROT=d$rotation, stringsAsFactors=FALSE)
+  for (nm in c(pct_cols,eff_cols)) {
+    vals <- suppressWarnings(as.numeric(d[[nm]]))
+    if (nm %in% pct_cols && max(vals,na.rm=TRUE)<=1) vals <- vals*100
+    display[[rotation_display_names[[nm]]]] <- vals
+  }
+  th <- tags$tr(lapply(names(display), tags$th))
+  rows <- lapply(seq_len(nrow(display)), function(i) {
+    avg <- display$ROT[i]=="AVG"
+    cells <- lapply(names(display), function(nm) {
+      v <- display[[nm]][i]
+      if (nm=="ROT") return(tags$td(class=if(avg)"rot-avg-label" else "rot-label",v))
+      is_pct <- grepl("%",nm)
+      # Conditional formatting: stronger green for positive/high, red for low.
+      score <- if (is.na(v)) 0 else if (is_pct) max(0,min(1,v/100)) else max(0,min(1,(v+0.5)/1))
+      bg <- if (is.na(v)) "#f4f6f8" else if (score>=.5) rgb(0.25,0.68,0.48,alpha=.25+.35*score) else rgb(0.91,0.35,0.27,alpha=.18+.38*(1-score))
+      label <- if(is.na(v)) "—" else if(is_pct) sprintf("%.1f%%",v) else sprintf("%.3f",v)
+      tags$td(style=paste0("background:",bg,";"),class=if(avg)"rot-avg-cell" else "rot-cell",label)
+    })
+    tags$tr(class=if(avg)"rotation-average-row" else "",cells)
+  })
+  div(class="detail-section",
+    div(class="detail-section-title","TEXAS ROTATION DETAILS"),
+    div(class="rotation-table-wrap",
+      tags$table(class="rotation-table",tags$thead(th),tags$tbody(rows)))
+  )
+}
+
+attack_detail_ui <- function(ids, selected_player="All") {
+  team <- load_detail_csvs("TEAM_ATTACK\\.csv$", ids)
+  players <- load_detail_csvs("PLAYER_ATTACK\\.csv$", ids)
+  if (!nrow(team) && !nrow(players))
+    return(div(class="detail-section",div(class="detail-section-title","ATTACK DETAIL"),
+               div(class="detail-empty","No attack detail CSV found for this match.")))
+  d <- if (!identical(selected_player,"All") && nrow(players)) {
+    players[players$Player==selected_player,,drop=FALSE]
+  } else team
+  if (!nrow(d) && nrow(players) && identical(selected_player,"All")) d <- players
+  if (!nrow(d))
+    return(div(class="detail-section",div(class="detail-section-title","ATTACK DETAIL"),
+               div(class="detail-empty","No attack records for this selection.")))
+  # Across matches, combine counts by attack type. Efficiency is recomputed
+  # for total efficiency; FB/transition use ATT-weighted source efficiencies.
+  group_col <- if ("Attack Type" %in% names(d)) "Attack Type" else names(d)[1]
+  if (length(ids)>1) {
+    d$w_fb <- suppressWarnings(as.numeric(d$`FB Eff.`))*suppressWarnings(as.numeric(d$ATT))
+    d$w_trans <- suppressWarnings(as.numeric(d$`Transition Eff.`))*suppressWarnings(as.numeric(d$ATT))
+    d <- aggregate(d[,intersect(c("ATT","K","E","w_fb","w_trans"),names(d)),drop=FALSE],
+                   by=setNames(list(d[[group_col]]),group_col),
+                   FUN=function(x) sum(as.numeric(x),na.rm=TRUE))
+    d$`Total Eff.` <- ifelse(d$ATT>0,(d$K-d$E)/d$ATT,NA_real_)
+    d$`FB Eff.` <- ifelse(d$ATT>0,d$w_fb/d$ATT,NA_real_)
+    d$`Transition Eff.` <- ifelse(d$ATT>0,d$w_trans/d$ATT,NA_real_)
+  }
+  d <- d[order(-suppressWarnings(as.numeric(d$ATT))),,drop=FALSE]
+  fmt_eff <- function(x) ifelse(is.na(x),"—",sprintf("%.3f",as.numeric(x)))
+  rows <- lapply(seq_len(nrow(d)),function(i) tags$tr(
+    tags$td(as.character(d[[group_col]][i])),
+    tags$td(d$ATT[i]),tags$td(d$K[i]),tags$td(d$E[i]),
+    tags$td(class="attack-eff",fmt_eff(d$`Total Eff.`[i])),
+    tags$td(fmt_eff(d$`FB Eff.`[i])),
+    tags$td(fmt_eff(d$`Transition Eff.`[i]))
+  ))
+  div(class="detail-section",
+    div(class="detail-section-title","ATTACK DETAIL"),
+    div(class="attack-filter-row",
+      selectInput("attack_player_filter","",choices=c("All",sort(unique(as.character(players$Player)))),selected=selected_player,width="220px")
+    ),
+    tags$table(class="attack-detail-table",
+      tags$thead(tags$tr(lapply(c("ATTACK","ATT","K","E","TOTAL EFF.","FB EFF.","TRANSITION EFF."),tags$th))),
+      tags$tbody(rows)
+    )
+  )
+}
+
+
 # ----------------------------- ROSTER -----------------------------
 
 roster <- read_csv_safe(ROSTER_PATH)
@@ -682,6 +847,29 @@ ui <- fluidPage(
       .skill-benchmark-label-wrap{grid-column:1/-1;position:relative;height:17px;}
       .skill-opponent-label{top:0;max-width:170px;white-space:nowrap;color:#e33e35;font-size:9px;line-height:11px;overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
+      
+      .detail-section{background:#fff;border:1px solid #dfe6ed;border-radius:16px;padding:18px 20px;margin:18px 0;box-shadow:0 5px 16px rgba(31,49,67,.05);overflow:hidden;}
+      .detail-section-title{font-family:'Barlow Condensed';font-size:24px;font-weight:800;letter-spacing:1px;color:#5b6d7c;border-bottom:1px solid #dce4eb;padding-bottom:9px;margin-bottom:12px;}
+      .rotation-table-wrap{overflow-x:auto;}
+      .rotation-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10px;text-align:center;}
+      .rotation-table th{font-family:'Barlow Condensed';font-size:10px;color:#536577;background:#f5f7f9;padding:8px 4px;border-bottom:1px solid #d6dfe6;}
+      .rotation-table td{padding:8px 4px;border-right:1px solid rgba(255,255,255,.5);font-family:'Barlow Condensed';font-weight:700;color:#263746;}
+      .rotation-table .rot-label{background:#f7f9fa;color:#5c6e7e;text-align:left;padding-left:10px;}
+      .rotation-table .rot-avg-label{background:#f3e9e2;color:#263746;text-align:left;padding-left:10px;font-weight:800;}
+      .rotation-table .rot-avg-cell{font-weight:900;border-top:2px solid #9eabb5;}
+       .rotation-average-row td{border-top:2px solid #9eabb5;}
+      .attack-filter-row{display:flex;justify-content:flex-end;margin:-5px 0 10px;}
+      .attack-filter-row .form-group{margin:0;}
+      .attack-filter-row .control-label{display:none;}
+      .attack-filter-row .selectize-input{border-color:#d9e1e7;box-shadow:none;font-size:11px;}
+      .attack-detail-table{width:100%;border-collapse:collapse;font-size:11px;}
+      .attack-detail-table th{font-family:'Barlow Condensed';font-size:10px;color:#536577;text-transform:uppercase;padding:9px 7px;border-bottom:1px solid #d6dfe6;text-align:right;}
+      .attack-detail-table th:first-child,.attack-detail-table td:first-child{text-align:left;}
+      .attack-detail-table td{padding:10px 7px;border-bottom:1px solid #e3e8ed;text-align:right;color:#344454;}
+      .attack-detail-table td:first-child{font-weight:700;}
+      .attack-detail-table .attack-eff{font-weight:800;color:#263746;}
+      .detail-empty{padding:20px;color:#82909d;text-align:center;font-size:12px;}
+
       .report-card{background:#fff;border:1px solid #dfe6ed;border-radius:15px;
         padding:18px 22px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;}
       .report-card-title{font-weight:800;color:#263746;}
@@ -916,7 +1104,9 @@ server <- function(input, output, session) {
           div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
           metrics_panel_ui(all_metrics[all_metrics$match_id == ids[1], , drop = FALSE])
         ),
-        skill_area_panel_ui(ids, show_opponent = TRUE)
+        skill_area_panel_ui(ids, show_opponent = TRUE),
+        rotation_table_ui(ids),
+        attack_detail_ui(ids, if (is.null(input$attack_player_filter)) "All" else input$attack_player_filter)
       ))
     }
 
@@ -977,7 +1167,9 @@ server <- function(input, output, session) {
         div(class = "metric-section-title", "KEY METRICS · COMBINED PERIOD"),
         metrics_panel_ui(agg, show_opponent = FALSE)
       ),
-      skill_area_panel_ui(ids)
+      skill_area_panel_ui(ids),
+      rotation_table_ui(ids),
+      attack_detail_ui(ids, if (is.null(input$attack_player_filter)) "All" else input$attack_player_filter)
     )
   })
 
@@ -999,7 +1191,9 @@ server <- function(input, output, session) {
         div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
         metrics_panel_ui(d)
       ),
-      skill_area_panel_ui(id, show_opponent = TRUE)
+      skill_area_panel_ui(id, show_opponent = TRUE),
+      rotation_table_ui(id),
+      attack_detail_ui(id, if (is.null(input$attack_player_filter)) "All" else input$attack_player_filter)
     )
   })
 
