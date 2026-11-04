@@ -1,0 +1,11 @@
+skill,total_events,start_coordinates,end_coordinates,start_zones,end_zones,end_subzones
+NA,854,0,0,0,0,0
+Attack,432,32,30,432,429,411
+Set,422,0,0,0,354,337
+Serve,318,53,52,318,318,308
+Dig,269,0,0,262,224,217
+Reception,265,0,0,265,265,255
+Block,165,0,0,0,165,156
+Freeball,49,0,0,0,41,38
+Timeout,16,0,0,0,0,0
+Technical timeout,14,0,0,0,0,0

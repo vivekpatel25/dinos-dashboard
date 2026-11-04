@@ -1,0 +1,36 @@
+skill,evaluation_code,evaluation,special_code
+Serve,!,"OK, no first tempo possible",Let
+Attack,#,Winning attack,Direct on floor
+Attack,=,Error,Attack in net
+Block,=,Error,Ball on floor
+Serve,=,Error,Ball in net
+Attack,=,Error,Attack out - side
+Serve,=,Error,Ball out - long
+Block,=,Error,Hands - net
+Serve,=,Error,Ball out - left
+Attack,=,Error,Attack out - long
+Attack,#,Winning attack,Let
+Serve,#,Ace,Let
+Block,=,Error,Ball out - long
+Attack,#,Winning attack,Unexpected I
+Block,=,Error,Net contact
+Block,=,Error,Ball out - side
+Attack,-,"Poor, easily dug",Let
+Attack,/,Blocked,Let
+Serve,=,Error,Ball in net
+Attack,-,"Poor, easily dug",Let
+Attack,=,Error,Attack in net
+Block,=,Error,Ball out - side
+Block,=,Error,Net contact
+Attack,=,Error,Attack out - long
+Attack,=,Error,Attack out - side
+Serve,=,Error,Ball out - right
+Attack,#,Winning attack,Direct on floor
+Attack,+,"Positive, good attack",Let
+Serve,#,Ace,Let
+Block,=,Error,Ball out - long
+Attack,#,Winning attack,Let
+Block,=,Error,Ball on floor
+Serve,-,"Negative, opponent free attack",Let
+Serve,=,Error,Ball out - long
+Serve,!,"OK, no first tempo possible",Let

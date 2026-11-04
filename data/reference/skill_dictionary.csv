@@ -1,0 +1,48 @@
+skill,skill_type,skill_subtype
+,,
+Serve,Jump-float serve,
+Reception,Jump-float serve reception,
+Set,Slide ball set,
+Attack,Slide ball attack,Hard spike
+Reception,Jump-float serve reception,On left
+Set,High ball set,Bump set
+Attack,High ball attack,Soft spike/topspin
+Attack,Slide ball attack,Tip
+Block,Slide ball block,
+Serve,Jump serve,
+Reception,Jump serve reception,
+Set,High ball set,
+Attack,High ball attack,Hard spike
+Block,High ball block,
+Dig,High ball dig,
+Attack,Slide ball attack,Soft spike/topspin
+Dig,Slide ball dig,
+Freeball,Unknown freeball type,
+Set,Quick ball set,
+Attack,Quick ball attack,Hard spike
+Block,Quick ball block,
+Attack,Other attack,Tip
+Dig,Other dig,
+Dig,Quick ball dig,
+Set,Other set,Bump set
+Attack,Other attack,Soft spike/topspin
+Block,Other block,
+Technical timeout,,
+Attack,Quick ball attack,Tip
+Attack,High ball attack,Tip
+Reception,Jump-float serve reception,On right
+Reception,Jump serve reception,Low
+Timeout,,
+Reception,Jump-float serve reception,Low
+Serve,Topspin serve,
+Reception,Topspin serve reception,
+Attack,Quick ball attack,Soft spike/topspin
+Set,Other set,
+Attack,Other attack,Hard spike
+Reception,Jump-float serve reception,Middle line
+Reception,Jump-float serve reception,Overhand
+Reception,Jump serve reception,On left
+Set,Quick ball set,1 hand set
+Set,Other set,1 hand set
+Reception,Topspin serve reception,On left
+Reception,Jump serve reception,Overhand

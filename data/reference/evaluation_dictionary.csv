@@ -1,0 +1,102 @@
+skill,skill_type,evaluation_code,evaluation
+,,,
+Serve,Jump-float serve,!,"OK, no first tempo possible"
+Reception,Jump-float serve reception,!,"OK, no first tempo possible"
+Set,Slide ball set,+,Positive
+Attack,Slide ball attack,#,Winning attack
+Serve,Jump-float serve,+,"Positive, opponent some attack"
+Reception,Jump-float serve reception,-,"Negative, limited attack"
+Set,High ball set,+,Positive
+Attack,High ball attack,=,Error
+Serve,Jump-float serve,-,"Negative, opponent free attack"
+Reception,Jump-float serve reception,+,"Positive, attack"
+Block,Slide ball block,=,Error
+Serve,Jump serve,+,"Positive, opponent some attack"
+Reception,Jump serve reception,-,"Negative, limited attack"
+Attack,High ball attack,-,"Poor, easily dug"
+Block,High ball block,+,"Positive, block touch"
+Dig,High ball dig,+,Good dig
+Attack,Slide ball attack,-,"Poor, easily dug"
+Dig,Slide ball dig,+,Good dig
+Attack,High ball attack,/,Blocked
+Block,High ball block,#,Winning block
+Serve,Jump serve,=,Error
+Attack,Slide ball attack,+,"Positive, good attack"
+Dig,Slide ball dig,/,Ball directly back over net
+Freeball,Unknown freeball type,+,Good
+Set,High ball set,/,Poor
+Set,Quick ball set,+,Positive
+Attack,Quick ball attack,#,Winning attack
+Block,Quick ball block,=,Error
+Dig,High ball dig,=,Error
+Attack,Slide ball attack,!,Blocked for reattack
+Block,Slide ball block,!,"Poor, opposition to replay"
+Attack,Other attack,-,"Poor, easily dug"
+Dig,Other dig,+,Good dig
+Attack,Quick ball attack,+,"Positive, good attack"
+Block,Quick ball block,-,"Poor, opposition to replay"
+Dig,High ball dig,/,Ball directly back over net
+Attack,High ball attack,#,Winning attack
+Serve,Jump-float serve,=,Error
+Serve,Jump-float serve,#,Ace
+Reception,Jump-float serve reception,=,Error
+Dig,Slide ball dig,=,Error
+Attack,Quick ball attack,-,"Poor, easily dug"
+Dig,Quick ball dig,+,Good dig
+Set,Other set,+,Positive
+Attack,Other attack,!,Blocked for reattack
+Block,Other block,!,"Poor, opposition to replay"
+Attack,Other attack,#,Winning attack
+Dig,Other dig,=,Error
+Attack,Quick ball attack,=,Error
+Technical timeout,,,
+Attack,High ball attack,!,Blocked for reattack
+Block,High ball block,!,"Poor, opposition to replay"
+Attack,Slide ball attack,/,Blocked
+Block,Slide ball block,#,Winning block
+Block,High ball block,=,Error
+Serve,Jump serve,#,Ace
+Reception,Jump serve reception,=,Error
+Serve,Jump serve,/,"Positive, no attack"
+Reception,Jump serve reception,/,"Poor, no attack"
+Dig,Quick ball dig,=,Error
+Block,Slide ball block,+,"Positive, block touch"
+Timeout,,,
+Attack,Slide ball attack,=,Error
+Serve,Jump serve,-,"Negative, opponent free attack"
+Reception,Jump serve reception,#,Perfect pass
+Attack,Quick ball attack,!,Blocked for reattack
+Block,Quick ball block,!,"Poor, opposition to replay"
+Attack,High ball attack,+,"Positive, good attack"
+Serve,Topspin serve,+,"Positive, opponent some attack"
+Reception,Topspin serve reception,-,"Negative, limited attack"
+Serve,Jump serve,!,"OK, no first tempo possible"
+Reception,Jump serve reception,!,"OK, no first tempo possible"
+Dig,Quick ball dig,/,Ball directly back over net
+Attack,Quick ball attack,/,Blocked
+Block,Quick ball block,#,Winning block
+Reception,Jump-float serve reception,#,Perfect pass
+Freeball,Unknown freeball type,=,Error
+Serve,Jump-float serve,/,"Positive, no attack"
+Reception,Jump-float serve reception,/,"Poor, no attack"
+Attack,Other attack,/,Blocked
+Block,Other block,#,Winning block
+Dig,Quick ball dig,-,No structured attack possible
+Dig,Slide ball dig,-,No structured attack possible
+Block,Quick ball block,+,"Positive, block touch"
+Serve,Topspin serve,-,"Negative, opponent free attack"
+Reception,Topspin serve reception,+,"Positive, attack"
+Serve,Topspin serve,!,"OK, no first tempo possible"
+Reception,Topspin serve reception,!,"OK, no first tempo possible"
+Reception,Jump serve reception,+,"Positive, attack"
+Reception,Topspin serve reception,#,Perfect pass
+Block,Other block,=,Error
+Attack,Other attack,=,Error
+Serve,Topspin serve,#,Ace
+Reception,Topspin serve reception,=,Error
+Freeball,Unknown freeball type,/,Poor
+Set,High ball set,=,Error
+Serve,Topspin serve,=,Error
+Block,Slide ball block,-,"Poor, opposition to replay"
+Attack,Other attack,+,"Positive, good attack"
+Dig,Other dig,/,Ball directly back over net

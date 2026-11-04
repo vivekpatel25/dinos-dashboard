@@ -1,0 +1,1 @@
+Observed scout dictionaries and reference outputs are stored here.

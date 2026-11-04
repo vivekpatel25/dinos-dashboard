@@ -1,0 +1,26 @@
+set_code,set_description,set_type
+,,
+K5,P?,B
+,,F
+KE,No middle,B
+K2,Stik,F
+,,B
+K5,P?,F
+K2,Stik,C
+K8,Slide pin,C
+K2,Stik,B
+K8,Slide pin,F
+KE,No middle,F
+K5,P?,C
+K6,Til,C
+K6,Til,F
+KE,No middle,P
+KE,No middle,C
+K5,P?,S
+KE,No middle,S
+K2,Stik,P
+K2,Stik,S
+K8,Slide pin,P
+K6,Til,B
+KE,No middle,
+K8,Slide pin,S
