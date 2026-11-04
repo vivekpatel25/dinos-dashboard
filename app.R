@@ -41,6 +41,16 @@ read_csv_safe <- function(path) {
 
 find_key_metric_files <- function() {
   if (!dir.exists(MATCH_ROOT)) return(character(0))
+  dashboard_files <- list.files(
+    MATCH_ROOT,
+    pattern = "^MATCH_DASHBOARD_SUMMARY\\.csv$",
+    recursive = TRUE,
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+  if (length(dashboard_files)) return(dashboard_files)
+
+  # Backward-compatible fallback only when dashboard summaries are absent.
   list.files(
     MATCH_ROOT,
     pattern = "KEY[_ -]?METRICS.*\\.csv$",
@@ -63,8 +73,10 @@ extract_match_label <- function(path, data) {
   opponent <- if (length(opponent)) opponent[1] else "Opponent"
 
   if (is.na(date) || !nzchar(date)) {
-    folder <- basename(dirname(dirname(path)))
-    date <- sub("_.*$", "", folder)
+    folder <- basename(dirname(path))
+    date <- sub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", folder)
+    if (!grepl("^\\d{4}-\\d{2}-\\d{2}$", date)) date <- NA_character_
+    if (is.na(date)) date <- folder
   }
 
   date_obj <- suppressWarnings(as.Date(date))
@@ -90,8 +102,16 @@ load_match_metrics <- function() {
       return(NULL)
     }
 
-    d$source_file <- f
-    d$match_folder <- basename(dirname(dirname(f)))
+    # Each dashboard-ready match CSV is stored inside its own match folder.
+    # Legacy KEY_METRICS exports at the root remain supported as a fallback.
+    if (!"match_result" %in% names(d)) d$match_result <- NA_character_
+    if (!"match_set_score" %in% names(d)) d$match_set_score <- NA_character_
+    d$source_path <- f
+    d$match_folder <- if (basename(f) == "MATCH_DASHBOARD_SUMMARY.csv") {
+      basename(dirname(f))
+    } else {
+      tools::file_path_sans_ext(basename(f))
+    }
     d
   })
 
@@ -137,11 +157,15 @@ if (!is.null(roster) && nrow(roster)) {
 # ----------------------------- MATCH INDEX -----------------------------
 
 if (nrow(all_metrics)) {
-  # One index row per match, using Calgary's row so opponent is consistently
-  # the opposing team rather than alternating between both teams.
+  # One index row per match, using Calgary's row so opponent is consistent.
+  index_cols <- intersect(
+    c("match_id", "match_date", "opponent", "match_result",
+      "match_set_score", "sets_won", "match_folder"),
+    names(all_metrics)
+  )
   calgary_rows <- all_metrics[
     grepl("University of Calgary", all_metrics$team, ignore.case = TRUE),
-    c("match_id", "match_date", "opponent"), drop = FALSE
+    index_cols, drop = FALSE
   ]
   match_index <- unique(calgary_rows)
   match_index <- match_index[order(as.Date(match_index$match_date),
@@ -149,8 +173,22 @@ if (nrow(all_metrics)) {
   rownames(match_index) <- NULL
 } else {
   match_index <- data.frame(
-    match_id = character(), match_date = character(), opponent = character()
+    match_id = character(), match_date = character(), opponent = character(),
+    match_result = character(), match_set_score = character()
   )
+}
+
+# Optional metadata file remains supported, but the new match CSV already
+# carries match_result and match_set_score.
+MATCH_METADATA_PATH <- "data/exports/match_metadata.csv"
+match_metadata <- read_csv_safe(MATCH_METADATA_PATH)
+if (!is.null(match_metadata) && nrow(match_metadata) &&
+    "match_id" %in% names(match_metadata)) {
+  match_index <- merge(match_index, match_metadata, by = "match_id",
+                       all.x = TRUE, sort = FALSE, suffixes = c("", ".meta"))
+  match_index <- match_index[order(as.Date(match_index$match_date),
+                                   decreasing = TRUE), , drop = FALSE]
+  rownames(match_index) <- NULL
 }
 
 # ----------------------------- METRIC PREPARATION -----------------------------
@@ -213,16 +251,13 @@ metric_row_ui <- function(uoc_row, opp_row = NULL) {
     metric_value_for_display(opp_raw, metric_name)
   } else NA_real_
 
-  good <- NA
-  if (!is.na(opp_value) && !is.na(uoc_value)) {
-    good <- if (lower_is_better(metric_name)) {
-      uoc_value <= opp_value
-    } else {
-      uoc_value >= opp_value
-    }
+  # Dashboard colour convention requested:
+  # Aced % is the only red metric; every other metric uses green.
+  bar_colour <- if (grepl("^Aced %$", metric_name, ignore.case = TRUE)) {
+    "#E34D40"
+  } else {
+    "#159B69"
   }
-
-  bar_colour <- if (is.na(good)) "#159B69" else if (good) "#159B69" else "#E34D40"
   uoc_width <- metric_scale_value(uoc_raw, metric_name) * 100
   opp_left <- if (is.na(opp_raw)) NA_real_ else metric_scale_value(opp_raw, metric_name) * 100
 
@@ -307,16 +342,21 @@ ui <- fluidPage(
         line-height:.95;font-weight:800;margin:0;color:#263746;}
       .brand-subtitle{font-size:15px;letter-spacing:3px;color:#728096;margin-top:16px;}
       .brand-subtitle b{color:var(--dinos-red);padding:0 7px;}
-      .header-nav{display:flex;gap:18px;align-items:center;}
-      .header-nav .btn{border:0;background:transparent;color:#596b7d;padding:8px 12px;
-        display:flex;flex-direction:column;align-items:center;gap:5px;font-weight:800;
-        font-family:'Barlow Condensed',sans-serif;letter-spacing:.8px;font-size:14px;}
-      .header-nav .btn .glyphicon{font-size:23px;}
+      .header-nav{display:flex;gap:5px;align-items:center;justify-content:center;flex:0 0 auto;}
+      .header-nav .btn{border:0;background:transparent;color:#596b7d;padding:7px 8px;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+        font-weight:800;font-family:'Barlow Condensed',sans-serif;letter-spacing:.7px;font-size:13px;
+        width:82px;min-width:82px;min-height:66px;white-space:nowrap;}
+      .header-nav .btn .glyphicon{display:block;font-size:21px;line-height:22px;margin:0;}
+      .header-nav .btn span{display:block;text-align:center;line-height:15px;}
+      .header-nav .btn .nav-icon{margin:0;}
       .header-nav .btn:hover,.header-nav .btn.active{color:var(--dinos-red);}
       .header-latest{border-left:1px solid #e6ebef;padding-left:20px;text-align:right;
         min-width:190px;font-size:11px;color:#718096;}
       .header-latest strong{display:block;color:var(--navy);font-size:12px;letter-spacing:.8px;}
       .header-latest .latest-date{font-family:'Barlow Condensed';font-size:18px;color:var(--navy);}
+      .header-latest .latest-result{display:block;margin-top:4px;color:var(--dinos-red);
+        font-size:12px;letter-spacing:.7px;}
       .page-heading{display:flex;align-items:end;justify-content:space-between;margin:18px 4px 16px;}
       .eyebrow{color:var(--dinos-red);font-weight:800;font-size:11px;letter-spacing:2px;}
       .page-heading h2{font-family:'Barlow Condensed';font-size:38px;font-weight:800;margin:3px 0;color:var(--navy);}
@@ -354,14 +394,15 @@ ui <- fluidPage(
       .metric-name{font-family:'Barlow Condensed';font-weight:700;font-size:18px;color:#263746;}
       .metric-formula{font-size:10px;color:#7b8996;margin-top:2px;line-height:1.35;}
       .metric-number{font-family:'Barlow Condensed';font-size:28px;font-weight:800;text-align:right;}
-      .metric-track-wrap{position:relative;padding-top:16px;padding-bottom:3px;}
+      .metric-track-wrap{position:relative;padding-top:23px;padding-bottom:3px;}
       .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
       .metric-fill{height:13px;border-radius:20px;min-width:0;}
+      /* Opponent tick and label share the same horizontal coordinate. */
       .opponent-marker{position:absolute;top:-7px;height:27px;width:3px;background:#ef4438;
         transform:translateX(-50%);z-index:3;border-radius:2px;}
-      .opponent-label{position:absolute;top:-12px;transform:translate(-50%,-100%);
-        white-space:nowrap;color:#e33e35;font-size:9px;max-width:170px;overflow:hidden;
-        text-overflow:ellipsis;}
+      .opponent-label{position:absolute;top:2px;transform:translateX(-50%);
+        white-space:nowrap;color:#e33e35;font-size:9px;line-height:11px;max-width:170px;
+        overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
       .report-card{background:#fff;border:1px solid #dfe6ed;border-radius:15px;
         padding:18px 22px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;}
@@ -380,7 +421,7 @@ ui <- fluidPage(
       @media(max-width:600px){
         .container-fluid{padding:9px}.top-header{border-radius:14px;}
         .brand-copy h1{font-size:30px}.brand-subtitle{font-size:10px;letter-spacing:1px;}
-        .header-nav{width:100%;justify-content:flex-end}.period-bar{overflow-x:auto;}
+        .header-nav{width:100%;justify-content:center;gap:4px}.header-nav .btn{width:78px;min-width:78px;font-size:12px}.period-bar{overflow-x:auto;}
         .period-bar .btn{min-width:112px;font-size:14px;}
         .metric-line{grid-template-columns:1fr 75px;}.metric-track-wrap{grid-column:1/-1;}
         .metric-section{padding:14px}.page-heading h2{font-size:32px;}
@@ -417,6 +458,16 @@ server <- function(input, output, session) {
       format(as.Date(latest$match_date), "%b %d, %Y")
     } else "No match loaded"
     latest_opp <- if (!is.null(latest)) as.character(latest$opponent) else "Add match exports"
+    result_value <- if (!is.null(latest) && "match_result" %in% names(latest)) {
+      as.character(latest$match_result)
+    } else NA_character_
+    score_value <- if (!is.null(latest) && "match_set_score" %in% names(latest)) {
+      as.character(latest$match_set_score)
+    } else NA_character_
+    latest_result <- if (!is.na(result_value) && nzchar(result_value)) {
+      paste0(toupper(result_value),
+             if (!is.na(score_value) && nzchar(score_value)) paste0(" · ", score_value) else "")
+    } else "RESULT NOT AVAILABLE"
 
     div(class = "top-header",
       if (file.exists("www/dinos_logo.png")) {
@@ -428,17 +479,24 @@ server <- function(input, output, session) {
           "CALGARY", tags$b("·"), "CANADA WEST", tags$b("·"), "2026/27")
       ),
       div(class = "header-nav",
-        actionButton("nav_dashboard", label = tagList(icon("house"), "DASHBOARD"),
-                     class = if (page() == "dashboard") "btn active" else "btn"),
-        actionButton("nav_athletes", label = tagList(icon("users"), "ATHLETES"),
-                     class = if (page() == "athletes") "btn active" else "btn"),
-        actionButton("nav_reports", label = tagList(icon("file-lines"), "REPORTS"),
-                     class = if (page() == "reports") "btn active" else "btn")
+        actionButton("nav_dashboard", label = tagList(
+          tags$span(class = "glyphicon glyphicon-home nav-icon"),
+          tags$span("DASHBOARD")),
+          class = if (page() == "dashboard") "btn active" else "btn"),
+        actionButton("nav_athletes", label = tagList(
+          tags$span(class = "glyphicon glyphicon-user nav-icon"),
+          tags$span("ATHLETES")),
+          class = if (page() == "athletes") "btn active" else "btn"),
+        actionButton("nav_reports", label = tagList(
+          tags$span(class = "glyphicon glyphicon-file nav-icon"),
+          tags$span("REPORTS")),
+          class = if (page() == "reports") "btn active" else "btn")
       ),
       div(class = "header-latest",
         strong("LATEST MATCH"),
         div(class = "latest-date", latest_date),
-        div(latest_opp)
+        div(latest_opp),
+        tags$strong(latest_result, class = "latest-result")
       )
     )
   })
@@ -488,7 +546,7 @@ server <- function(input, output, session) {
       if (!nrow(match_index)) {
         return(div(class = "white-panel",
           h2("MATCH REPORTS"),
-          p("No KEY_METRICS CSV files found. Check the match folders.")
+          p("No MATCH_DASHBOARD_SUMMARY.csv files found. Check each match folder.")
         ))
       }
 
@@ -506,7 +564,11 @@ server <- function(input, output, session) {
                 div(class = "report-card-title",
                     paste("CALGARY vs", match_index$opponent[idx])),
                 div(class = "report-card-date",
-                    format(as.Date(match_index$match_date[idx]), "%B %d, %Y"))
+                    paste0(format(as.Date(match_index$match_date[idx]), "%B %d, %Y"),
+                      if (!is.na(match_index$match_result[idx]) && nzchar(as.character(match_index$match_result[idx])))
+                        paste0(" · ", toupper(as.character(match_index$match_result[idx])),
+                          if (!is.na(match_index$match_set_score[idx]) && nzchar(as.character(match_index$match_set_score[idx])))
+                            paste0(" · ", match_index$match_set_score[idx]) else "") else ""))
               ),
               actionButton(paste0("open_match_", idx), "OPEN REPORT",
                            class = "btn-dinos")
@@ -567,7 +629,7 @@ server <- function(input, output, session) {
   output$period_metrics <- renderUI({
     ids <- selected_match_ids()
     if (!length(ids)) return(div(class = "white-panel empty-message",
-                                  "No match data available for this selection."))
+                                  "No MATCH_DASHBOARD_SUMMARY.csv data available for this selection."))
 
     # For a single match, show the opponent's tick marker beside each metric.
     if (length(ids) == 1) {
@@ -579,22 +641,41 @@ server <- function(input, output, session) {
 
     # For multiple matches, combine numerator/denominator for each team/metric.
     d <- all_metrics[all_metrics$match_id %in% ids, , drop = FALSE]
-    d <- d[grepl("University of Calgary", d$team, ignore.case = TRUE), , drop = FALSE]
-    if (!nrow(d)) return(div(class = "white-panel", "No Calgary metrics found."))
+    if (!nrow(d)) return(div(class = "white-panel", "No match metrics found."))
 
-    agg <- aggregate(cbind(numerator, denominator) ~ team + metric_category + metric_name,
-                     data = d, FUN = function(x) sum(as.numeric(x), na.rm = TRUE))
-    agg$metric_value <- ifelse(agg$denominator > 0,
-      agg$numerator / agg$denominator, NA_real_)
-    # Percentage metrics in source are stored as 0-100; recompute from counts.
+    # Preserve category and metric order from the most recent match.
+    reference_rows <- all_metrics[
+      all_metrics$match_id == match_index$match_id[1], ,
+      drop = FALSE
+    ]
+    category_order <- unique(as.character(reference_rows$metric_category))
+    metric_order <- unique(as.character(reference_rows$metric_name))
+
+    # Aggregate both Calgary and opponent numerator/denominator values.
+    agg <- aggregate(
+      cbind(numerator, denominator) ~ team + metric_category + metric_name,
+      data = d,
+      FUN = function(x) sum(as.numeric(x), na.rm = TRUE)
+    )
+    agg$metric_value <- ifelse(
+      agg$denominator > 0,
+      agg$numerator / agg$denominator,
+      NA_real_
+    )
+    # Percentages are numerator/denominator * 100; efficiencies remain ratios.
     is_pct <- !is_efficiency_metric(agg$metric_name)
     agg$metric_value[is_pct] <- 100 * agg$metric_value[is_pct]
     agg$match_id <- "aggregate"
     agg$metric_formula <- ""
+
+    agg$metric_category <- factor(agg$metric_category, levels = category_order)
+    agg$metric_name <- factor(agg$metric_name, levels = metric_order)
+    agg <- agg[order(agg$metric_category, agg$metric_name), , drop = FALSE]
+    agg$metric_category <- as.character(agg$metric_category)
+    agg$metric_name <- as.character(agg$metric_name)
+
     div(class = "metric-section",
       div(class = "metric-section-title", "KEY METRICS · COMBINED PERIOD"),
-      div(class = "empty-message",
-          "Combined values are recalculated from summed numerators and denominators. Opponent markers are shown for individual match reports."),
       metrics_panel_ui(agg)
     )
   })
