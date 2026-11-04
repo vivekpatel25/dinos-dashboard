@@ -1245,11 +1245,12 @@ attack_detail_ui <- function(ids, selected_player = "All",
   })
 
   # Two summary bars below the table.
-  # Efficiency bars use a fixed visual scale from -0.500 to +0.500.
-  # The value fill and comparison tick use the exact same scale.
+  # Efficiency bars use a shared 0.000 to 0.800 visual scale.
+  # Both Calgary's fill and the opponent comparison tick use this same scale.
+  # The scale is intentionally not printed in the dashboard.
   efficiency_position <- function(x) {
     if (length(x) == 0 || !is.finite(x)) return(NA_real_)
-    max(0, min(100, (as.numeric(x) + 0.5) * 100))
+    max(0, min(100, as.numeric(x) / 0.8 * 100))
   }
 
   make_summary_bar <- function(metric, label, colour) {
@@ -1368,17 +1369,7 @@ attack_detail_ui <- function(ids, selected_player = "All",
       )
     ),
 
-    if (is_player) {
-      div(
-        class = "attack-benchmark-note",
-        "Red comparison tick = Calgary team average"
-      )
-    } else if (isTRUE(show_opponent)) {
-      div(
-        class = "attack-benchmark-note",
-        "Red comparison tick = opponent value from match KEY_METRICS.csv"
-      )
-    }
+    NULL
   )
 }
 
