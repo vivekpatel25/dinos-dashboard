@@ -185,7 +185,7 @@ skill_outcomes <- function(d, section) {
   aggregate(count~label,x,sum)
 }
 
-skill_card <- function(title, tag, outcomes, bench=NULL) {
+skill_card <- function(title, tag, outcomes, bench=NULL, opponent_bench=NULL) {
   if (is.null(outcomes) || !nrow(outcomes) || sum(outcomes$count)<=0)
     return(div(class="skill-card",div(class="skill-card-head",span(title),span(tag)),
                div(class="skill-card-empty","No skill data available.")))
@@ -213,23 +213,43 @@ skill_card <- function(title, tag, outcomes, bench=NULL) {
       strong(class="skill-legend-pct",sprintf("%.0f%%",outcomes$pct[i])),
       span(class="skill-legend-count",as.character(outcomes$count[i]))
     ))
+  benchmark_ui <- NULL
+  if (!is.null(bench) && nrow(bench) && is.finite(as.numeric(bench$metric_value[1]))) {
+    val <- max(0,min(100,as.numeric(bench$metric_value[1])))
+    opp_val <- NA_real_
+    opp_name <- NULL
+    if (!is.null(opponent_bench) && nrow(opponent_bench)) {
+      opp_val <- suppressWarnings(as.numeric(opponent_bench$metric_value[1]))
+      opp_name <- as.character(opponent_bench$team[1])
+    }
+    tick_ui <- NULL
+    if (is.finite(opp_val)) {
+      tick_ui <- div(class="skill-benchmark-opponent",
+        style=paste0("left:",max(0,min(100,opp_val)),"%;"),
+        title=paste0(opp_name,": ",sprintf("%.1f%%",opp_val)))
+    }
+    benchmark_ui <- div(class="skill-benchmark",
+      span(toupper(bench$metric_name[1])),
+      strong(sprintf("%.1f%%",as.numeric(bench$metric_value[1]))),
+      div(class="skill-benchmark-track",
+        div(class="skill-benchmark-fill",style=paste0("width:",val,"%;")),
+        tick_ui
+      ),
+      if (is.finite(opp_val)) div(class="skill-benchmark-opponent-label",
+        paste0(opp_name," ",sprintf("%.1f%%",opp_val))) else NULL
+    )
+  }
   tagList(div(class="skill-card",
     div(class="skill-card-head",span(title),span(tag)),
     div(class="skill-card-body",
       div(class="skill-donut",style=paste0("background:conic-gradient(",grad,");"),
         div(class="skill-donut-hole",strong(center),tags$small(center_label))),
       div(class="skill-legend",legend)),
-    if (!is.null(bench) && nrow(bench)) {
-      val <- as.numeric(bench$metric_value[1])
-      div(class="skill-benchmark",span(toupper(bench$metric_name[1])),
-        strong(sprintf("%.1f%%",val)),
-        div(class="skill-benchmark-track",
-          div(class="skill-benchmark-fill",style=paste0("width:",max(0,min(100,val)),"%;"))))
-    }
+    benchmark_ui
   ))
 }
 
-skill_area_panel_ui <- function(ids) {
+skill_area_panel_ui <- function(ids, show_opponent=FALSE) {
   if (!length(ids) || !nrow(all_skill_area))
     return(div(class="skill-area-panel",div(class="skill-area-heading","BY SKILL AREA"),
       div(class="skill-empty","No *_SKILL_AREA.csv files found in the match folders.")))
@@ -247,37 +267,27 @@ skill_area_panel_ui <- function(ids) {
   cards <- lapply(specs,function(z) {
     out <- skill_outcomes(d,z$section)
     bn <- if(z$section=="Serve") "Disruption %" else if(z$section=="Dig") "Conversion %" else NA_character_
-    b <- if (is.na(bn)) data.frame() else
-      d[d$export_type == "benchmark" &
-          d$metric_name == bn &
-          d$benchmark_side == "UofC value", , drop = FALSE]
-
-    # Benchmark exports store the denominator in `denominator`.
-    # `event_count` is intentionally blank for these rows, so aggregating
-    # event_count caused aggregate.data.frame() to drop every row.
-    if (nrow(b) && all(c("numerator", "denominator") %in% names(b))) {
-      b$numerator <- suppressWarnings(as.numeric(b$numerator))
-      b$denominator <- suppressWarnings(as.numeric(b$denominator))
-      b <- b[is.finite(b$numerator) & is.finite(b$denominator) &
-               b$denominator > 0, , drop = FALSE]
+    b <- data.frame()
+    ob <- data.frame()
+    if (!is.na(bn)) {
+      b0 <- all_skill_area[all_skill_area$match_id %in% as.character(ids) &
+        all_skill_area$export_type=="benchmark" &
+        all_skill_area$metric_name==bn &
+        all_skill_area$benchmark_side=="UofC value",,drop=FALSE]
+      if (nrow(b0)) {
+        num <- sum(as.numeric(b0$numerator),na.rm=TRUE)
+        den <- sum(as.numeric(b0$denominator),na.rm=TRUE)
+        b <- data.frame(metric_name=bn,metric_value=if(den>0)100*num/den else NA_real_)
+      }
+      if (isTRUE(show_opponent) && length(ids)==1) {
+        ob0 <- all_skill_area[all_skill_area$match_id %in% as.character(ids) &
+          all_skill_area$export_type=="benchmark" &
+          all_skill_area$metric_name==bn &
+          all_skill_area$benchmark_side=="Opponent value",,drop=FALSE]
+        if (nrow(ob0)) ob <- ob0[1,,drop=FALSE]
+      }
     }
-
-    if (nrow(b)) {
-      b <- stats::aggregate(
-        cbind(numerator, denominator) ~ metric_name,
-        data = b,
-        FUN = sum,
-        na.rm = TRUE
-      )
-      b$metric_value <- ifelse(
-        b$denominator > 0,
-        100 * b$numerator / b$denominator,
-        NA_real_
-      )
-    } else {
-      b <- data.frame()
-    }
-    skill_card(z$title,z$tag,out,b)
+    skill_card(z$title,z$tag,out,b,ob)
   })
   div(class="skill-area-panel",div(class="skill-area-heading","BY SKILL AREA"),
       div(class="skill-grid",cards))
@@ -571,7 +581,7 @@ ui <- fluidPage(
       .skill-area-heading{font-family:'Barlow Condensed';font-size:15px;font-weight:800;letter-spacing:1.2px;color:#617383;border-bottom:1px solid #d4dde4;padding:0 0 8px;margin-bottom:10px;}
       .skill-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
       .skill-card{background:#fff;border:1px solid #d8e0e6;border-radius:13px;overflow:hidden;box-shadow:0 5px 12px rgba(31,49,67,.08);min-width:0;}
-      .skill-card-head{height:36px;background:#c45a00;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 13px;font-family:'Barlow Condensed';font-size:16px;font-weight:800;}
+      .skill-card-head{height:36px;background:#C8102E;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 13px;font-family:'Barlow Condensed';font-size:16px;font-weight:800;}
       .skill-card-head span:last-child{font-size:10px;}
       .skill-card-body{min-height:170px;padding:16px 12px 8px;display:grid;grid-template-columns:minmax(88px,42%) minmax(0,1fr);gap:10px;align-items:center;}
       .skill-donut{width:min(100%,112px);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:auto;}
@@ -588,7 +598,10 @@ ui <- fluidPage(
       .skill-benchmark{border-top:1px dashed #dce4eb;margin:0 12px 10px;padding-top:9px;display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9px;color:#788999;}
       .skill-benchmark strong{font-family:'Barlow Condensed';font-size:15px;color:#263746;}
       .skill-benchmark-track{grid-column:1/-1;height:7px;border-radius:10px;background:#f1e6dc;overflow:hidden;}
-      .skill-benchmark-fill{height:100%;background:#c45a00;border-radius:10px;}
+      .skill-benchmark-fill{height:100%;background:#C8102E;border-radius:10px;}
+      .skill-benchmark-opponent{position:absolute;top:-4px;bottom:-4px;width:3px;background:#C8102E;transform:translateX(-50%);z-index:2;border-radius:2px;}
+      .skill-benchmark-track{position:relative;}
+      .skill-benchmark-opponent-label{grid-column:1/-1;text-align:right;font-size:9px;color:#C8102E;}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
       .report-card{background:#fff;border:1px solid #dfe6ed;border-radius:15px;
         padding:18px 22px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;}
@@ -824,7 +837,7 @@ server <- function(input, output, session) {
           div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
           metrics_panel_ui(all_metrics[all_metrics$match_id == ids[1], , drop = FALSE])
         ),
-        skill_area_panel_ui(ids)
+        skill_area_panel_ui(ids, show_opponent = TRUE)
       ))
     }
 
@@ -907,7 +920,7 @@ server <- function(input, output, session) {
         div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
         metrics_panel_ui(d)
       ),
-      skill_area_panel_ui(id)
+      skill_area_panel_ui(id, show_opponent = TRUE)
     )
   })
 
