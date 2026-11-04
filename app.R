@@ -175,8 +175,8 @@ skill_outcomes <- function(d, section) {
             ifelse(code=="!","Fulfilled",ifelse(code=="-","Negative",
             ifelse(code=="=","Errors",NA))))),
     serve=ifelse(code=="#","Aces",ifelse(code=="/","Overpass",
-            ifelse(code %in% c("!","-"),"OOS Pass",ifelse(code=="+","Good Pass",
-            ifelse(code=="=","Serve Error",NA))))),
+            ifelse(code=="+","OOS Pass",ifelse(code=="-","Good Pass",
+            ifelse(code=="!","Medium",ifelse(code=="=","Serve Error",NA)))))),
     dig=ifelse(code %in% c("+","-","/"),"In play",ifelse(code=="=","Dig Error",NA)),
     NA_character_
   )
@@ -185,16 +185,19 @@ skill_outcomes <- function(d, section) {
   aggregate(count~label,x,sum)
 }
 
-skill_card <- function(title, tag, outcomes, bench=NULL, opponent_bench=NULL) {
+skill_card <- function(title, tag, outcomes, bench=NULL,
+                       opponent_bench=NULL, show_opponent=FALSE) {
   if (is.null(outcomes) || !nrow(outcomes) || sum(outcomes$count)<=0)
     return(div(class="skill-card",div(class="skill-card-head",span(title),span(tag)),
                div(class="skill-card-empty","No skill data available.")))
+
   outcomes <- outcomes[outcomes$count>0,,drop=FALSE]
   total <- sum(outcomes$count)
   outcomes$pct <- 100*outcomes$count/total
   cols <- unname(skill_palette[outcomes$label]); cols[is.na(cols)] <- "#9CB6C5"
   ends <- cumsum(outcomes$pct); starts <- c(0,head(ends,-1))
   grad <- paste0(cols," ",sprintf("%.2f%%",starts)," ",sprintf("%.2f%%",ends),collapse=",")
+
   if (title=="ATTACK") {
     k <- sum(outcomes$count[outcomes$label=="Kills"])
     e <- sum(outcomes$count[outcomes$label=="Errors"])
@@ -206,6 +209,7 @@ skill_card <- function(title, tag, outcomes, bench=NULL, opponent_bench=NULL) {
     center <- as.character(total)
     center_label <- switch(title,"BLOCK"="BLOCKS","SERVE"="SERVES","DEFENSE"="DIGS")
   }
+
   legend <- lapply(seq_len(nrow(outcomes)),function(i)
     div(class="skill-legend-row",
       span(class="skill-swatch",style=paste0("background:",cols[i])),
@@ -213,21 +217,42 @@ skill_card <- function(title, tag, outcomes, bench=NULL, opponent_bench=NULL) {
       strong(class="skill-legend-pct",sprintf("%.0f%%",outcomes$pct[i])),
       span(class="skill-legend-count",as.character(outcomes$count[i]))
     ))
+
+  # Defense outer ring represents the conversion rate using the same
+  # numerator/denominator supplied by the corrected export.
+  conversion_value <- NA_real_
+  if (title=="DEFENSE" && !is.null(bench) && nrow(bench)) {
+    conversion_value <- suppressWarnings(as.numeric(bench$metric_value[1]))
+  }
+
+  donut <- div(class="skill-donut",style=paste0("background:conic-gradient(",grad,");"),
+    div(class="skill-donut-hole",strong(center),tags$small(center_label)))
+
+  if (title=="DEFENSE" && is.finite(conversion_value)) {
+    ring_pct <- max(0,min(100,conversion_value))
+    donut <- div(class="skill-conversion-ring",
+      style=paste0("background:conic-gradient(#C8102E 0 ",ring_pct,
+                   "%, #e5ebf0 ",ring_pct,"% 100%);"),
+      donut
+    )
+  }
+
   benchmark_ui <- NULL
-  if (!is.null(bench) && nrow(bench) && is.finite(as.numeric(bench$metric_value[1]))) {
+  if (!is.null(bench) && nrow(bench) &&
+      is.finite(suppressWarnings(as.numeric(bench$metric_value[1])))) {
     val <- max(0,min(100,as.numeric(bench$metric_value[1])))
     opp_val <- NA_real_
-    opp_name <- NULL
-    if (!is.null(opponent_bench) && nrow(opponent_bench)) {
+    opp_name <- "Opponent"
+    if (isTRUE(show_opponent) && !is.null(opponent_bench) && nrow(opponent_bench)) {
       opp_val <- suppressWarnings(as.numeric(opponent_bench$metric_value[1]))
-      opp_name <- as.character(opponent_bench$team[1])
+      if ("team" %in% names(opponent_bench) && !is.na(opponent_bench$team[1]))
+        opp_name <- as.character(opponent_bench$team[1])
     }
-    tick_ui <- NULL
-    if (is.finite(opp_val)) {
-      tick_ui <- div(class="skill-benchmark-opponent",
+    tick_ui <- if (isTRUE(show_opponent) && is.finite(opp_val)) {
+      div(class="opponent-marker skill-opponent-marker",
         style=paste0("left:",max(0,min(100,opp_val)),"%;"),
         title=paste0(opp_name,": ",sprintf("%.1f%%",opp_val)))
-    }
+    } else NULL
     benchmark_ui <- div(class="skill-benchmark",
       span(toupper(bench$metric_name[1])),
       strong(sprintf("%.1f%%",as.numeric(bench$metric_value[1]))),
@@ -235,15 +260,18 @@ skill_card <- function(title, tag, outcomes, bench=NULL, opponent_bench=NULL) {
         div(class="skill-benchmark-fill",style=paste0("width:",val,"%;")),
         tick_ui
       ),
-      if (is.finite(opp_val)) div(class="skill-benchmark-opponent-label",
-        paste0(opp_name," ",sprintf("%.1f%%",opp_val))) else NULL
+      if (isTRUE(show_opponent) && is.finite(opp_val))
+        div(class="skill-benchmark-label-wrap",
+          div(class="opponent-label skill-opponent-label",
+            style=paste0("left:",max(0,min(100,opp_val)),"%;"),
+            paste0(opp_name," ",sprintf("%.1f%%",opp_val))))
     )
   }
+
   tagList(div(class="skill-card",
     div(class="skill-card-head",span(title),span(tag)),
     div(class="skill-card-body",
-      div(class="skill-donut",style=paste0("background:conic-gradient(",grad,");"),
-        div(class="skill-donut-hole",strong(center),tags$small(center_label))),
+      div(class="skill-donut-wrap",donut),
       div(class="skill-legend",legend)),
     benchmark_ui
   ))
@@ -287,7 +315,7 @@ skill_area_panel_ui <- function(ids, show_opponent=FALSE) {
         if (nrow(ob0)) ob <- ob0[1,,drop=FALSE]
       }
     }
-    skill_card(z$title,z$tag,out,b,ob)
+    skill_card(z$title,z$tag,out,b,ob,show_opponent=show_opponent)
   })
   div(class="skill-area-panel",div(class="skill-area-heading","BY SKILL AREA"),
       div(class="skill-grid",cards))
@@ -584,7 +612,10 @@ ui <- fluidPage(
       .skill-card-head{height:36px;background:#C8102E;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 13px;font-family:'Barlow Condensed';font-size:16px;font-weight:800;}
       .skill-card-head span:last-child{font-size:10px;}
       .skill-card-body{min-height:170px;padding:16px 12px 8px;display:grid;grid-template-columns:minmax(88px,42%) minmax(0,1fr);gap:10px;align-items:center;}
-      .skill-donut{width:min(100%,112px);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:auto;}
+      .skill-donut-wrap{width:124px;max-width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;margin:auto;}
+      .skill-donut{width:100%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:auto;}
+      .skill-conversion-ring{width:124px;max-width:100%;aspect-ratio:1;border-radius:50%;padding:5px;display:flex;align-items:center;justify-content:center;margin:auto;box-sizing:border-box;}
+      .skill-conversion-ring .skill-donut{width:100%;height:100%;}
       .skill-donut-hole{width:66%;height:66%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
       .skill-donut-hole strong{font-family:'Barlow Condensed';font-size:27px;line-height:1;color:#263746;}
       .skill-donut-hole small{font-size:8px;letter-spacing:.6px;color:#6f7f8d;margin-top:3px;}
@@ -597,11 +628,12 @@ ui <- fluidPage(
       .skill-card-empty,.skill-empty{padding:24px 12px;color:#82909d;font-size:12px;text-align:center;}
       .skill-benchmark{border-top:1px dashed #dce4eb;margin:0 12px 10px;padding-top:9px;display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9px;color:#788999;}
       .skill-benchmark strong{font-family:'Barlow Condensed';font-size:15px;color:#263746;}
-      .skill-benchmark-track{grid-column:1/-1;height:7px;border-radius:10px;background:#f1e6dc;overflow:hidden;}
-      .skill-benchmark-fill{height:100%;background:#C8102E;border-radius:10px;}
-      .skill-benchmark-opponent{position:absolute;top:-4px;bottom:-4px;width:3px;background:#C8102E;transform:translateX(-50%);z-index:2;border-radius:2px;}
+      .skill-benchmark-track{grid-column:1/-1;height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;margin-top:8px;}
+      .skill-benchmark-fill{height:13px;background:#159B69;border-radius:20px;min-width:0;}
       .skill-benchmark-track{position:relative;}
-      .skill-benchmark-opponent-label{grid-column:1/-1;text-align:right;font-size:9px;color:#C8102E;}
+      .skill-opponent-marker{top:-7px;height:27px;width:3px;background:#ef4438;transform:translateX(-50%);z-index:3;border-radius:2px;}
+      .skill-benchmark-label-wrap{grid-column:1/-1;position:relative;height:17px;}
+      .skill-opponent-label{top:0;max-width:170px;white-space:nowrap;color:#e33e35;font-size:9px;line-height:11px;overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
       .report-card{background:#fff;border:1px solid #dfe6ed;border-radius:15px;
         padding:18px 22px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;}
