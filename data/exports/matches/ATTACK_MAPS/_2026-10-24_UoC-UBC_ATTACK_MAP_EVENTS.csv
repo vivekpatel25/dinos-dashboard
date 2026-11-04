@@ -1,0 +1,86 @@
+Season,Match_ID,Source_File,Team,Point_ID,Event_Order,Player_ID,Player_Number,Player_Name,Player,Attack_Code,Attack_Type,Evaluation_Code,Evaluation,Attack_Outcome,Attack_Phase,Is_First_Ball,Is_Transition,Start_Zone,End_Zone,End_Subzone
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,1,144,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X8,High ball z2,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,2,9,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,3,164,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C2,Stik,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,6,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,3,172,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,4,7,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,8,202,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X8,High ball z2,/,Blocked,Blocked,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,9,208,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,10,225,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,2,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,10,231,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,ZX,Attack on Overpass,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,2,3,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,12,245,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XV,Super in z2,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,2,9,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,13,258,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,=,Error,Error,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,17,268,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,5,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,19,281,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X1,High ball z4,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,19,285,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XX,Super in z4,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,20,296,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,2,1,NA
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,20,302,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,9,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,22,322,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,6,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,25,339,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,6,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,27,360,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,6,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,29,374,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,33,397,FEH-ANY,12,Anya Fehr,#12 - Anya Fehr,ZZ,Setter Dump,#,Winning attack,Kill,Reception,TRUE,FALSE,3,8,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,38,419,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,#,Winning attack,Kill,Reception,TRUE,FALSE,4,3,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,40,433,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C5,P?,=,Error,Error,Reception,TRUE,FALSE,3,5,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,41,439,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,V8,High Ball Backspike A,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,9,6,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,41,445,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,/,Blocked,Blocked,Transition sideout,FALSE,TRUE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,42,451,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,1,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,43,464,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X8,High ball z2,!,Blocked for reattack,In Play,Transition breakpoint,FALSE,TRUE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,43,468,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,2,4,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,45,481,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X7,Inside z2,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,2,3,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,46,492,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,XX,Super in z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,6,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,49,523,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,XV,Super in z2,+,"Positive, good attack",Positive,Reception,TRUE,FALSE,2,9,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,49,528,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,X8,High ball z2,/,Blocked,Blocked,Transition sideout,FALSE,TRUE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,52,540,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,XV,Super in z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,54,559,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,/,Blocked,Blocked,Transition sideout,FALSE,TRUE,4,1,NA
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,56,566,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,+,"Positive, good attack",Positive,Reception,TRUE,FALSE,4,2,NA
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,57,575,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XV,Super in z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,58,585,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,7,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,61,595,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,#,Winning attack,Kill,Reception,TRUE,FALSE,4,9,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,63,617,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,#,Winning attack,Kill,Reception,TRUE,FALSE,4,9,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,65,631,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,9,NA
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,65,637,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X8,High ball z2,!,Blocked for reattack,In Play,Transition sideout,FALSE,TRUE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,65,641,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,2,9,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,67,653,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C2,Stik,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,8,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,68,662,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,69,672,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,X1,High ball z4,/,Blocked,Blocked,Transition breakpoint,FALSE,TRUE,4,2,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,70,680,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,XX,Super in z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,72,690,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,XX,Super in z4,=,Error,Error,Reception,TRUE,FALSE,4,1,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,84,748,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,8,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,84,754,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X8,High ball z2,/,Blocked,Blocked,Transition breakpoint,FALSE,TRUE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,85,761,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X8,High ball z2,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,2,1,NA
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,87,793,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,6,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,93,832,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,/,Blocked,Blocked,Reception,TRUE,FALSE,4,2,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,94,838,FEH-ANY,12,Anya Fehr,#12 - Anya Fehr,ZZ,Setter Dump,=,Error,Error,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,95,844,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,7,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,97,860,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X1,High ball z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,5,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,99,871,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,101,887,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,X1,High ball z4,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,4,7,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,101,893,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,=,Error,Error,Transition sideout,FALSE,TRUE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,102,899,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C2,Stik,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,107,931,FEH-ANY,12,Anya Fehr,#12 - Anya Fehr,ZZ,Setter Dump,+,"Positive, good attack",Positive,Reception,TRUE,FALSE,3,8,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,107,935,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,XX,Super in z4,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,4,9,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,108,946,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,5,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,111,961,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Reception,TRUE,FALSE,2,5,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,113,975,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,2,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,113,982,FEH-ANY,12,Anya Fehr,#12 - Anya Fehr,ZZ,Setter Dump,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,3,1,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,114,994,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C5,P?,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,3,3,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,118,1024,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C6,Til,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,3,3,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,118,1031,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X8,High ball z2,+,"Positive, good attack",Positive,Transition sideout,FALSE,TRUE,2,4,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,118,1035,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,2,8,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,120,1056,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X8,High ball z2,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,2,4,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,124,1073,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,6,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,125,1083,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,8,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,126,1093,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,1,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,131,1119,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,#,Winning attack,Kill,Reception,TRUE,FALSE,4,3,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,133,1136,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X8,High ball z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,4,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,137,1164,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C5,P?,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,3,7,D
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,139,1181,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,XX,Super in z4,/,Blocked,Blocked,Transition breakpoint,FALSE,TRUE,4,2,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,142,1193,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,X1,High ball z4,/,Blocked,Blocked,Reception,TRUE,FALSE,4,2,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,143,1200,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,X1,High ball z4,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,4,2,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,143,1204,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,X1,High ball z4,=,Error,Error,Transition sideout,FALSE,TRUE,4,1,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,144,1210,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,XX,Super in z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,144,1217,CHR-JAS,14,Jasmine Chretien,#14 - Jasmine Chretien,XX,Super in z4,!,Blocked for reattack,In Play,Transition sideout,FALSE,TRUE,4,2,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,144,1221,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,V4,Pipe 5-6,+,"Positive, good attack",Positive,Transition sideout,FALSE,TRUE,8,3,NA
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,144,1226,FEH-ANY,12,Anya Fehr,#12 - Anya Fehr,ZZ,Setter Dump,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,3,8,B
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,146,1240,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,146,1244,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,2,8,A
+2026-27,_2026_10_24_uoc_ubc,&2026-10-24 UoC-UBC.dvw,University of Calgary,147,1254,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,=,Error,Error,Transition breakpoint,FALSE,TRUE,4,1,A
