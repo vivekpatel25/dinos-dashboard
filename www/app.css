@@ -1,7 +1,7 @@
 
 /* ============================================================
    DINOS VOLLEYBALL ANALYTICS
-   Header inspired by Huskies Coaches Dashboard
+   HUSKIES-INSPIRED DASHBOARD DESIGN
    ============================================================ */
 
 :root {
@@ -11,44 +11,26 @@
   --dinos-ink: #263746;
 }
 
-/* NAVIGATION */
+/* GENERAL */
 
-.navbar {
-  background: #ffffff !important;
-  border-bottom: 1px solid #e2e7eb !important;
-  box-shadow: 0 2px 10px rgba(25, 45, 65, 0.045);
-  min-height: 56px;
+body {
+  background: #eef1f4;
+  color: var(--dinos-ink);
+  font-family: "Inter", sans-serif;
 }
 
-.navbar .navbar-brand {
-  display: none !important;
+.container-fluid {
+  padding-left: 22px;
+  padding-right: 22px;
 }
 
-.navbar .nav-link {
-  color: #536170 !important;
-  font-family: "Barlow Condensed", sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  padding: 17px 19px !important;
-}
-
-.navbar .nav-link:hover,
-.navbar .nav-link.active {
-  color: var(--dinos-red) !important;
-}
-
-.navbar .nav-link.active {
-  box-shadow: inset 0 -3px 0 var(--dinos-red);
-}
-
-/* LARGE TEAM HEADER */
+/* HEADER */
 
 .dinos-dashboard-header {
-  width: calc(100% - 38px);
+  width: 100%;
   max-width: 1680px;
   min-height: 142px;
-  margin: 18px auto 16px;
+  margin: 16px auto 18px;
   padding: 20px 30px;
   background: #ffffff;
   border: 1px solid #e2e7eb;
@@ -106,7 +88,6 @@
   align-items: center;
   gap: 9px;
   color: #748292;
-  font-family: "Inter", sans-serif;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 2px;
@@ -169,18 +150,68 @@
   margin-top: 4px;
 }
 
-/* MAIN CONTENT */
+/* ============================================================
+   FIVE PERIOD SELECTORS
+   ============================================================ */
 
-body {
-  background: #eef1f4;
-  color: var(--dinos-ink);
-  font-family: "Inter", sans-serif;
+.nav-pills {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  padding: 8px;
+  margin: 0 auto 20px !important;
+  background: #ffffff;
+  border: 1px solid #dfe5eb;
+  border-radius: 17px;
+  box-shadow: 0 5px 15px rgba(25, 45, 65, 0.055);
 }
 
-.page-content {
+.nav-pills > li {
+  flex: 1 1 0;
+  float: none !important;
+  text-align: center;
+}
+
+.nav-pills > li > a {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  width: 100%;
+  border-radius: 11px !important;
+  color: #526274 !important;
+  background: transparent !important;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.nav-pills > li > a:hover {
+  background: #fbecef !important;
+  color: var(--dinos-red) !important;
+}
+
+.nav-pills > li.active > a,
+.nav-pills > li.active > a:hover,
+.nav-pills > li.active > a:focus {
+  background: var(--dinos-red) !important;
+  color: #ffffff !important;
+  box-shadow: none;
+}
+
+/* PERIOD CONTENT */
+
+.period-content {
+  width: 100%;
   max-width: 1680px;
   margin: 0 auto;
-  padding: 20px 24px 34px;
+  padding: 0 2px 30px;
 }
 
 .section-heading {
@@ -188,7 +219,7 @@ body {
   justify-content: space-between;
   align-items: flex-end;
   gap: 20px;
-  margin: 12px 0 20px;
+  margin: 24px 5px 20px;
 }
 
 .section-heading h2 {
@@ -235,14 +266,14 @@ body {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
-  margin: 18px 0;
+  margin: 18px 5px 20px;
 }
 
 .metric-card,
 .content-panel,
 .feature-tile {
   background: #ffffff;
-  border: 1px solid #e5e8ec;
+  border: 1px solid #e0e6ec;
   border-radius: 15px;
   box-shadow: 0 4px 13px rgba(25, 45, 65, 0.045);
 }
@@ -273,22 +304,15 @@ body {
   font-size: 10px;
 }
 
-/* CONTENT PANELS */
+/* ANALYSIS PANELS */
 
-.content-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+.analysis-section {
+  margin: 16px 5px;
+  padding: 22px;
 }
 
 .content-panel {
-  padding: 20px;
   min-width: 0;
-}
-
-.panel-wide {
-  grid-column: 1 / -1;
 }
 
 .panel-heading {
@@ -302,16 +326,16 @@ body {
 .panel-heading h3 {
   color: #263746;
   font-family: "Barlow Condensed", sans-serif;
-  font-size: 21px;
+  font-size: 25px;
   font-weight: 700;
   margin: 0;
 }
 
-/* EMPTY DATA STATE */
+/* EMPTY STATES */
 
 .empty-state {
-  min-height: 210px;
-  padding: 28px 20px;
+  min-height: 180px;
+  padding: 25px 20px;
   border: 1px dashed #e4b8c1;
   border-radius: 12px;
   background: #fffafb;
@@ -353,39 +377,6 @@ body {
 .expected-files ul {
   margin: 5px 0 0;
   padding-left: 18px;
-}
-
-/* MODULE FEATURE TILES */
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 18px 0;
-}
-
-.feature-tile {
-  padding: 17px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.feature-number {
-  color: var(--dinos-red);
-  font-family: "Barlow Condensed", sans-serif;
-  font-size: 25px;
-  font-weight: 800;
-}
-
-.feature-name {
-  color: #43515e;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.module-placeholder {
-  margin-top: 16px;
 }
 
 /* FOOTER */
@@ -445,24 +436,29 @@ body {
     padding-top: 12px;
   }
 
+  .nav-pills {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .nav-pills > li {
+    flex: 0 0 auto;
+    min-width: 125px;
+  }
+
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .content-grid,
-  .feature-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .panel-wide {
-    grid-column: auto;
   }
 }
 
 @media (max-width: 520px) {
 
+  .container-fluid {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
   .dinos-dashboard-header {
-    width: calc(100% - 20px);
     margin: 10px auto;
     padding: 15px;
   }
@@ -491,16 +487,26 @@ body {
     font-size: 17px;
   }
 
-  .page-content {
-    padding: 14px 12px 26px;
-  }
-
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .navbar .nav-link {
-    padding: 12px 10px !important;
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .metric-card {
+    padding: 13px;
+  }
+
+  .analysis-section {
+    padding: 14px;
+  }
+
+  .nav-pills > li > a {
+    min-height: 54px;
+    font-size: 15px;
   }
 }
