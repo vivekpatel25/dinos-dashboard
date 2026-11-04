@@ -124,6 +124,143 @@ load_match_metrics <- function() {
 
 all_metrics <- load_match_metrics()
 
+
+# ----------------------------- SKILL AREA DATA -----------------------------
+find_skill_area_files <- function() {
+  if (!dir.exists(MATCH_ROOT)) return(character(0))
+  list.files(MATCH_ROOT, pattern="_SKILL_AREA\\.csv$", recursive=TRUE,
+             full.names=TRUE, ignore.case=TRUE)
+}
+load_skill_area_data <- function() {
+  files <- find_skill_area_files()
+  if (!length(files)) return(data.frame())
+  parts <- lapply(files, function(f) {
+    d <- read_csv_safe(f)
+    if (is.null(d) || !nrow(d) ||
+        !all(c("match_id","team","export_type","section") %in% names(d))) return(NULL)
+    d$source_path <- f
+    d
+  })
+  parts <- Filter(Negate(is.null), parts)
+  if (!length(parts)) return(data.frame())
+  out <- do.call(rbind, parts)
+  out$match_id <- as.character(out$match_id)
+  out
+}
+all_skill_area <- load_skill_area_data()
+
+skill_palette <- c(
+  "Kills"="#159B69","In play"="#9CB6C5","Blocked"="#F39A27","Errors"="#E34D40",
+  "Good pass"="#159B69","Medium"="#F4B12E","Out-of-system"="#F39A27",
+  "Overpass"="#F36B21","Aced"="#E34D40","Stuff"="#159B69","Positive"="#C45A00",
+  "Fulfilled"="#9CB6C5","Negative"="#F0A12C","Aces"="#08764F",
+  "OOS Pass"="#7CC7A5","Good Pass"="#9CB6C5","Serve Error"="#E34D40",
+  "Dig Error"="#E34D40"
+)
+
+skill_outcomes <- function(d, section) {
+  x <- d[tolower(d$section)==tolower(section) &
+           tolower(d$export_type)=="skill_outcome",,drop=FALSE]
+  if (!nrow(x)) return(data.frame(label=character(),count=numeric()))
+  x$count <- suppressWarnings(as.numeric(x$event_count))
+  x$count[is.na(x$count)] <- 0
+  code <- as.character(x$evaluation_code)
+  x$label <- switch(tolower(section),
+    attack=ifelse(code=="#","Kills",ifelse(code %in% c("!","+","-"),"In play",
+            ifelse(code=="/","Blocked",ifelse(code=="=","Errors",NA)))),
+    reception=ifelse(code %in% c("#","+"),"Good pass",ifelse(code=="!","Medium",
+            ifelse(code=="-","Out-of-system",ifelse(code=="/","Overpass",
+            ifelse(code=="=","Aced",NA))))),
+    block=ifelse(code=="#","Stuff",ifelse(code=="+","Positive",
+            ifelse(code=="!","Fulfilled",ifelse(code=="-","Negative",
+            ifelse(code=="=","Errors",NA))))),
+    serve=ifelse(code=="#","Aces",ifelse(code=="/","Overpass",
+            ifelse(code %in% c("!","-"),"OOS Pass",ifelse(code=="+","Good Pass",
+            ifelse(code=="=","Serve Error",NA))))),
+    dig=ifelse(code %in% c("+","-","/"),"In play",ifelse(code=="=","Dig Error",NA)),
+    NA_character_
+  )
+  x <- x[!is.na(x$label),,drop=FALSE]
+  if (!nrow(x)) return(data.frame(label=character(),count=numeric()))
+  aggregate(count~label,x,sum)
+}
+
+skill_card <- function(title, tag, outcomes, bench=NULL) {
+  if (is.null(outcomes) || !nrow(outcomes) || sum(outcomes$count)<=0)
+    return(div(class="skill-card",div(class="skill-card-head",span(title),span(tag)),
+               div(class="skill-card-empty","No skill data available.")))
+  outcomes <- outcomes[outcomes$count>0,,drop=FALSE]
+  total <- sum(outcomes$count)
+  outcomes$pct <- 100*outcomes$count/total
+  cols <- unname(skill_palette[outcomes$label]); cols[is.na(cols)] <- "#9CB6C5"
+  ends <- cumsum(outcomes$pct); starts <- c(0,head(ends,-1))
+  grad <- paste0(cols," ",sprintf("%.2f%%",starts)," ",sprintf("%.2f%%",ends),collapse=",")
+  if (title=="ATTACK") {
+    k <- sum(outcomes$count[outcomes$label=="Kills"])
+    e <- sum(outcomes$count[outcomes$label=="Errors"])
+    center <- sprintf("%.3f",(k-e)/total); center_label <- "ATK EFF"
+  } else if (title=="SERVE RECEIVE") {
+    gp <- sum(outcomes$count[outcomes$label=="Good pass"])
+    center <- sprintf("%.0f%%",100*gp/total); center_label <- "GOOD"
+  } else {
+    center <- as.character(total)
+    center_label <- switch(title,"BLOCK"="BLOCKS","SERVE"="SERVES","DEFENSE"="DIGS")
+  }
+  legend <- lapply(seq_len(nrow(outcomes)),function(i)
+    div(class="skill-legend-row",
+      span(class="skill-swatch",style=paste0("background:",cols[i])),
+      span(class="skill-legend-name",outcomes$label[i]),
+      strong(class="skill-legend-pct",sprintf("%.0f%%",outcomes$pct[i])),
+      span(class="skill-legend-count",as.character(outcomes$count[i]))
+    ))
+  tagList(div(class="skill-card",
+    div(class="skill-card-head",span(title),span(tag)),
+    div(class="skill-card-body",
+      div(class="skill-donut",style=paste0("background:conic-gradient(",grad,");"),
+        div(class="skill-donut-hole",strong(center),small(center_label))),
+      div(class="skill-legend",legend)),
+    if (!is.null(bench) && nrow(bench)) {
+      val <- as.numeric(bench$metric_value[1])
+      div(class="skill-benchmark",span(toupper(bench$metric_name[1])),
+        strong(sprintf("%.1f%%",val)),
+        div(class="skill-benchmark-track",
+          div(class="skill-benchmark-fill",style=paste0("width:",max(0,min(100,val)),"%;"))))
+    }
+  ))
+}
+
+skill_area_panel_ui <- function(ids) {
+  if (!length(ids) || !nrow(all_skill_area))
+    return(div(class="skill-area-panel",div(class="skill-area-heading","BY SKILL AREA"),
+      div(class="skill-empty","No *_SKILL_AREA.csv files found in the match folders.")))
+  d <- all_skill_area[all_skill_area$match_id %in% as.character(ids) &
+    grepl("University of Calgary",all_skill_area$team,ignore.case=TRUE),,drop=FALSE]
+  if (!nrow(d)) return(div(class="skill-area-panel",div(class="skill-area-heading","BY SKILL AREA"),
+    div(class="skill-empty","No University of Calgary skill-area data found for this period.")))
+  specs <- list(
+    list(section="Attack",title="ATTACK",tag="KILL"),
+    list(section="Reception",title="SERVE RECEIVE",tag="PASS"),
+    list(section="Block",title="BLOCK",tag="NET"),
+    list(section="Serve",title="SERVE",tag="SRV"),
+    list(section="Dig",title="DEFENSE",tag="DEF")
+  )
+  cards <- lapply(specs,function(z) {
+    out <- skill_outcomes(d,z$section)
+    bn <- if(z$section=="Serve") "Disruption %" else if(z$section=="Dig") "Conversion %" else NA_character_
+    b <- if (is.na(bn)) data.frame() else
+      d[d$export_type=="benchmark" & d$metric_name==bn &
+        d$benchmark_side=="UofC value",,drop=FALSE]
+    if(nrow(b)) {
+      b$numerator <- as.numeric(b$numerator); b$event_count <- as.numeric(b$event_count)
+      b <- aggregate(cbind(numerator,event_count)~metric_name,b,sum,na.rm=TRUE)
+      b$metric_value <- ifelse(b$event_count>0,100*b$numerator/b$event_count,NA_real_)
+    }
+    skill_card(z$title,z$tag,out,b)
+  })
+  div(class="skill-area-panel",div(class="skill-area-heading","BY SKILL AREA"),
+      div(class="skill-grid",cards))
+}
+
 # ----------------------------- ROSTER -----------------------------
 
 roster <- read_csv_safe(ROSTER_PATH)
@@ -404,6 +541,28 @@ ui <- fluidPage(
       .opponent-label{position:absolute;top:2px;transform:translateX(-50%);
         white-space:nowrap;color:#e33e35;font-size:9px;line-height:11px;max-width:170px;
         overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
+      .skill-area-panel{margin:18px 0 22px;background:#e9eef2;border-radius:15px;padding:14px 16px 18px;}
+      .skill-area-heading{font-family:'Barlow Condensed';font-size:15px;font-weight:800;letter-spacing:1.2px;color:#617383;border-bottom:1px solid #d4dde4;padding:0 0 8px;margin-bottom:10px;}
+      .skill-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+      .skill-card{background:#fff;border:1px solid #d8e0e6;border-radius:13px;overflow:hidden;box-shadow:0 5px 12px rgba(31,49,67,.08);min-width:0;}
+      .skill-card-head{height:36px;background:#c45a00;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 13px;font-family:'Barlow Condensed';font-size:16px;font-weight:800;}
+      .skill-card-head span:last-child{font-size:10px;}
+      .skill-card-body{min-height:170px;padding:16px 12px 8px;display:grid;grid-template-columns:minmax(88px,42%) minmax(0,1fr);gap:10px;align-items:center;}
+      .skill-donut{width:min(100%,112px);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:auto;}
+      .skill-donut-hole{width:66%;height:66%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+      .skill-donut-hole strong{font-family:'Barlow Condensed';font-size:27px;line-height:1;color:#263746;}
+      .skill-donut-hole small{font-size:8px;letter-spacing:.6px;color:#6f7f8d;margin-top:3px;}
+      .skill-legend{min-width:0;}
+      .skill-legend-row{display:grid;grid-template-columns:9px minmax(0,1fr) auto 22px;gap:6px;align-items:center;margin:7px 0;font-size:10px;}
+      .skill-swatch{width:9px;height:9px;border-radius:3px;}
+      .skill-legend-name{font-weight:700;color:#344454;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .skill-legend-pct{font-family:'Barlow Condensed';font-size:14px;color:#263746;}
+      .skill-legend-count{font-size:9px;text-align:right;color:#87939e;}
+      .skill-card-empty,.skill-empty{padding:24px 12px;color:#82909d;font-size:12px;text-align:center;}
+      .skill-benchmark{border-top:1px dashed #dce4eb;margin:0 12px 10px;padding-top:9px;display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9px;color:#788999;}
+      .skill-benchmark strong{font-family:'Barlow Condensed';font-size:15px;color:#263746;}
+      .skill-benchmark-track{grid-column:1/-1;height:7px;border-radius:10px;background:#f1e6dc;overflow:hidden;}
+      .skill-benchmark-fill{height:100%;background:#c45a00;border-radius:10px;}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
       .report-card{background:#fff;border:1px solid #dfe6ed;border-radius:15px;
         padding:18px 22px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;}
@@ -422,10 +581,10 @@ ui <- fluidPage(
       @media(max-width:600px){
         .container-fluid{padding:9px}.top-header{border-radius:14px;}
         .brand-copy h1{font-size:30px}.brand-subtitle{font-size:10px;letter-spacing:1px;}
-        .header-nav{width:100%;justify-content:center;gap:4px}.header-nav .btn{width:78px;min-width:78px;font-size:12px}.period-bar{overflow-x:auto;}
+        .header-nav{width:100%;justify-content:center;gap:4px}.header-nav .btn{width:78px;min-width:78px;font-size:12px}.period-bar{overflow-x:auto;}.skill-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
         .period-bar .btn{min-width:112px;font-size:14px;}
         .metric-line{grid-template-columns:1fr 75px;}.metric-track-wrap{grid-column:1/-1;}
-        .metric-section{padding:14px}.page-heading h2{font-size:32px;}
+        .metric-section{padding:14px}.page-heading h2{font-size:32px;}.skill-grid{grid-template-columns:1fr;}
       }
     "))
   ),
@@ -634,9 +793,12 @@ server <- function(input, output, session) {
 
     # For a single match, show the opponent's tick marker beside each metric.
     if (length(ids) == 1) {
-      return(div(class = "metric-section",
-        div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
-        metrics_panel_ui(all_metrics[all_metrics$match_id == ids[1], , drop = FALSE])
+      return(tagList(
+        div(class = "metric-section",
+          div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
+          metrics_panel_ui(all_metrics[all_metrics$match_id == ids[1], , drop = FALSE])
+        ),
+        skill_area_panel_ui(ids)
       ))
     }
 
@@ -692,9 +854,12 @@ server <- function(input, output, session) {
     agg$metric_category <- as.character(agg$metric_category)
     agg$metric_name <- as.character(agg$metric_name)
 
-    div(class = "metric-section",
-      div(class = "metric-section-title", "KEY METRICS · COMBINED PERIOD"),
-      metrics_panel_ui(agg, show_opponent = FALSE)
+    tagList(
+      div(class = "metric-section",
+        div(class = "metric-section-title", "KEY METRICS · COMBINED PERIOD"),
+        metrics_panel_ui(agg, show_opponent = FALSE)
+      ),
+      skill_area_panel_ui(ids)
     )
   })
 
@@ -715,7 +880,8 @@ server <- function(input, output, session) {
       div(class = "metric-section",
         div(class = "metric-section-title", "KEY METRICS · PERFORMANCE PROFILE"),
         metrics_panel_ui(d)
-      )
+      ),
+      skill_area_panel_ui(id)
     )
   })
 
