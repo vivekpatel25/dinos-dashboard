@@ -1132,18 +1132,24 @@ attack_detail_ui <- function(ids, selected_player = "All",
 
     if (!nrow(z)) return(NA_real_)
 
+    # Key Metrics may label these as "First Ball Attack Efficiency",
+    # "First-Ball Eff.", "FB Eff.", or similar. Match the phase and
+    # efficiency wording without requiring the word "attack".
     nm <- tolower(gsub(
       "[^a-z0-9]+", " ",
-      as.character(z$metric_name)
+      trimws(as.character(z$metric_name))
     ))
 
+    is_eff <- grepl("eff|efficiency", nm)
+
     if (kind == "FB Eff.") {
-      hit <- grepl("first.*ball", nm) &
-        grepl("(atk|attack).*eff|eff.*(atk|attack)", nm)
+      is_phase <- grepl("first.*ball", nm) |
+        grepl("(^| )fb( |$)", nm)
     } else {
-      hit <- grepl("transition", nm) &
-        grepl("(atk|attack).*eff|eff.*(atk|attack)", nm)
+      is_phase <- grepl("transition", nm)
     }
+
+    hit <- is_phase & is_eff
 
     vals <- suppressWarnings(as.numeric(z$metric_value[hit]))
     vals <- vals[is.finite(vals)]
@@ -1151,6 +1157,8 @@ attack_detail_ui <- function(ids, selected_player = "All",
     if (!length(vals)) {
       NA_real_
     } else {
+      # Key Metrics can store efficiencies as either decimals or
+      # percentages. Convert to the decimal scale used by the attack bars.
       normalise_efficiency(vals[1])
     }
   }
