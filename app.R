@@ -1431,17 +1431,24 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
   ]
 
   # Attack-type controls: all eligible codes are selected by default.
-  attack_type_codes <- sort(unique(toupper(trimws(as.character(d$Opponent_Attack_Code)))))
+  observed_attack_codes <- toupper(trimws(as.character(d$Opponent_Attack_Code)))
+  # Keep the known attack controls visible even when a code is absent from
+  # the currently selected match/period (e.g. X8 / Five).
+  standard_attack_codes <- c("C2", "C5", "C6", "C8", "V5", "X1", "XV", "X8", "XX")
+  attack_type_codes <- sort(unique(c(
+    standard_attack_codes,
+    observed_attack_codes[!is.na(observed_attack_codes) & grepl("^C", observed_attack_codes)]
+  )))
   attack_type_labels <- c(
     "C2" = "C2 - Gap",
     "C5" = "C5",
     "C6" = "C6",
     "C8" = "C8 - Slide",
     "V5" = "V5 - Pipe",
-    "X1" = "X1 - Opp. left",
-    "XV" = "XV - Opp. right",
-    "X8" = "X8 - Opp. right",
-    "XX" = "XX - Opp. left"
+    "X1" = "X1 - Hut",
+    "XV" = "XV - Red",
+    "X8" = "X8 - Five",
+    "XX" = "XX - Go"
   )
   type_choices <- setNames(
     attack_type_codes,
