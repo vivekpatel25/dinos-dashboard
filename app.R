@@ -1373,6 +1373,240 @@ attack_detail_ui <- function(ids, selected_player = "All",
   )
 }
 
+
+# ----------------------------- BLOCKING DETAIL -----------------------------
+
+block_detail_ui <- function(ids) {
+
+  d <- load_detail_csvs("BLOCK_EVENTS\\.csv$", ids)
+
+  if (!nrow(d)) {
+    return(
+      div(
+        class = "detail-section",
+        div(class = "detail-section-title", "BLOCKING DETAIL"),
+        div(class = "detail-empty", "No BLOCK_EVENTS.csv found for this match selection.")
+      )
+    )
+  }
+
+  required <- c("Opponent_Attack_Code", "Block_Outcome")
+  if (!all(required %in% names(d))) {
+    return(
+      div(
+        class = "detail-section",
+        div(class = "detail-section-title", "BLOCKING DETAIL"),
+        div(class = "detail-empty", "The block events export is missing attack-code or block-outcome columns.")
+      )
+    )
+  }
+
+  # Keep linked opponent attacks only when the export provides that flag.
+  if ("Attack_Linked" %in% names(d)) {
+    linked <- tolower(as.character(d$Attack_Linked)) %in% c("true", "1", "yes")
+    d <- d[linked, , drop = FALSE]
+  }
+
+  code <- toupper(trimws(as.character(d$Opponent_Attack_Code)))
+
+  # Exclude these attack codes completely from the blocking analysis.
+  excluded_codes <- c("VV", "AX", "ZX", "Z3")
+
+  # Translate opponent attack origin into the corresponding Calgary block position.
+  d$Block_Position <- NA_character_
+  d$Block_Position[code %in% c("XV", "X8", "C8")] <- "LEFT SIDE"
+  d$Block_Position[code %in% c("X1", "XX")] <- "RIGHT SIDE"
+  d$Block_Position[code == "C2"] <- "GAP"
+  d$Block_Position[code == "V5"] <- "MIDDLE"
+
+  # Every other C-coded attack is treated as a middle attack.
+  other_c <- grepl("^C", code) & !code %in% c("C8", "C2")
+  d$Block_Position[other_c] <- "MIDDLE"
+
+  d <- d[
+    !is.na(d$Block_Position) &
+      !code %in% excluded_codes,
+    ,
+    drop = FALSE
+  ]
+
+  if (!nrow(d)) {
+    return(
+      div(
+        class = "detail-section",
+        div(class = "detail-section-title", "BLOCKING DETAIL"),
+        div(class = "detail-empty", "No eligible opponent attack codes found for blocking analysis.")
+      )
+    )
+  }
+
+  outcome_levels <- c("Block Point", "Positive", "Negative", "Block Error")
+  outcome_labels <- c(
+    "Block Point" = "STUFFED",
+    "Positive" = "POSITIVE",
+    "Negative" = "NEGATIVE",
+    "Block Error" = "ERROR"
+  )
+
+  outcome_colours <- c(
+    "Block Point" = "#159B69",
+    "Positive" = "#E0A21A",
+    "Negative" = "#C94A35",
+    "Block Error" = "#718096"
+  )
+
+  positions <- c("LEFT SIDE", "MIDDLE", "GAP", "RIGHT SIDE")
+
+  d$Block_Outcome <- trimws(as.character(d$Block_Outcome))
+  d$Block_Outcome[!d$Block_Outcome %in% outcome_levels] <- NA_character_
+  d <- d[!is.na(d$Block_Outcome), , drop = FALSE]
+
+  if (!nrow(d)) {
+    return(
+      div(
+        class = "detail-section",
+        div(class = "detail-section-title", "BLOCKING DETAIL"),
+        div(class = "detail-empty", "No recognized block outcomes found in the eligible events.")
+      )
+    )
+  }
+
+  counts <- expand.grid(
+    Block_Position = positions,
+    Block_Outcome = outcome_levels,
+    stringsAsFactors = FALSE
+  )
+  counts$count <- 0L
+
+  observed <- as.data.frame(
+    table(
+      factor(d$Block_Position, levels = positions),
+      factor(d$Block_Outcome, levels = outcome_levels)
+    ),
+    stringsAsFactors = FALSE
+  )
+  names(observed) <- c("Block_Position", "Block_Outcome", "count")
+  counts <- merge(
+    counts,
+    observed,
+    by = c("Block_Position", "Block_Outcome"),
+    all.x = TRUE,
+    suffixes = c("", ".observed"),
+    sort = FALSE
+  )
+  counts$count <- ifelse(
+    !is.na(counts$count.observed),
+    counts$count.observed,
+    counts$count
+  )
+  counts$count.observed <- NULL
+
+  position_total <- vapply(
+    positions,
+    function(pos) sum(counts$count[counts$Block_Position == pos]),
+    numeric(1)
+  )
+  grand_total <- sum(position_total)
+
+  # One court lane per block position, with a stacked outcome bar.
+  court_lanes <- lapply(positions, function(pos) {
+    total <- position_total[[pos]]
+    pos_counts <- counts[counts$Block_Position == pos, , drop = FALSE]
+    segments <- lapply(outcome_levels, function(outcome) {
+      n <- pos_counts$count[pos_counts$Block_Outcome == outcome]
+      n <- if (length(n)) n[1] else 0
+      if (n <= 0 || total <= 0) return(NULL)
+      div(
+        class = "block-stack-segment",
+        style = paste0(
+          "height:", 100 * n / total, "%;width:100%;background:",
+          outcome_colours[[outcome]], ";"
+        ),
+        title = paste0(outcome_labels[[outcome]], ": ", n)
+      )
+    })
+
+    div(
+      class = "block-court-lane",
+      div(class = "block-court-count", as.character(total)),
+      div(class = "block-court-stack", segments),
+      div(class = "block-court-position", pos)
+    )
+  })
+
+  table_rows <- lapply(positions, function(pos) {
+    total <- position_total[[pos]]
+    pos_counts <- counts[counts$Block_Position == pos, , drop = FALSE]
+    cells <- lapply(outcome_levels, function(outcome) {
+      n <- pos_counts$count[pos_counts$Block_Outcome == outcome]
+      n <- if (length(n)) n[1] else 0
+      pct <- if (total > 0) 100 * n / total else 0
+      tags$td(
+        if (total > 0) {
+          paste0(n, " (", sprintf("%.0f", pct), "%)")
+        } else {
+          "—"
+        }
+      )
+    })
+
+    tags$tr(
+      tags$td(class = "block-position-name", pos),
+      tags$td(as.character(total)),
+      cells
+    )
+  })
+
+  legend <- lapply(outcome_levels, function(outcome) {
+    div(
+      class = "block-legend-item",
+      span(
+        class = "block-legend-swatch",
+        style = paste0("background:", outcome_colours[[outcome]], ";")
+      ),
+      span(outcome_labels[[outcome]])
+    )
+  })
+
+  div(
+    class = "detail-section block-detail-section",
+    div(class = "detail-section-title", "BLOCKING DETAIL"),
+    div(class = "block-detail-subtitle", paste0(grand_total, " eligible opponent attacks faced")),
+
+    div(
+      class = "block-court",
+      div(class = "block-court-net", "NET"),
+      div(class = "block-court-lanes", court_lanes),
+      div(class = "block-court-baseline", "CALGARY BLOCKING POSITIONS")
+    ),
+
+    div(class = "block-legend", legend),
+
+    div(
+      class = "block-table-wrap",
+      tags$table(
+        class = "block-detail-table",
+        tags$thead(
+          tags$tr(
+            tags$th("BLOCK POSITION"),
+            tags$th("ATTACKS"),
+            tags$th("STUFFED"),
+            tags$th("POSITIVE"),
+            tags$th("NEGATIVE"),
+            tags$th("ERROR")
+          )
+        ),
+        tags$tbody(table_rows)
+      )
+    ),
+
+    div(
+      class = "block-detail-footnote",
+      "Attack codes VV, AX, ZX and Z3 are excluded. V5 is included as a middle pipe attack when present."
+    )
+  )
+}
+
 # ----------------------------- ROSTER -----------------------------
 
 roster <- read_csv_safe(ROSTER_PATH)
@@ -1890,6 +2124,26 @@ ui <- fluidPage(
       .skill-opponent-label{top:0;max-width:170px;white-space:nowrap;color:#e33e35;
         font-size:9px;line-height:11px;overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
 
+      .block-detail-section{overflow:hidden;}
+      .block-detail-subtitle{font-size:11px;color:#718096;font-weight:700;margin:2px 0 12px;}
+      .block-court{border:1px solid #d7e0e7;border-radius:10px;overflow:hidden;background:#f7fafc;margin:12px 0 14px;}
+      .block-court-net{height:9px;background:#263746;color:#fff;text-align:center;font-size:7px;line-height:9px;letter-spacing:1px;}
+      .block-court-lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#d5dfe7;padding:1px;}
+      .block-court-lane{background:#edf3f7;min-height:125px;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;padding:12px 9px 0;}
+      .block-court-count{text-align:center;font-family:'Barlow Condensed';font-size:19px;font-weight:800;color:#263746;margin-bottom:6px;}
+      .block-court-stack{height:105px;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;border-bottom:5px solid #344653;}
+      .block-stack-segment{display:block;min-height:3px;flex:0 0 auto;}
+      .block-court-position{text-align:center;font-family:'Barlow Condensed';font-size:12px;font-weight:800;color:#263746;padding:9px 2px 10px;white-space:nowrap;}
+      .block-court-baseline{text-align:center;background:#fff;padding:7px;font-size:8px;font-weight:800;letter-spacing:1px;color:#718096;}
+      .block-legend{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0;font-size:10px;font-weight:700;color:#536577;}
+      .block-legend-item{display:flex;align-items:center;gap:6px;}
+      .block-legend-swatch{width:9px;height:9px;border-radius:2px;display:inline-block;}
+      .block-table-wrap{overflow-x:auto;}
+      .block-detail-table{width:100%;border-collapse:collapse;font-size:11px;text-align:center;}
+      .block-detail-table th{font-family:'Barlow Condensed';font-size:11px;letter-spacing:.4px;color:#536577;background:#f2f5f7;padding:10px 7px;border-bottom:2px solid #d6dfe6;white-space:nowrap;}
+      .block-detail-table td{padding:9px 7px;border-bottom:1px solid #e3e8ed;color:#344454;font-weight:700;}
+      .block-detail-table .block-position-name{text-align:left;font-weight:900;color:#263746;white-space:nowrap;}
+      .block-detail-footnote{font-size:9px;color:#87939e;text-align:right;margin-top:9px;}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
 
       .detail-section{background:#fff;border:1px solid #dfe6ed;border-radius:16px;
@@ -2335,7 +2589,8 @@ server <- function(input, output, session) {
               ,
               drop = FALSE
             ]
-          )
+          ),
+          block_detail_ui(mid)
         )
       )
     }
@@ -2490,7 +2745,8 @@ server <- function(input, output, session) {
         selected_player = selected_attack_player(),
         show_opponent = show_opponent,
         metric_data = match_data
-      )
+      ),
+      block_detail_ui(selected_ids)
     )
   })
 
