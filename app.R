@@ -1723,6 +1723,14 @@ if (nrow(all_metrics)) {
     drop = FALSE
   ]
 
+  # A match can appear in multiple export rows/files. The dashboard index
+  # must contain exactly one row per match_id.
+  match_index <- match_index[
+    !duplicated(as.character(match_index$match_id)),
+    ,
+    drop = FALSE
+  ]
+
   rownames(match_index) <- NULL
 
 } else {
@@ -1758,6 +1766,13 @@ if (!is.null(match_metadata) && nrow(match_metadata) &&
 
   match_index <- match_index[
     order(as.Date(match_index$match_date), decreasing = TRUE),
+    ,
+    drop = FALSE
+  ]
+
+  # Metadata joins can also multiply rows if duplicate IDs exist there.
+  match_index <- match_index[
+    !duplicated(as.character(match_index$match_id)),
     ,
     drop = FALSE
   ]
@@ -2170,6 +2185,10 @@ ui <- fluidPage(
         font-size:9px;line-height:11px;overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
 
       .block-detail-section{overflow:hidden;}
+      .block-detail-section .detail-section-title{
+        background:#C8102E !important;color:#fff !important;border-radius:9px;
+        padding:11px 15px;border:0;margin:-18px -20px 14px;
+      }
       .block-detail-subtitle{font-size:11px;color:#718096;font-weight:700;margin:2px 0 12px;}
       .block-type-filter{background:#f1f4f6;border-radius:10px;padding:9px 12px 5px;margin:8px 0 14px;}
       .block-type-filter-title{font-size:9px;font-weight:800;letter-spacing:1.2px;color:#718096;margin-bottom:4px;}
@@ -2183,7 +2202,7 @@ ui <- fluidPage(
         width:29px;height:15px;border-radius:12px;background:#c5ced6;transition:background .15s;}
       .block-type-filter .checkbox-inline:after{content:'';position:absolute;left:2px;top:5px;
         width:11px;height:11px;border-radius:50%;background:#fff;transition:transform .15s;}
-      .block-type-filter .checkbox-inline:has(input:checked):before{background:#c45a00;}
+      .block-type-filter .checkbox-inline:has(input:checked):before{background:#C8102E !important;}
       .block-type-filter .checkbox-inline:has(input:checked):after{transform:translateX(14px);}
       .block-type-filter .checkbox-inline:hover{color:#263746;}
       .block-court{border:1px solid #d4e0e8;border-radius:10px;overflow:hidden;background:#edf4f8;margin:12px 0 14px;}
@@ -2195,8 +2214,8 @@ ui <- fluidPage(
       .block-opponent-half strong{font-family:'Barlow Condensed';font-size:22px;font-weight:800;}
       .block-opponent-half span{font-family:'Barlow Condensed';font-size:10px;font-weight:800;color:#536577;}
       .block-court-net{height:10px;background:#263746;color:#fff;text-align:center;font-size:7px;line-height:10px;letter-spacing:1.2px;z-index:2;}
-      .block-court-block-half{height:170px;padding:12px 10px 0;display:flex;flex-direction:column;justify-content:flex-end;}
-      .block-court-stack{height:125px;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;border-bottom:5px solid #344653;}
+      .block-court-block-half{height:230px;padding:8px 10px 0;display:flex;flex-direction:column;justify-content:flex-end;}
+      .block-court-stack{height:195px;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;border-bottom:5px solid #344653;}
       .block-stack-segment{display:block;min-height:0;flex:0 0 auto;}
       .block-court-position{text-align:center;font-family:'Barlow Condensed';font-size:12px;font-weight:800;color:#263746;padding:9px 2px 8px;white-space:nowrap;}
       .block-legend{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0;font-size:10px;font-weight:700;color:#536577;}
@@ -2731,7 +2750,7 @@ server <- function(input, output, session) {
 
         div(
           class = "count-pill",
-          paste(length(match_index), "MATCHES LOADED")
+          paste(length(unique(as.character(match_index$match_id))), "MATCHES LOADED")
         )
       ),
 
