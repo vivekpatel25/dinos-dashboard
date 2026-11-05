@@ -1533,6 +1533,13 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
   )
   grand_total <- sum(position_total)
 
+  # Scale all position bars against the busiest position so low-volume zones
+  # have shorter bars and high-volume zones have taller bars.
+  max_position_total <- max(position_total, na.rm = TRUE)
+  if (!is.finite(max_position_total) || max_position_total <= 0) {
+    max_position_total <- 1
+  }
+
   # Court lanes show opponent attack volume above the net and Calgary block outcomes below.
   court_lanes <- lapply(positions, function(pos) {
     total <- position_total[[pos]]
@@ -1543,7 +1550,7 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
       div(
         class = "block-stack-segment",
         style = paste0(
-          "height:", 100 * n / total, "%;width:100%;background:",
+          "height:", 100 * n / max_position_total, "%;width:100%;background:",
           outcome_colours[[outcome]], ";"
         ),
         title = paste0(outcome_labels[[outcome]], ": ", n)
@@ -2167,13 +2174,18 @@ ui <- fluidPage(
       .block-type-filter{background:#f1f4f6;border-radius:10px;padding:9px 12px 5px;margin:8px 0 14px;}
       .block-type-filter-title{font-size:9px;font-weight:800;letter-spacing:1.2px;color:#718096;margin-bottom:4px;}
       .block-type-filter .form-group{margin:0;}
-      .block-type-filter .checkbox{display:inline-flex;align-items:center;margin:2px 13px 6px 0;padding:0;min-height:22px;}
-      .block-type-filter .checkbox label{position:relative;display:inline-flex;align-items:center;gap:7px;padding-left:38px;min-height:20px;font-size:10px;color:#344454;white-space:nowrap;}
-      .block-type-filter .checkbox input[type=checkbox]{position:absolute;opacity:0;width:1px;height:1px;}
-      .block-type-filter .checkbox label:before{content:'';position:absolute;left:0;top:2px;width:29px;height:15px;border-radius:12px;background:#c5ced6;transition:background .15s;}
-      .block-type-filter .checkbox label:after{content:'';position:absolute;left:2px;top:4px;width:11px;height:11px;border-radius:50%;background:#fff;transition:transform .15s;}
-      .block-type-filter .checkbox label:has(input:checked):before{background:#c45a00;}
-      .block-type-filter .checkbox label:has(input:checked):after{transform:translateX(14px);}
+      .block-type-filter .checkbox-inline{position:relative;display:inline-flex;align-items:center;
+        margin:2px 13px 6px 0;padding:0 0 0 38px;min-height:22px;font-size:10px;
+        color:#344454;white-space:nowrap;vertical-align:middle;}
+      .block-type-filter .checkbox-inline input[type=checkbox]{position:absolute !important;
+        opacity:0 !important;width:1px !important;height:1px !important;margin:0 !important;left:0;}
+      .block-type-filter .checkbox-inline:before{content:'';position:absolute;left:0;top:3px;
+        width:29px;height:15px;border-radius:12px;background:#c5ced6;transition:background .15s;}
+      .block-type-filter .checkbox-inline:after{content:'';position:absolute;left:2px;top:5px;
+        width:11px;height:11px;border-radius:50%;background:#fff;transition:transform .15s;}
+      .block-type-filter .checkbox-inline:has(input:checked):before{background:#c45a00;}
+      .block-type-filter .checkbox-inline:has(input:checked):after{transform:translateX(14px);}
+      .block-type-filter .checkbox-inline:hover{color:#263746;}
       .block-court{border:1px solid #d4e0e8;border-radius:10px;overflow:hidden;background:#edf4f8;margin:12px 0 14px;}
       .block-court-top-label,.block-court-bottom-label{background:#fff;text-align:center;padding:8px;font-size:8px;font-weight:800;letter-spacing:1.5px;color:#718096;}
       .block-court-lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background-color:#edf4f8;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 48px,#d8e4eb 49px,#d8e4eb 50px);}
@@ -2196,7 +2208,7 @@ ui <- fluidPage(
       .block-detail-table th{font-family:'Barlow Condensed';font-size:11px;letter-spacing:.4px;color:#536577;background:#f2f5f7;padding:10px 7px;border-bottom:2px solid #d6dfe6;white-space:nowrap;}
       .block-detail-table td{padding:9px 7px;border-bottom:1px solid #e3e8ed;color:#344454;font-weight:700;}
       .block-detail-table .block-position-name{text-align:center !important;font-weight:900;color:#263746;white-space:nowrap;}
-      @media(max-width:700px){.block-court-lanes{grid-template-columns:repeat(2,minmax(0,1fr));}.block-type-filter .checkbox{margin-right:8px;}}
+      @media(max-width:700px){.block-court-lanes{grid-template-columns:repeat(2,minmax(0,1fr));}.block-type-filter .checkbox-inline{margin-right:8px;}}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
 
       .detail-section{background:#fff;border:1px solid #dfe6ed;border-radius:16px;
