@@ -1381,74 +1381,105 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
   d <- load_detail_csvs("BLOCK_EVENTS\\.csv$", ids)
 
   if (!nrow(d)) {
-    return(div(class = "detail-section",
-      div(class = "detail-section-title", "BLOCKING DETAIL"),
-      div(class = "detail-empty", "No BLOCK_EVENTS.csv found for this match selection.")
-    ))
+    return(
+      div(
+        class = "detail-section",
+        div(class = "detail-section-title", "BLOCKING DETAIL"),
+        div(class = "detail-empty", "No BLOCK_EVENTS.csv found for this match selection.")
+      )
+    )
   }
 
   required <- c("Opponent_Attack_Code", "Block_Outcome")
   if (!all(required %in% names(d))) {
-    return(div(class = "detail-section",
-      div(class = "detail-section-title", "BLOCKING DETAIL"),
-      div(class = "detail-empty", "The block events export is missing attack-code or block-outcome columns.")
-    ))
+    return(
+      div(
+        class = "detail-section",
+        div(class = "detail-section-title", "BLOCKING DETAIL"),
+        div(class = "detail-empty", "The block events export is missing attack-code or block-outcome columns.")
+      )
+    )
   }
 
+  # Keep linked opponent attacks only when the export provides that flag.
   if ("Attack_Linked" %in% names(d)) {
     linked <- tolower(as.character(d$Attack_Linked)) %in% c("true", "1", "yes")
     d <- d[linked, , drop = FALSE]
   }
 
   code <- toupper(trimws(as.character(d$Opponent_Attack_Code)))
+
+  # Exclude these attack codes completely from the blocking analysis.
   excluded_codes <- c("VV", "AX", "ZX", "Z3")
 
+  # Translate opponent attack origin into the corresponding Calgary block position.
   d$Block_Position <- NA_character_
   d$Block_Position[code %in% c("XV", "X8", "C8")] <- "LEFT SIDE"
   d$Block_Position[code %in% c("X1", "XX")] <- "RIGHT SIDE"
   d$Block_Position[code == "C2"] <- "GAP"
   d$Block_Position[code == "V5"] <- "MIDDLE"
+
+  # Every other C-coded attack is treated as a middle attack.
   other_c <- grepl("^C", code) & !code %in% c("C8", "C2")
   d$Block_Position[other_c] <- "MIDDLE"
 
-  d <- d[!is.na(d$Block_Position) & !code %in% excluded_codes, , drop = FALSE]
+  d <- d[
+    !is.na(d$Block_Position) &
+      !code %in% excluded_codes,
+    ,
+    drop = FALSE
+  ]
+
+  # Attack-type controls: all eligible codes are selected by default.
+  attack_type_codes <- sort(unique(toupper(trimws(as.character(d$Opponent_Attack_Code)))))
+  attack_type_labels <- c(
+    "C2" = "C2 - Gap",
+    "C5" = "C5",
+    "C6" = "C6",
+    "C8" = "C8 - Slide",
+    "V5" = "V5 - Pipe",
+    "X1" = "X1 - Opp. left",
+    "XV" = "XV - Opp. right",
+    "X8" = "X8 - Opp. right",
+    "XX" = "XX - Opp. left"
+  )
+  type_choices <- setNames(
+    attack_type_codes,
+    ifelse(
+      attack_type_codes %in% names(attack_type_labels),
+      unname(attack_type_labels[attack_type_codes]),
+      attack_type_codes
+    )
+  )
+  if (is.null(selected_attack_types)) selected_attack_types <- attack_type_codes
+  selected_attack_types <- intersect(as.character(selected_attack_types), attack_type_codes)
+  d <- d[toupper(trimws(as.character(d$Opponent_Attack_Code))) %in% selected_attack_types, , drop = FALSE]
 
   if (!nrow(d)) {
-    return(div(class = "detail-section",
-      div(class = "detail-section-title", "BLOCKING DETAIL"),
-      div(class = "detail-empty", "No eligible opponent attack codes found for blocking analysis.")
-    ))
+    return(
+      div(
+        class = "detail-section",
+        div(class = "detail-section-title", "BLOCKING DETAIL"),
+        div(class = "detail-empty", "No eligible opponent attack codes found for blocking analysis.")
+      )
+    )
   }
-
-  # Each unique Attack_Type is a switchable filter. If the export does not
-  # contain Attack_Type, fall back to the attack code so filtering still works.
-  if ("Attack_Type" %in% names(d)) {
-    d$Attack_Type_Filter <- trimws(as.character(d$Attack_Type))
-    d$Attack_Type_Filter[is.na(d$Attack_Type_Filter) | !nzchar(d$Attack_Type_Filter)] <-
-      paste0(code[is.na(d$Attack_Type_Filter) | !nzchar(d$Attack_Type_Filter)], " attack")
-  } else {
-    d$Attack_Type_Filter <- paste0(code, " attack")
-  }
-
-  attack_type_choices <- sort(unique(d$Attack_Type_Filter))
-  if (is.null(selected_attack_types)) selected_attack_types <- attack_type_choices
-  selected_attack_types <- intersect(selected_attack_types, attack_type_choices)
-  if (!length(selected_attack_types)) {
-    return(div(class = "detail-section block-detail-section",
-      div(class = "detail-section-title", "BLOCKING DETAIL"),
-      checkboxGroupInput("block_attack_types", NULL,
-        choices = attack_type_choices, selected = character(0), inline = TRUE),
-      div(class = "detail-empty", "No attack types selected. Turn on an attack type to include it.")
-    ))
-  }
-
-  d <- d[d$Attack_Type_Filter %in% selected_attack_types, , drop = FALSE]
 
   outcome_levels <- c("Block Point", "Positive", "Negative", "Block Error")
-  outcome_labels <- c("Block Point" = "STUFFED", "Positive" = "POSITIVE",
-                      "Negative" = "NEGATIVE", "Block Error" = "ERROR")
-  outcome_colours <- c("Block Point" = "#159B69", "Positive" = "#E0A21A",
-                       "Negative" = "#C94A35", "Block Error" = "#718096")
+  outcome_labels <- c(
+    "Block Point" = "STUFFED",
+    "Positive" = "POSITIVE",
+    "Negative" = "NEGATIVE",
+    "Block Error" = "ERROR"
+  )
+
+  outcome_colours <- c(
+    "Block Point" = "#159B69",
+    "Positive" = "#E0A21A",
+    "Negative" = "#C94A35",
+    "Block Error" = "#718096"
+  )
+
   positions <- c("LEFT SIDE", "MIDDLE", "GAP", "RIGHT SIDE")
 
   d$Block_Outcome <- trimws(as.character(d$Block_Outcome))
@@ -1456,56 +1487,79 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
   d <- d[!is.na(d$Block_Outcome), , drop = FALSE]
 
   if (!nrow(d)) {
-    return(div(class = "detail-section block-detail-section",
-      div(class = "detail-section-title", "BLOCKING DETAIL"),
-      checkboxGroupInput("block_attack_types", NULL,
-        choices = attack_type_choices, selected = selected_attack_types, inline = TRUE),
-      div(class = "detail-empty", "No recognized block outcomes for the selected attack types.")
-    ))
+    return(
+      div(
+        class = "detail-section",
+        div(class = "detail-section-title", "BLOCKING DETAIL"),
+        div(class = "detail-empty", "No recognized block outcomes found in the eligible events.")
+      )
+    )
   }
 
-  counts <- as.data.frame(table(
-    factor(d$Block_Position, levels = positions),
-    factor(d$Block_Outcome, levels = outcome_levels)
-  ), stringsAsFactors = FALSE)
-  names(counts) <- c("Block_Position", "Block_Outcome", "count")
+  counts <- expand.grid(
+    Block_Position = positions,
+    Block_Outcome = outcome_levels,
+    stringsAsFactors = FALSE
+  )
+  counts$count <- 0L
 
-  position_total <- vapply(positions, function(pos) {
-    sum(counts$count[counts$Block_Position == pos])
-  }, numeric(1))
+  observed <- as.data.frame(
+    table(
+      factor(d$Block_Position, levels = positions),
+      factor(d$Block_Outcome, levels = outcome_levels)
+    ),
+    stringsAsFactors = FALSE
+  )
+  names(observed) <- c("Block_Position", "Block_Outcome", "count")
+  counts <- merge(
+    counts,
+    observed,
+    by = c("Block_Position", "Block_Outcome"),
+    all.x = TRUE,
+    suffixes = c("", ".observed"),
+    sort = FALSE
+  )
+  counts$count <- ifelse(
+    !is.na(counts$count.observed),
+    counts$count.observed,
+    counts$count
+  )
+  counts$count.observed <- NULL
+
+  position_total <- vapply(
+    positions,
+    function(pos) sum(counts$count[counts$Block_Position == pos]),
+    numeric(1)
+  )
   grand_total <- sum(position_total)
 
-  # Opponent-side attack distribution and Calgary-side block outcomes are
-  # shown on opposite sides of the net, matching the physical court orientation.
-  opponent_lanes <- lapply(positions, function(pos) {
-    n <- sum(d$Block_Position == pos)
-    div(class = "block-opponent-lane",
-      div(class = "block-opponent-count", n),
-      div(class = "block-opponent-label", switch(pos,
-        "LEFT SIDE" = "OPP. RIGHT",
-        "MIDDLE" = "OPP. MIDDLE",
-        "GAP" = "GAP",
-        "RIGHT SIDE" = "OPP. LEFT"
-      ))
-    )
-  })
-
-  calgary_lanes <- lapply(positions, function(pos) {
+  # Court lanes show opponent attack volume above the net and Calgary block outcomes below.
+  court_lanes <- lapply(positions, function(pos) {
     total <- position_total[[pos]]
     pos_counts <- counts[counts$Block_Position == pos, , drop = FALSE]
     segments <- lapply(outcome_levels, function(outcome) {
       n <- pos_counts$count[pos_counts$Block_Outcome == outcome]
-      n <- if (length(n)) n[1] else 0
-      if (n <= 0 || total <= 0) return(NULL)
-      div(class = "block-stack-segment",
-        style = paste0("height:", 100 * n / total,
-                       "%;background:", outcome_colours[[outcome]], ";"),
+      if (!length(n) || n <= 0 || total <= 0) return(NULL)
+      div(
+        class = "block-stack-segment",
+        style = paste0(
+          "height:", 100 * n / total, "%;width:100%;background:",
+          outcome_colours[[outcome]], ";"
+        ),
         title = paste0(outcome_labels[[outcome]], ": ", n)
       )
     })
-    div(class = "block-calgary-lane",
-      div(class = "block-court-stack", segments),
-      div(class = "block-court-position", pos)
+
+    div(
+      class = "block-court-lane",
+      div(class = "block-opponent-half",
+        strong(as.character(total)),
+        span(paste("OPP.", if (pos == "LEFT SIDE") "RIGHT" else if (pos == "RIGHT SIDE") "LEFT" else pos))
+      ),
+      div(class = "block-court-block-half",
+        div(class = "block-court-stack", segments),
+        div(class = "block-court-position", pos)
+      )
     )
   })
 
@@ -1516,8 +1570,15 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
       n <- pos_counts$count[pos_counts$Block_Outcome == outcome]
       n <- if (length(n)) n[1] else 0
       pct <- if (total > 0) 100 * n / total else 0
-      tags$td(if (total > 0) paste0(n, " (", sprintf("%.0f", pct), "%)") else "—")
+      tags$td(
+        if (total > 0) {
+          paste0(n, " (", sprintf("%.0f", pct), "%)")
+        } else {
+          "—"
+        }
+      )
     })
+
     tags$tr(
       tags$td(class = "block-position-name", pos),
       tags$td(as.character(total)),
@@ -1526,42 +1587,61 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
   })
 
   legend <- lapply(outcome_levels, function(outcome) {
-    div(class = "block-legend-item",
-      span(class = "block-legend-swatch",
-        style = paste0("background:", outcome_colours[[outcome]], ";")),
+    div(
+      class = "block-legend-item",
+      span(
+        class = "block-legend-swatch",
+        style = paste0("background:", outcome_colours[[outcome]], ";")
+      ),
       span(outcome_labels[[outcome]])
     )
   })
 
-  div(class = "detail-section block-detail-section",
+  div(
+    class = "detail-section block-detail-section",
     div(class = "detail-section-title", "BLOCKING DETAIL"),
-    div(class = "block-type-filter",
-      div(class = "block-filter-label", "INCLUDE ATTACK TYPES"),
-      checkboxGroupInput("block_attack_types", NULL,
-        choices = attack_type_choices,
+    div(
+      class = "block-type-filter",
+      div(class = "block-type-filter-title", "INCLUDE ATTACK TYPES"),
+      checkboxGroupInput(
+        "block_attack_type_filter",
+        label = NULL,
+        choices = type_choices,
         selected = selected_attack_types,
-        inline = TRUE)
+        inline = TRUE
+      )
     ),
-    div(class = "block-detail-subtitle",
-      paste0(grand_total, " eligible opponent attacks faced")),
-    div(class = "block-court",
-      div(class = "block-opponent-side-label", "OPPONENT ATTACKING SIDE"),
-      div(class = "block-opponent-lanes", opponent_lanes),
+    div(class = "block-detail-subtitle", paste0(grand_total, " eligible opponent attacks faced")),
+
+    div(
+      class = "block-court",
+      div(class = "block-court-top-label", "OPPONENT ATTACKING SIDE"),
+      div(class = "block-court-lanes", court_lanes),
       div(class = "block-court-net", "NET"),
-      div(class = "block-calgary-side-label", "CALGARY BLOCKING SIDE"),
-      div(class = "block-calgary-lanes", calgary_lanes)
+      div(class = "block-court-bottom-label", "CALGARY BLOCKING SIDE")
     ),
+
     div(class = "block-legend", legend),
-    div(class = "block-table-wrap",
-      tags$table(class = "block-detail-table",
-        tags$thead(tags$tr(
-          tags$th("BLOCK POSITION"), tags$th("ATTACKS"),
-          tags$th("STUFFED"), tags$th("POSITIVE"),
-          tags$th("NEGATIVE"), tags$th("ERROR")
-        )),
+
+    div(
+      class = "block-table-wrap",
+      tags$table(
+        class = "block-detail-table",
+        tags$thead(
+          tags$tr(
+            tags$th("BLOCK POSITION"),
+            tags$th("ATTACKS"),
+            tags$th("STUFFED"),
+            tags$th("POSITIVE"),
+            tags$th("NEGATIVE"),
+            tags$th("ERROR")
+          )
+        ),
         tags$tbody(table_rows)
       )
-    )
+    ),
+
+    NULL
   )
 }
 
@@ -2083,33 +2163,40 @@ ui <- fluidPage(
         font-size:9px;line-height:11px;overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
 
       .block-detail-section{overflow:hidden;}
-      .block-type-filter{background:#f4f6f8;border-radius:8px;padding:8px 12px;margin:8px 0 12px;}
-      .block-filter-label{font-size:9px;font-weight:800;letter-spacing:1px;color:#718096;margin-bottom:5px;}
-      .block-type-filter .form-group{margin:0;}
-      .block-type-filter .checkbox{display:inline-flex;align-items:center;margin:3px 7px 3px 0;padding:5px 10px;border:1px solid #d8e0e6;border-radius:18px;background:#fff;font-size:10px;font-weight:700;color:#526475;}
-      .block-type-filter .checkbox label{display:inline-flex;align-items:center;gap:5px;margin:0;cursor:pointer;}
-      .block-type-filter input{accent-color:#C8102E;margin:0 2px 0 0;}
       .block-detail-subtitle{font-size:11px;color:#718096;font-weight:700;margin:2px 0 12px;}
-      .block-court{border:1px solid #d7e0e7;border-radius:10px;overflow:hidden;background:#f7fafc;margin:12px 0 14px;}
-      .block-opponent-side-label,.block-calgary-side-label{text-align:center;padding:7px;background:#fff;color:#718096;font-size:8px;font-weight:800;letter-spacing:1.2px;}
-      .block-opponent-lanes,.block-calgary-lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#d5dfe7;padding:1px;}
-      .block-opponent-lane{background:#edf3f7;min-height:64px;display:flex;flex-direction:column;justify-content:center;align-items:center;}
-      .block-opponent-count{font-family:'Barlow Condensed';font-size:21px;font-weight:800;color:#263746;}
-      .block-opponent-label{font-family:'Barlow Condensed';font-size:10px;font-weight:800;color:#536577;padding:3px;text-align:center;}
-      .block-court-net{height:10px;background:#263746;color:#fff;text-align:center;font-size:7px;line-height:10px;letter-spacing:1px;}
-      .block-calgary-lane{background:#edf3f7;min-height:145px;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;padding:12px 9px 0;}
-      .block-court-stack{height:105px;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;border-bottom:5px solid #344653;}
-      .block-stack-segment{display:block;min-height:3px;flex:0 0 auto;}
-      .block-court-position{text-align:center;font-family:'Barlow Condensed';font-size:12px;font-weight:800;color:#263746;padding:9px 2px 10px;white-space:nowrap;}
+      .block-type-filter{background:#f1f4f6;border-radius:10px;padding:9px 12px 5px;margin:8px 0 14px;}
+      .block-type-filter-title{font-size:9px;font-weight:800;letter-spacing:1.2px;color:#718096;margin-bottom:4px;}
+      .block-type-filter .form-group{margin:0;}
+      .block-type-filter .checkbox{display:inline-flex;align-items:center;margin:2px 13px 6px 0;padding:0;min-height:22px;}
+      .block-type-filter .checkbox label{position:relative;display:inline-flex;align-items:center;gap:7px;padding-left:38px;min-height:20px;font-size:10px;color:#344454;white-space:nowrap;}
+      .block-type-filter .checkbox input[type=checkbox]{position:absolute;opacity:0;width:1px;height:1px;}
+      .block-type-filter .checkbox label:before{content:'';position:absolute;left:0;top:2px;width:29px;height:15px;border-radius:12px;background:#c5ced6;transition:background .15s;}
+      .block-type-filter .checkbox label:after{content:'';position:absolute;left:2px;top:4px;width:11px;height:11px;border-radius:50%;background:#fff;transition:transform .15s;}
+      .block-type-filter .checkbox label:has(input:checked):before{background:#c45a00;}
+      .block-type-filter .checkbox label:has(input:checked):after{transform:translateX(14px);}
+      .block-court{border:1px solid #d4e0e8;border-radius:10px;overflow:hidden;background:#edf4f8;margin:12px 0 14px;}
+      .block-court-top-label,.block-court-bottom-label{background:#fff;text-align:center;padding:8px;font-size:8px;font-weight:800;letter-spacing:1.5px;color:#718096;}
+      .block-court-lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background-color:#edf4f8;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 48px,#d8e4eb 49px,#d8e4eb 50px);}
+      .block-court-lane{min-width:0;display:flex;flex-direction:column;border-right:2px dashed #bfd0dc;}
+      .block-court-lane:last-child{border-right:0;}
+      .block-opponent-half{height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#263746;border-bottom:1px solid #d4e0e8;}
+      .block-opponent-half strong{font-family:'Barlow Condensed';font-size:22px;font-weight:800;}
+      .block-opponent-half span{font-family:'Barlow Condensed';font-size:10px;font-weight:800;color:#536577;}
+      .block-court-net{height:10px;background:#263746;color:#fff;text-align:center;font-size:7px;line-height:10px;letter-spacing:1.2px;z-index:2;}
+      .block-court-block-half{height:170px;padding:12px 10px 0;display:flex;flex-direction:column;justify-content:flex-end;}
+      .block-court-stack{height:125px;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;border-bottom:5px solid #344653;}
+      .block-stack-segment{display:block;min-height:0;flex:0 0 auto;}
+      .block-court-position{text-align:center;font-family:'Barlow Condensed';font-size:12px;font-weight:800;color:#263746;padding:9px 2px 8px;white-space:nowrap;}
       .block-legend{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0;font-size:10px;font-weight:700;color:#536577;}
       .block-legend-item{display:flex;align-items:center;gap:6px;}
       .block-legend-swatch{width:9px;height:9px;border-radius:2px;display:inline-block;}
       .block-table-wrap{overflow-x:auto;}
       .block-detail-table{width:100%;border-collapse:collapse;font-size:11px;text-align:center;}
-      .block-detail-table th,.block-detail-table td{text-align:center;}
+      .block-detail-table th,.block-detail-table td{text-align:center !important;}
       .block-detail-table th{font-family:'Barlow Condensed';font-size:11px;letter-spacing:.4px;color:#536577;background:#f2f5f7;padding:10px 7px;border-bottom:2px solid #d6dfe6;white-space:nowrap;}
       .block-detail-table td{padding:9px 7px;border-bottom:1px solid #e3e8ed;color:#344454;font-weight:700;}
-      .block-detail-table .block-position-name{text-align:center;font-weight:900;color:#263746;white-space:nowrap;}
+      .block-detail-table .block-position-name{text-align:center !important;font-weight:900;color:#263746;white-space:nowrap;}
+      @media(max-width:700px){.block-court-lanes{grid-template-columns:repeat(2,minmax(0,1fr));}.block-type-filter .checkbox{margin-right:8px;}}
       .empty-message{color:#7c8995;padding:18px 2px;font-size:13px;}
 
       .detail-section{background:#fff;border:1px solid #dfe6ed;border-radius:16px;
@@ -2556,7 +2643,7 @@ server <- function(input, output, session) {
               drop = FALSE
             ]
           ),
-          block_detail_ui(mid, selected_attack_types = input$block_attack_types)
+          block_detail_ui(mid, input$block_attack_type_filter)
         )
       )
     }
@@ -2712,7 +2799,7 @@ server <- function(input, output, session) {
         show_opponent = show_opponent,
         metric_data = match_data
       ),
-      block_detail_ui(selected_ids, selected_attack_types = input$block_attack_types)
+      block_detail_ui(selected_ids, input$block_attack_type_filter)
     )
   })
 
