@@ -712,11 +712,11 @@ rotation_display_names <- c(
   Total_Serves = "SERVES", Aces = "ACES", Opp_OOS = "OPP. OOS", Serve_Errors = "SERVE ERRORS",
   Serve_In_pct = "SERVE IN%", Attack_Attempts = "ATTACK ATTEMPTS", Kills = "KILLS",
   Attack_Errors = "ATTACK ERRORS", Attack_Efficiency = "ATTACK EFF",
-  First_Ball_Attempts = "FIRST-BALL ATT", First_Ball_Kills = "FIRST-BALL KILLS",
-  First_Ball_Errors = "FIRST-BALL ERR", First_Ball_Efficiency = "FIRST-BALL EFF",
-  Transition_Attempts = "TRANSITION ATT", Transition_Kills = "TRANSITION KILLS",
-  Transition_Errors = "TRANSITION ERR", Transition_Efficiency = "TRANSITION EFF",
-  Digs = "DIGS", Dig_to_Kill_n = "DIG-TO-KILL", Dig_to_Kill_pct = "DIG CONV%", Dig_Errors = "DIG ERRORS"
+  First_Ball_Attempts = "FB ATTEMPTS", First_Ball_Kills = "FB KILLS",
+  First_Ball_Errors = "FB ERRORS", First_Ball_Efficiency = "FB EFF",
+  Transition_Attempts = "ATTEMPTS", Transition_Kills = "KILLS",
+  Transition_Errors = "ERRORS", Transition_Efficiency = "EFF",
+  Digs = "DIGS", Dig_to_Kill_n = "DIG TO KILL", Dig_to_Kill_pct = "CONVERSION %", Dig_Errors = "DIG ERROR"
 )
 
 rotation_table_ui <- function(ids) {
@@ -807,8 +807,20 @@ rotation_table_ui <- function(ids) {
   rot$rotation <- factor(rot$rotation, levels = c(paste0("R", 1:6), "AVG"))
   rot <- rot[order(rot$rotation), , drop = FALSE]
 
-  # Display every numeric metric present in the CSV, not just a hard-coded subset.
-  metric_cols <- intersect(numeric_cols, names(rot))
+  # Display only the coach-requested rotation metrics, in the requested order.
+  # Metrics absent from a particular CSV are safely omitted; unrelated CSV
+  # columns are never added to the report.
+  metric_order <- c(
+    "SO_pct", "FBSO_pct", "PS_pct",
+    "In_System_pct", "OOS_pct", "Aced_pct",
+    "Aces", "Serve_Errors", "Serve_In_pct",
+    "Attack_Attempts", "Kills", "Attack_Errors", "Attack_Efficiency",
+    "First_Ball_Attempts", "First_Ball_Kills", "First_Ball_Errors", "First_Ball_Efficiency",
+    "Transition_Attempts", "Transition_Kills", "Transition_Errors", "Transition_Efficiency",
+    "Digs", "Dig_to_Kill_n", "Dig_to_Kill_pct", "Dig_Errors"
+  )
+  metric_cols <- metric_order[metric_order %in% names(rot)]
+  if (!length(metric_cols)) return(NULL)
   display <- data.frame(ROTATION = as.character(rot$rotation), stringsAsFactors = FALSE)
   pct_cols <- metric_cols[grepl("_pct$", metric_cols)]
   eff_cols <- metric_cols[grepl("Efficiency$", metric_cols)]
@@ -822,13 +834,14 @@ rotation_table_ui <- function(ids) {
 
   groups <- function(nm) {
     if (nm == "ROTATION") return("ROTATION")
-    if (grepl("SO_|FBSO_|PS_", nm)) return("GAME PHASE")
-    if (grepl("Reception|In_System|OOS|Aced|Dig", nm)) return("RECEPTION & DEFENSE")
-    if (grepl("Serve|Aces|Opp_OOS", nm)) return("SERVE")
-    if (grepl("Attack|Kills", nm)) return("ATTACK")
-    if (grepl("First_Ball", nm)) return("FIRST BALL")
-    if (grepl("Transition", nm)) return("TRANSITION")
-    "OTHER METRICS"
+    if (nm %in% c("SO_pct", "FBSO_pct", "PS_pct")) return("GAME PHASE")
+    if (nm %in% c("In_System_pct", "OOS_pct", "Aced_pct")) return("RECEPTION & DEFENSE")
+    if (nm %in% c("Aces", "Serve_Errors", "Serve_In_pct")) return("SERVE")
+    if (nm %in% c("Attack_Attempts", "Kills", "Attack_Errors", "Attack_Efficiency")) return("ATTACK")
+    if (nm %in% c("First_Ball_Attempts", "First_Ball_Kills", "First_Ball_Errors", "First_Ball_Efficiency")) return("FIRST BALL")
+    if (nm %in% c("Transition_Attempts", "Transition_Kills", "Transition_Errors", "Transition_Efficiency")) return("TRANSITION")
+    if (nm %in% c("Digs", "Dig_to_Kill_n", "Dig_to_Kill_pct", "Dig_Errors")) return("DEFENSE")
+    "OTHER"
   }
   group_labels <- vapply(c("ROTATION", metric_cols), groups, character(1))
   group_cells <- list(); i <- 1L
