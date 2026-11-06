@@ -2175,8 +2175,11 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
     ))
   }
 
-  # Court is shown from the receiving team's perspective, with the net at top.
-  # Zone layout follows the 3 x 3 receiving-court orientation.
+  # Court orientation follows the supplied court diagram, with the net
+  # running horizontally below the front row:
+  # Front / nearest net: 4-3-2; middle: 7-8-9; back: 5-6-1.
+  # Each trajectory runs from Reception_Start_Zone/Subzone to
+  # Pass_Destination_Zone/Subzone.
   zone_layout <- list(
     "4" = c(row = 1, col = 1), "3" = c(row = 1, col = 2), "2" = c(row = 1, col = 3),
     "7" = c(row = 2, col = 1), "8" = c(row = 2, col = 2), "9" = c(row = 2, col = 3),
@@ -2217,6 +2220,9 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
 
   line_nodes <- if (isTRUE(show_lines)) {
     lapply(seq_len(nrow(d)), function(i) {
+      # A reception error has no completed pass trajectory: show only the
+      # contact/start location for that event.
+      if (d$Pass_Map_Category[i] == "Passing errors") return(NULL)
       a <- start_points[[i]]
       b <- end_points[[i]]
       if (is.null(a) || is.null(b)) return(NULL)
@@ -2230,7 +2236,13 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
   } else NULL
 
   marker_nodes <- lapply(seq_len(nrow(d)), function(i) {
-    endpoint <- end_points[[i]]
+    # Errors are marked at the reception contact/start point, not at a
+    # destination that was never reached.
+    endpoint <- if (d$Pass_Map_Category[i] == "Passing errors") {
+      start_points[[i]]
+    } else {
+      end_points[[i]]
+    }
     if (is.null(endpoint)) return(NULL)
     colour <- unname(category_colours[d$Pass_Map_Category[i]])
     tip <- paste0(
@@ -2238,7 +2250,8 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
       if (nzchar(d$Reception_Start_Subzone[i])) paste0("-", d$Reception_Start_Subzone[i]) else "",
       " → Destination Z", d$Pass_Destination_Zone[i],
       if (nzchar(d$Pass_Destination_Subzone[i])) paste0("-", d$Pass_Destination_Subzone[i]) else "",
-      " | ", d$Pass_Quality[i]
+      " | ", d$Pass_Quality[i],
+      if (d$Pass_Map_Category[i] == "Passing errors") " | Error marker at contact/start point" else ""
     )
     div(
       class = "pass-map-marker",
@@ -3154,7 +3167,7 @@ ui <- fluidPage(
       .pass-map-marker{position:absolute;width:10px;height:10px;border-radius:50%;
         border:1.5px solid #fff;box-shadow:0 1px 3px rgba(20,35,48,.28);
         transform:translate(-50%,-50%);z-index:4;}
-      .pass-court-net{position:absolute;left:0;right:0;top:0;height:5px;
+      .pass-court-net{position:absolute;left:0;right:0;top:33.3333%;height:5px;
         background:#263746;color:#fff;font-family:'Barlow Condensed';font-size:9px;
         font-weight:800;letter-spacing:1px;text-align:left;padding-left:7px;
         line-height:5px;z-index:5;}
