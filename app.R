@@ -1695,16 +1695,14 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
     "Positive - No Attack" = "Positive – Forced OOS",
     "Positive - Some Attack" = "Positive – Medium",
     "No First Tempo" = "No First Tempo",
-    "Negative - Free Attack" = "Negative – Free Attack",
-    "Serve Error" = "Serve Error"
+    "Negative - Free Attack" = "Negative – Free Attack"
   )
   outcome_colours <- c(
     "Ace" = "#D9433A",
     "Positive – Forced OOS" = "#159B69",
     "Positive – Medium" = "#79BFA0",
     "No First Tempo" = "#E0A21A",
-    "Negative – Free Attack" = "#F0782B",
-    "Serve Error" = "#9F2638"
+    "Negative – Free Attack" = "#F0782B"
   )
 
   d$Outcome_Display <- unname(outcome_map[d$Serve_Outcome])
@@ -1746,7 +1744,8 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
       section_title,
       div(
         class = "serve-filter-row",
-        selectInput("serve_from_filter", "SERVE FROM", choices = from_choices, selected = serve_from, width = "150px"),
+        radioButtons("serve_from_filter", "SERVE FROM", choices = from_choices,
+                     selected = serve_from, inline = TRUE),
         selectInput("serve_server_filter", "SERVER", choices = server_choices, selected = server_name, width = "210px"),
         selectInput("serve_set_filter", "SET", choices = set_choices, selected = set_number, width = "100px")
       ),
@@ -1756,7 +1755,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
 
   outcome_levels <- c(
     "Ace", "Positive – Forced OOS", "Positive – Medium",
-    "No First Tempo", "Negative – Free Attack", "Serve Error"
+    "No First Tempo", "Negative – Free Attack"
   )
   total_serves <- nrow(d)
   outcome_counts <- table(factor(d$Outcome_Display, levels = outcome_levels))
@@ -1826,8 +1825,8 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
     tags$line(
       x1 = x_start, y1 = 88.5,
       x2 = endpoint[["x"]], y2 = endpoint[["y"]],
-      stroke = "#718096", `stroke-width` = "0.32",
-      `stroke-opacity` = "0.32"
+      stroke = "#aeb9c1", `stroke-width` = "0.28",
+      `stroke-opacity` = "0.24"
     )
   })
 
@@ -1877,7 +1876,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
       style = paste0("left:", x, "%;"),
       span(class = "serve-origin-dot"),
       strong(paste0("Z", z)),
-      tags$small(paste0("(", n, ")"))
+      tags$small(as.character(n))
     )
   })
 
@@ -1887,7 +1886,6 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
     x <- server_rows[[nm]]
     n <- nrow(x)
     ace <- sum(x$Outcome_Display == "Ace")
-    errors <- sum(x$Outcome_Display == "Serve Error")
     forced <- sum(x$Outcome_Display == "Positive – Forced OOS")
     medium <- sum(x$Outcome_Display == "Positive – Medium")
     no_first <- sum(x$Outcome_Display == "No First Tempo")
@@ -1896,7 +1894,6 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
       tags$td(nm),
       tags$td(as.character(n)),
       tags$td(paste0(sprintf("%.0f", 100 * ace / n), "%")),
-      tags$td(paste0(sprintf("%.0f", 100 * errors / n), "%")),
       tags$td(as.character(forced)),
       tags$td(as.character(medium)),
       tags$td(as.character(no_first)),
@@ -1917,7 +1914,8 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
     section_title,
     div(
       class = "serve-filter-row",
-      selectInput("serve_from_filter", "SERVE FROM", choices = from_choices, selected = serve_from, width = "150px"),
+      radioButtons("serve_from_filter", "SERVE FROM", choices = from_choices,
+                   selected = serve_from, inline = TRUE),
       selectInput("serve_server_filter", "SERVER", choices = server_choices, selected = server_name, width = "210px"),
       selectInput("serve_set_filter", "SET", choices = set_choices, selected = set_number, width = "100px")
     ),
@@ -1950,7 +1948,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
           tags$table(
             class = "serve-server-table",
             tags$thead(tags$tr(
-              tags$th("SERVER"), tags$th("N"), tags$th("ACE"), tags$th("ERR"),
+              tags$th("SERVER"), tags$th("N"), tags$th("ACE"),
               tags$th("FORCED OOS"), tags$th("MEDIUM"), tags$th("NO 1ST"), tags$th("FREE ATK")
             )),
             tags$tbody(server_summary)
@@ -2620,6 +2618,15 @@ ui <- fluidPage(
       .serve-filter-row{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
         background:#f1f4f6;border-radius:10px;padding:10px 12px;margin:8px 0 14px;}
       .serve-filter-row .form-group{margin:0;}
+      .serve-filter-row .shiny-options-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+      .serve-filter-row .radio-inline{position:relative;display:inline-flex;align-items:center;
+        margin:0;padding:6px 12px;border-radius:7px;background:#e3e8ec;color:#536577;
+        font-family:'Barlow Condensed';font-size:11px;font-weight:800;letter-spacing:.35px;
+        cursor:pointer;transition:all .15s ease;}
+      .serve-filter-row .radio-inline input{position:absolute;opacity:0;pointer-events:none;}
+      .serve-filter-row .radio-inline:has(input:checked){background:#C8102E;color:#fff;
+        box-shadow:0 1px 3px rgba(200,16,46,.2);}
+
       .serve-filter-row label{font-family:'Barlow Condensed';font-size:10px;letter-spacing:.8px;
         color:#536577;font-weight:800;}
       .serve-filter-row .form-control{height:31px;font-size:11px;border:1px solid #d5dfe7;
@@ -2629,14 +2636,14 @@ ui <- fluidPage(
       .serve-court-column{min-width:0;}
       .serve-court{position:relative;width:100%;height:500px;overflow:hidden;
         border:3px solid #fff;outline:1px solid #d4e0e8;border-radius:3px;
-        background:linear-gradient(to bottom,#f3b86e 0%,#f3b86e 80%,#3479b9 80%,#3479b9 100%);
+        background:linear-gradient(to bottom,#eee9e2 0%,#eee9e2 80%,#f3f6f8 80%,#f3f6f8 100%);
         box-shadow:0 2px 8px rgba(31,49,67,.12);}
       .serve-zone-cell{position:absolute;width:33.3333%;height:26.6667%;
         border-right:2px dashed rgba(255,255,255,.92);border-bottom:2px dashed rgba(255,255,255,.92);
         display:flex;align-items:center;justify-content:center;z-index:1;}
       .serve-zone-cell:nth-of-type(3n){border-right:0;}
-      .serve-zone-cell strong{font-family:'Barlow Condensed';font-size:36px;color:#fff;
-        font-weight:900;z-index:2;text-shadow:0 1px 2px rgba(100,70,30,.18);}
+      .serve-zone-cell strong{font-family:'Barlow Condensed';font-size:36px;color:#c6d2da;
+        font-weight:900;z-index:2;text-shadow:none;}
       .serve-trajectory-layer{position:absolute;inset:0;width:100%;height:100%;z-index:2;
         overflow:visible;pointer-events:none;}
       .serve-map-marker{position:absolute;width:11px;height:11px;border:1.5px solid #fff;
@@ -2645,12 +2652,12 @@ ui <- fluidPage(
       .serve-court-net{position:absolute;left:0;right:0;top:80%;height:5px;
         background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);font-size:0;z-index:5;}
       .serve-origin{position:absolute;top:86.5%;transform:translateX(-50%);z-index:6;
-        display:flex;flex-direction:column;align-items:center;gap:2px;color:#fff;
+        display:flex;flex-direction:column;align-items:center;gap:3px;color:#53616b;
         font-family:'Barlow Condensed';font-size:10px;line-height:1;}
-      .serve-origin-dot{width:13px;height:13px;border-radius:50%;background:#263746;
-        border:1px solid rgba(255,255,255,.8);box-shadow:0 1px 2px rgba(0,0,0,.25);}
-      .serve-origin strong{font-size:11px;color:#fff;font-weight:900;}
-      .serve-origin small{font-size:8px;color:rgba(255,255,255,.85);}
+      .serve-origin-dot{width:13px;height:13px;border-radius:50%;background:#53616b;
+        border:1px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.15);}
+      .serve-origin strong{font-size:11px;color:#53616b;font-weight:900;}
+      .serve-origin small{font-size:9px;color:#82909a;font-weight:700;}
       .serve-map-server-label{text-align:center;font-family:'Barlow Condensed';font-size:10px;
         font-weight:800;letter-spacing:1px;color:#718096;margin-top:8px;}
       .serve-summary-column{min-width:0;}
