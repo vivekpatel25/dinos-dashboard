@@ -2359,12 +2359,30 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
       NA_integer_
     }
 
+    # Compact stacked outcome bar, matching the serve-outcome table style.
+    pct_good <- if (n > 0) 100 * good / n else 0
+    pct_oos <- if (n > 0) 100 * oos / n else 0
+    pct_ace <- if (n > 0) 100 * ace_overpass / n else 0
+    outcome_bar <- div(
+      class = "pass-outcome-bar",
+      title = paste0(
+        "Good: ", good, " | OOS: ", oos, " | Ace + OP: ", ace_overpass
+      ),
+      div(class = "pass-outcome-segment pass-good-segment",
+          style = paste0("width:", pct_good, "%;")),
+      div(class = "pass-outcome-segment pass-oos-segment",
+          style = paste0("width:", pct_oos, "%;")),
+      div(class = "pass-outcome-segment pass-error-segment",
+          style = paste0("width:", pct_ace, "%;"))
+    )
+
     tags$tr(
       tags$td(paste("Zone", zone)),
       tags$td(as.character(n)),
-      tags$td(as.character(good)),
-      tags$td(as.character(oos)),
-      tags$td(as.character(ace_overpass)),
+      tags$td(outcome_bar),
+      tags$td(paste0(good, " (", round(pct_good), "%)")),
+      tags$td(paste0(oos, " (", round(pct_oos), "%)")),
+      tags$td(paste0(ace_overpass, " (", round(pct_ace), "%)")),
       tags$td(if (is.na(so)) "—" else as.character(so))
     )
   })
@@ -2413,6 +2431,7 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
             tags$thead(tags$tr(
               tags$th("ZONE"),
               tags$th("TOTAL PASSES ATT."),
+              tags$th("OUTCOME MIX"),
               tags$th("GOOD PASS"),
               tags$th("OOS"),
               tags$th("ACE + OP"),
@@ -3204,6 +3223,16 @@ ui <- fluidPage(
       .pass-filter-row label{font-family:'Barlow Condensed';font-size:11px;
         letter-spacing:.6px;color:#536577;font-weight:800;}
       .pass-filter-row .shiny-options-group{display:flex;gap:8px;flex-wrap:wrap;}
+      .pass-filter-row .radio-inline{position:relative;display:inline-flex;align-items:center;
+        margin:0 2px 0 0 !important;padding:8px 14px !important;min-height:34px;
+        border-radius:10px;background:#e3e8ed;color:#536577 !important;
+        font-family:'Barlow Condensed';font-size:12px;font-weight:800;letter-spacing:.25px;
+        cursor:pointer;transition:background .15s,color .15s;}
+      .pass-filter-row .radio-inline input[type=radio]{position:absolute !important;
+        opacity:0 !important;width:1px !important;height:1px !important;margin:0 !important;}
+      .pass-filter-row .radio-inline:has(input:checked){
+        background:var(--dinos-red) !important;color:#fff !important;}
+      .pass-filter-row .radio-inline:hover{filter:brightness(.97);}
       .pass-map-layout{display:grid;grid-template-columns:minmax(420px,1.08fr) minmax(350px,1fr);
         gap:22px;align-items:start;margin-top:12px;}
       .pass-court-column{min-width:0;}
@@ -3257,13 +3286,21 @@ ui <- fluidPage(
       .pass-boundary-swatch{width:18px;border-top:2px dashed #54BE98;}
       .pass-summary-title{border-top:1px solid #dce4eb;padding-top:14px;margin-top:12px;}
       .pass-summary-table-wrap{width:100%;overflow-x:auto;}
-      .pass-summary-table{width:100%;min-width:500px;border-collapse:collapse;
+      .pass-summary-table{width:100%;min-width:650px;border-collapse:collapse;
         font-size:10px;text-align:center;}
       .pass-summary-table th{background:#f1f4f6;color:#536577;font-family:'Barlow Condensed';
         font-size:10px;padding:9px 6px;white-space:nowrap;border-bottom:2px solid #d6dfe6;}
       .pass-summary-table td{padding:10px 6px;border-bottom:1px solid #e3e8ed;
         color:#344454;font-weight:700;white-space:nowrap;}
       .pass-summary-table td:first-child{text-align:left;font-weight:800;}
+      .pass-summary-table td:nth-child(2){font-variant-numeric:tabular-nums;}
+      .pass-summary-table td:nth-child(3){min-width:135px;width:18%;padding-left:10px;padding-right:10px;}
+      .pass-outcome-bar{display:flex;width:100%;height:13px;overflow:hidden;border-radius:8px;
+        background:#e7edf1;box-shadow:inset 0 0 0 1px rgba(38,55,70,.04);}
+      .pass-outcome-segment{height:100%;min-width:0;}
+      .pass-good-segment{background:#159B69;}
+      .pass-oos-segment{background:#E6A11A;}
+      .pass-error-segment{background:#D9433A;}
       .pass-table-note{font-size:9px;color:#87939e;margin-top:6px;}
       @media(max-width:900px){.pass-map-layout{grid-template-columns:1fr;}
         .pass-court{max-width:650px;margin:0 auto;}}
