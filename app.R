@@ -1705,6 +1705,8 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
     "Negative – Free Attack" = "#F0782B"
   )
 
+  # Keep a separate copy for the landing-zone outcome breakdown, including serve errors.
+  d_summary_source <- d
   d$Outcome_Display <- unname(outcome_map[d$Serve_Outcome])
   d <- d[!is.na(d$Outcome_Display), , drop = FALSE]
   d$Outcome_Group <- ifelse(
@@ -1883,20 +1885,92 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
     )
   })
 
-  # Serve target matrix: rows are serving positions, columns are opponent landing zones.
-  start_zones_for_table <- sort(unique(d$Serve_Start_Zone[!is.na(d$Serve_Start_Zone)]))
-  make_target_row <- function(label, rows) {
-    counts <- vapply(1:9, function(z) sum(rows$Landing_Zone == z, na.rm = TRUE), numeric(1))
+  # Landing-zone outcome breakdown, grouped by serving start zone.
+  # Serve errors stay out of the plotted trajectories but are counted in this table.
+  summary_data <- d_summary_source
+  summary_data$Outcome_Display <- unname(outcome_map[summary_data$Serve_Outcome])
+  summary_data$Outcome_Display[
+    grepl("error", summary_data$Serve_Outcome, ignore.case = TRUE)
+  ] <- "Serve Error"
+  summary_data <- summary_data[
+    summary_data$Landing_Zone %in% 1:9 &
+      !is.na(summary_data$Outcome_Display), , drop = FALSE
+  ]
+  if (serve_from != "All") {
+    z <- suppressWarnings(as.integer(sub("^Zone ", "", serve_from)))
+    summary_data <- summary_data[summary_data$Serve_Start_Zone == z, , drop = FALSE]
+  }
+  if (server_name != "All") {
+    summary_data <- summary_data[summary_data$Server_Name == server_name, , drop = FALSE]
+  }
+
+  summary_outcomes <- c(
+    "Ace", "Positive – Forced OOS", "Positive – Medium",
+    "No First Tempo", "Negative – Free Attack", "Serve Error"
+  )
+  outcome_css_colours <- c(
+    "Ace" = "#D9433A",
+    "Positive – Forced OOS" = "#159B69",
+    "Positive – Medium" = "#79BFA0",
+    "No First Tempo" = "#E0A21A",
+    "Negative – Free Attack" = "#F0782B",
+    "Serve Error" = "#AAB5C0"
+  )
+
+  make_outcome_row <- function(label, rows) {
+    n <- nrow(rows)
+    counts <- vapply(summary_outcomes, function(outcome) {
+      sum(rows$Outcome_Display == outcome, na.rm = TRUE)
+    }, numeric(1))
+    cells <- lapply(seq_along(summary_outcomes), function(i) {
+      pct <- if (n > 0) 100 * counts[i] / n else 0
+      tags$td(
+        paste0(counts[i], " (", round(pct), "%)"),
+        class = "serve-outcome-value"
+      )
+    })
+    bar_segments <- lapply(seq_along(summary_outcomes), function(i) {
+      if (counts[i] == 0 || n == 0) return(NULL)
+      div(
+        class = "serve-breakdown-segment",
+        style = paste0(
+          "width:", 100 * counts[i] / n, "%;",
+          "background:", outcome_css_colours[[summary_outcomes[i]]], ";"
+        ),
+        title = paste0(summary_outcomes[i], ": ", counts[i])
+      )
+    })
     tags$tr(
-      tags$td(label),
-      lapply(counts, function(value) tags$td(as.character(value))),
-      tags$td(as.character(nrow(rows)))
+      tags$td(label, class = "serve-breakdown-label"),
+      tags$td(div(class = "serve-breakdown-bar", bar_segments)),
+      cells,
+      tags$td(as.character(n), class = "serve-breakdown-total")
     )
   }
-  target_rows <- c(
-    list(make_target_row("All serves", d)),
+
+  make_start_group <- function(label, rows) {
+    group_rows <- lapply(1:9, function(zone) {
+      zone_rows <- rows[rows$Landing_Zone == zone, , drop = FALSE]
+      make_outcome_row(paste("Zone", zone), zone_rows)
+    })
+    tags$tbody(
+      class = "serve-breakdown-group",
+      tags$tr(
+        tags$th(colspan = 9, class = "serve-breakdown-group-title"),
+        label
+      ),
+      group_rows
+    )
+  }
+
+  start_zones_for_table <- sort(unique(summary_data$Serve_Start_Zone[!is.na(summary_data$Serve_Start_Zone)]))
+  summary_groups <- c(
+    list(make_start_group("ALL SERVES", summary_data)),
     lapply(start_zones_for_table, function(z) {
-      make_target_row(paste("From Zone", z), d[d$Serve_Start_Zone == z, , drop = FALSE])
+      make_start_group(
+        paste("SERVED FROM ZONE", z),
+        summary_data[summary_data$Serve_Start_Zone == z, , drop = FALSE]
+      )
     })
   )
 
@@ -1942,17 +2016,19 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
       div(
         class = "serve-summary-column",
         div(class = "serve-legend", legend),
-        div(class = "serve-server-summary-title", "SERVE START → LANDING ZONE"),
+        div(class = "serve-server-summary-title", "LANDING ZONE OUTCOME BREAKDOWN"),
         div(
           class = "serve-table-wrap",
           tags$table(
-            class = "serve-server-table serve-target-table",
+            class = "serve-server-table serve-breakdown-table",
             tags$thead(tags$tr(
-              tags$th("SERVE FROM"),
-              lapply(1:9, function(z) tags$th(paste0("Z", z))),
-              tags$th("TOTAL")
+              tags$th("LANDING ZONE"),
+              tags$th("OUTCOME MIX"),
+              lapply(c("ACE", "FORCED OOS", "MEDIUM", "NO 1ST", "FREE ATTACK", "ERROR"),
+                     function(label) tags$th(label)),
+              tags$th("N")
             )),
-            tags$tbody(target_rows)
+            summary_groups
           )
         )
       )
@@ -2629,6 +2705,20 @@ ui <- fluidPage(
       .serve-target-table th,.serve-target-table td{text-align:center !important;}
       .serve-target-table th:first-child,.serve-target-table td:first-child{text-align:left !important;}
       .serve-target-table tbody tr:first-child{background:#f4f6f8;font-weight:900;}
+      .serve-breakdown-table{min-width:980px;}
+      .serve-breakdown-table th,.serve-breakdown-table td{text-align:center !important;
+        padding:7px 6px !important;white-space:nowrap;}
+      .serve-breakdown-table th:first-child,.serve-breakdown-table td:first-child{text-align:left !important;}
+      .serve-breakdown-group-title{background:#f2f5f7;color:#596f83;text-align:left !important;
+        font-size:10px;letter-spacing:1px;padding:9px 8px !important;}
+      .serve-breakdown-label{font-weight:800;color:#30465a;}
+      .serve-breakdown-total{font-weight:900;background:#f7f8fa;}
+      .serve-breakdown-bar{height:10px;width:100%;min-width:100px;display:flex;overflow:hidden;
+        border-radius:8px;background:#e9eef2;}
+      .serve-breakdown-segment{height:100%;min-width:1px;}
+      .serve-breakdown-table .serve-outcome-value{font-size:10px;color:#526477;}
+      .serve-breakdown-table tbody tr:not(:first-child) td{border-bottom:1px solid #e2e8ed;}
+
 
       .serve-filter-row .radio-inline{position:relative;display:inline-flex;align-items:center;
         margin:0;padding:6px 12px;border-radius:7px;background:#e3e8ec;color:#536577;
