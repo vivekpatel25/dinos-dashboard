@@ -1988,6 +1988,9 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
 
   start_zone_rows <- lapply(start_zones_for_table, make_start_zone_row)
 
+  # Used by the heading above the map; calculate after all active filters.
+  total_serves <- nrow(d)
+
   outcome_levels <- c("Ace", "OOS", "Medium", "Negative – Free Attack")
   legend <- lapply(outcome_levels, function(outcome) {
     div(
