@@ -1772,7 +1772,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
           span(class = "serve-stat-dot", style = paste0("background:", outcome_colours[[outcome]], ";")),
           span(outcome)),
       strong(as.character(n)),
-      small(paste0(sprintf("%.0f", pct), "%"))
+      tags$small(paste0(sprintf("%.0f", pct), "%"))
     )
   })
 
