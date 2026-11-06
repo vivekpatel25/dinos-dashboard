@@ -1671,7 +1671,8 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
 
   required <- c(
     "Server_Name", "Player_Number", "Serve_Start_Zone",
-    "Landing_Zone", "Landing_Subzone", "Serve_Outcome", "Set_Number"
+    "Landing_Zone", "Landing_Subzone", "Serve_Outcome",
+    "Serve_Evaluation_Code", "Set_Number"
   )
   missing <- setdiff(required, names(d))
   if (length(missing)) {
@@ -1690,28 +1691,36 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
   d$Landing_Subzone <- toupper(trimws(as.character(d$Landing_Subzone)))
   d$Set_Number <- suppressWarnings(as.integer(d$Set_Number))
 
-  outcome_map <- c(
-    "Ace" = "Ace",
-    "Positive - No Attack" = "Positive – Forced OOS",
-    "Positive - Some Attack" = "Positive – Medium",
-    "No First Tempo" = "No First Tempo",
-    "Negative - Free Attack" = "Negative – Free Attack"
+  # Use the five explicitly defined DVW serve evaluation codes as the source of truth:
+  # # = Ace, + = OOS, ! = Medium, - = Negative/free attack, = = Serve error.
+  # The sample export can also contain "/" (Positive, no attack); keep it visible as
+  # a separate mix segment, but do not silently count it as OOS.
+  d$Serve_Evaluation_Code <- trimws(as.character(d$Serve_Evaluation_Code))
+  serve_code_labels <- c(
+    "#" = "Ace",
+    "+" = "OOS",
+    "!" = "Medium",
+    "-" = "Negative – Free Attack",
+    "=" = "Error",
+    "/" = "No Attack (/)"
   )
   outcome_colours <- c(
     "Ace" = "#D9433A",
-    "Positive – Forced OOS" = "#159B69",
-    "Positive – Medium" = "#79BFA0",
-    "No First Tempo" = "#E0A21A",
-    "Negative – Free Attack" = "#F0782B"
+    "OOS" = "#159B69",
+    "Medium" = "#79BFA0",
+    "Negative – Free Attack" = "#F0782B",
+    "Error" = "#AAB5C0",
+    "No Attack (/)" = "#9AA7B2"
   )
 
-  # Keep a separate copy for the landing-zone outcome breakdown, including serve errors.
+  # Preserve all rows for outcome cards and starting-zone summary, including errors.
   d_summary_source <- d
-  d$Outcome_Display <- unname(outcome_map[d$Serve_Outcome])
+  d$Outcome_Display <- unname(serve_code_labels[d$Serve_Evaluation_Code])
   d <- d[!is.na(d$Outcome_Display), , drop = FALSE]
   d$Outcome_Group <- ifelse(
     d$Outcome_Display == "Ace", "Ace",
-    ifelse(d$Outcome_Display == "Negative – Free Attack", "Negative", "Positive")
+    ifelse(d$Outcome_Display %in% c("OOS", "Medium"), "Positive",
+           ifelse(d$Outcome_Display == "Negative – Free Attack", "Negative", "Exclude"))
   )
   outcome_filter_choices <- c("Ace", "Positive", "Negative")
   if (is.null(selected_outcomes)) selected_outcomes <- outcome_filter_choices
@@ -1759,22 +1768,32 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
     ))
   }
 
-  outcome_levels <- c(
-    "Ace", "Positive – Forced OOS", "Positive – Medium",
-    "No First Tempo", "Negative – Free Attack"
+  # Five outcome cards follow the requested evaluation-code mapping.
+  card_source <- d_summary_source
+  card_source$Serve_Evaluation_Code <- trimws(as.character(card_source$Serve_Evaluation_Code))
+  card_source$Serve_Start_Zone <- suppressWarnings(as.integer(card_source$Serve_Start_Zone))
+  if (serve_from != "All") {
+    z <- suppressWarnings(as.integer(sub("^Zone ", "", serve_from)))
+    card_source <- card_source[card_source$Serve_Start_Zone == z, , drop = FALSE]
+  }
+  if (server_name != "All") {
+    card_source <- card_source[card_source$Server_Name == server_name, , drop = FALSE]
+  }
+  card_levels <- c("Ace", "OOS", "Medium", "Negative", "Error")
+  card_codes <- c("#", "+", "!", "-", "=")
+  card_colours <- c(
+    "Ace" = "#D9433A", "OOS" = "#159B69", "Medium" = "#79BFA0",
+    "Negative" = "#F0782B", "Error" = "#AAB5C0"
   )
-  total_serves <- nrow(d)
-  outcome_counts <- table(factor(d$Outcome_Display, levels = outcome_levels))
-  outcome_counts <- as.integer(outcome_counts)
-  names(outcome_counts) <- outcome_levels
-
-  stat_cards <- lapply(outcome_levels, function(outcome) {
-    n <- outcome_counts[[outcome]]
-    pct <- if (total_serves > 0) 100 * n / total_serves else 0
+  card_total <- nrow(card_source)
+  stat_cards <- lapply(seq_along(card_levels), function(i) {
+    outcome <- card_levels[[i]]
+    n <- sum(card_source$Serve_Evaluation_Code == card_codes[[i]], na.rm = TRUE)
+    pct <- if (card_total > 0) 100 * n / card_total else 0
     div(
       class = "serve-stat-card",
       div(class = "serve-stat-top",
-          span(class = "serve-stat-dot", style = paste0("background:", outcome_colours[[outcome]], ";")),
+          span(class = "serve-stat-dot", style = paste0("background:", card_colours[[outcome]], ";")),
           span(outcome)),
       strong(as.character(n)),
       tags$small(paste0(sprintf("%.0f", pct), "%"))
@@ -1886,7 +1905,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
   })
 
   # One summary row per actual serve-start zone (not one row per landing zone).
-  # OOS includes serves that prevent a first-tempo attack: forced no-attack + no-first-tempo.
+  # Evaluation-code counts: + = OOS only; ! = Medium; # = Ace; - = Negative; = = Error.
   summary_data <- d_summary_source
   summary_data$Serve_Outcome <- trimws(as.character(summary_data$Serve_Outcome))
   summary_data$Serve_Start_Zone <- suppressWarnings(as.integer(summary_data$Serve_Start_Zone))
@@ -1910,12 +1929,14 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
   make_start_zone_row <- function(zone) {
     rows <- summary_data[summary_data$Serve_Start_Zone == zone, , drop = FALSE]
     n <- nrow(rows)
-    ace_n <- sum(rows$Serve_Outcome == "Ace", na.rm = TRUE)
-    error_n <- sum(grepl("error", rows$Serve_Outcome, ignore.case = TRUE), na.rm = TRUE)
-    oos_n <- sum(rows$Serve_Outcome %in% c(
-      "Positive - No Attack", "No First Tempo"
-    ), na.rm = TRUE)
-    in_n <- n - error_n
+    code <- trimws(as.character(rows$Serve_Evaluation_Code))
+    ace_n <- sum(code == "#", na.rm = TRUE)
+    oos_n <- sum(code == "+", na.rm = TRUE)
+    medium_n <- sum(code == "!", na.rm = TRUE)
+    negative_n <- sum(code == "-", na.rm = TRUE)
+    error_n <- sum(code == "=", na.rm = TRUE)
+    no_attack_n <- sum(code == "/", na.rm = TRUE)
+    in_n <- sum(code %in% c("#", "+", "!", "-", "/"), na.rm = TRUE)
     points_won <- if ("UOFC_Point" %in% names(rows)) {
       sum(suppressWarnings(as.numeric(rows$UOFC_Point)) == 1, na.rm = TRUE)
     } else if ("Point_Won_By" %in% names(rows)) {
@@ -1927,16 +1948,16 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
     # Outcome mix bar uses mutually exclusive serve outcomes.
     mix <- c(
       Ace = ace_n,
-      OOS = oos_n - sum(rows$Serve_Outcome == "No First Tempo", na.rm = TRUE),
-      Medium = sum(rows$Serve_Outcome == "Positive - Some Attack", na.rm = TRUE),
-      `No first tempo` = sum(rows$Serve_Outcome == "No First Tempo", na.rm = TRUE),
-      `Free attack` = sum(rows$Serve_Outcome == "Negative - Free Attack", na.rm = TRUE),
-      Error = error_n
+      OOS = oos_n,
+      Medium = medium_n,
+      Negative = negative_n,
+      Error = error_n,
+      `No attack (/)` = no_attack_n
     )
     mix_colours <- c(
       Ace = "#D9433A", OOS = "#159B69", Medium = "#79BFA0",
-      `No first tempo` = "#E0A21A", `Free attack` = "#F0782B",
-      Error = "#AAB5C0"
+      Negative = "#F0782B", Error = "#AAB5C0",
+      `No attack (/)` = "#D6DDE3"
     )
     mix_bar <- div(
       class = "serve-breakdown-bar",
@@ -1956,6 +1977,8 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
       tags$td(mix_bar),
       tags$td(paste0(ace_n, " (", percent_text(ace_n, n), ")")),
       tags$td(paste0(oos_n, " (", percent_text(oos_n, n), ")")),
+      tags$td(paste0(medium_n, " (", percent_text(medium_n, n), ")")),
+      tags$td(paste0(negative_n, " (", percent_text(negative_n, n), ")")),
       tags$td(paste0(error_n, " (", percent_text(error_n, n), ")")),
       tags$td(paste0(in_n, " (", percent_text(in_n, n), ")")),
       tags$td(if (is.na(points_won)) "—" else
@@ -1965,6 +1988,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
 
   start_zone_rows <- lapply(start_zones_for_table, make_start_zone_row)
 
+  outcome_levels <- c("Ace", "OOS", "Medium", "Negative – Free Attack")
   legend <- lapply(outcome_levels, function(outcome) {
     div(
       class = "serve-legend-item",
@@ -2017,17 +2041,19 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
               tags$th("N"),
               tags$th("OUTCOME MIX"),
               tags$th("ACE"),
-              tags$th("OOS"),
-              tags$th("ERROR"),
+              tags$th("OOS (+)"),
+              tags$th("MEDIUM (!)"),
+              tags$th("NEGATIVE (-)"),
+              tags$th("ERROR (=)"),
               tags$th("IN"),
               tags$th("POINTS WON")
             )),
             tags$tbody(start_zone_rows)
           )
-        )
+        ),
+        div(class = "serve-outcome-cards", stat_cards)
       )
-    ),
-    div(class = "serve-outcome-cards", stat_cards)
+    )
   )
 }
 
@@ -2780,7 +2806,7 @@ ui <- fluidPage(
       .serve-server-table td{padding:8px 5px;border-bottom:1px solid #e3e8ed;
         color:#344454;font-weight:700;white-space:nowrap;}
       .serve-server-table td:first-child{text-align:left;font-weight:800;}
-      .serve-outcome-cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+      .serve-outcome-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
         gap:8px;margin-top:15px;}
       .serve-stat-card{background:#f3f6f8;border:1px solid #e0e6eb;border-radius:9px;
         padding:9px 10px;min-width:0;}
