@@ -38,19 +38,21 @@ read_csv_safe <- function(path) {
 find_key_metric_files <- function() {
   if (!dir.exists(MATCH_ROOT)) return(character(0))
 
-  dashboard_files <- list.files(
+  # Prefer original per-match KEY_METRICS exports: they retain the
+  # numerator/denominator needed to validate percentage metrics.
+  key_metric_files <- list.files(
     MATCH_ROOT,
-    pattern = "^MATCH_DASHBOARD_SUMMARY\\.csv$",
+    pattern = "KEY[_ -]?METRICS.*\\.csv$",
     recursive = TRUE,
     full.names = TRUE,
     ignore.case = TRUE
   )
+  if (length(key_metric_files)) return(key_metric_files)
 
-  if (length(dashboard_files)) return(dashboard_files)
-
+  # Fallback only when source metric exports are unavailable.
   list.files(
     MATCH_ROOT,
-    pattern = "KEY[_ -]?METRICS.*\\.csv$",
+    pattern = "^MATCH_DASHBOARD_SUMMARY\\.csv$",
     recursive = TRUE,
     full.names = TRUE,
     ignore.case = TRUE
@@ -2648,12 +2650,30 @@ metric_row_ui <- function(uoc_row, opp_row = NULL, show_opponent = TRUE) {
   category <- as.character(uoc_row$metric_category[1])
   uoc_raw <- as.numeric(uoc_row$metric_value[1])
 
+  # Recalculate Aced % from the source counts to avoid stale summary values.
+  if (grepl("^Aced %$", metric_name, ignore.case = TRUE) &&
+      all(c("numerator", "denominator") %in% names(uoc_row))) {
+    num <- suppressWarnings(as.numeric(uoc_row$numerator[1]))
+    den <- suppressWarnings(as.numeric(uoc_row$denominator[1]))
+    if (is.finite(num) && is.finite(den) && den > 0) {
+      uoc_raw <- 100 * num / den
+    }
+  }
+
   uoc_value <- metric_value_for_display(uoc_raw, metric_name)
 
   opp_raw <- NA_real_
 
   if (isTRUE(show_opponent) && !is.null(opp_row) && nrow(opp_row)) {
     opp_raw <- as.numeric(opp_row$metric_value[1])
+    if (grepl("^Aced %$", metric_name, ignore.case = TRUE) &&
+        all(c("numerator", "denominator") %in% names(opp_row))) {
+      num <- suppressWarnings(as.numeric(opp_row$numerator[1]))
+      den <- suppressWarnings(as.numeric(opp_row$denominator[1]))
+      if (is.finite(num) && is.finite(den) && den > 0) {
+        opp_raw <- 100 * num / den
+      }
+    }
   }
 
   opp_value <- if (!is.na(opp_raw)) {
@@ -3285,16 +3305,25 @@ ui <- fluidPage(
         color:#87939e;margin:8px 0 18px;}
       .pass-boundary-swatch{width:18px;border-top:2px dashed #54BE98;}
       .pass-summary-title{border-top:1px solid #dce4eb;padding-top:14px;margin-top:12px;}
-      .pass-summary-table-wrap{width:100%;overflow-x:auto;}
-      .pass-summary-table{width:100%;min-width:650px;border-collapse:collapse;
-        font-size:10px;text-align:center;}
+      .pass-summary-column{min-width:0;width:100%;}
+      .pass-map-layout{min-width:0;}
+      @media(max-width:1100px){.pass-map-layout{grid-template-columns:1fr !important;}}
+      .pass-summary-table-wrap{width:100%;min-width:0;overflow-x:hidden;}
+      .pass-summary-table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;
+        font-size:clamp(9px,.72vw,11px);text-align:center;}
       .pass-summary-table th{background:#f1f4f6;color:#536577;font-family:'Barlow Condensed';
-        font-size:10px;padding:9px 6px;white-space:nowrap;border-bottom:2px solid #d6dfe6;}
-      .pass-summary-table td{padding:10px 6px;border-bottom:1px solid #e3e8ed;
-        color:#344454;font-weight:700;white-space:nowrap;}
-      .pass-summary-table td:first-child{text-align:left;font-weight:800;}
+        font-size:clamp(9px,.7vw,11px);padding:8px 3px;white-space:normal;
+        line-height:1.15;overflow-wrap:anywhere;text-align:center;border-bottom:2px solid #d6dfe6;}
+      .pass-summary-table td{padding:9px 3px;border-bottom:1px solid #e3e8ed;
+        color:#344454;font-weight:700;white-space:normal;overflow-wrap:anywhere;
+        text-align:center;vertical-align:middle;}
+      .pass-summary-table th:nth-child(1),.pass-summary-table td:nth-child(1){width:10%;}
+      .pass-summary-table th:nth-child(2),.pass-summary-table td:nth-child(2){width:13%;}
+      .pass-summary-table th:nth-child(3),.pass-summary-table td:nth-child(3){width:20%;}
+      .pass-summary-table th:nth-child(n+4),.pass-summary-table td:nth-child(n+4){width:14.25%;}
+      .pass-summary-table td:first-child{text-align:center;font-weight:800;}
       .pass-summary-table td:nth-child(2){font-variant-numeric:tabular-nums;}
-      .pass-summary-table td:nth-child(3){min-width:135px;width:18%;padding-left:10px;padding-right:10px;}
+      .pass-summary-table td:nth-child(3){padding-left:5px;padding-right:5px;}
       .pass-outcome-bar{display:flex;width:100%;height:13px;overflow:hidden;border-radius:8px;
         background:#e7edf1;box-shadow:inset 0 0 0 1px rgba(38,55,70,.04);}
       .pass-outcome-segment{height:100%;min-width:0;}
