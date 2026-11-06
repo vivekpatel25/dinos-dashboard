@@ -2060,6 +2060,312 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
   )
 }
 
+
+# ----------------------------- PASSING MAPS -----------------------------
+
+passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
+                           selected_categories = c("Good passes", "OOS passes",
+                                                   "Poor passes", "Passing errors"),
+                           show_lines = TRUE) {
+
+  d <- load_detail_csvs("PASSING_MAP_EVENTS\\.csv$", ids)
+  section_title <- div(class = "detail-section-title", "PASSING MAPS")
+
+  if (!nrow(d)) {
+    return(div(
+      class = "detail-section passing-map-section",
+      section_title,
+      div(class = "detail-empty",
+          "No PASSING_MAP_EVENTS.csv found for this match selection.")
+    ))
+  }
+
+  required <- c(
+    "Player_Name", "Reception_Start_Zone", "Reception_Start_Subzone",
+    "Pass_Destination_Zone", "Pass_Destination_Subzone",
+    "Reception_Evaluation_Code", "Pass_Quality"
+  )
+  missing <- setdiff(required, names(d))
+  if (length(missing)) {
+    return(div(
+      class = "detail-section passing-map-section",
+      section_title,
+      div(class = "detail-empty",
+          paste("Passing export is missing required columns:",
+                paste(missing, collapse = ", ")))
+    ))
+  }
+
+  d$Player_Name <- trimws(as.character(d$Player_Name))
+  d$Reception_Start_Zone <- suppressWarnings(as.integer(d$Reception_Start_Zone))
+  d$Pass_Destination_Zone <- suppressWarnings(as.integer(d$Pass_Destination_Zone))
+  d$Reception_Start_Subzone <- trimws(as.character(d$Reception_Start_Subzone))
+  d$Reception_Start_Subzone[
+    is.na(d$Reception_Start_Subzone) | toupper(d$Reception_Start_Subzone) %in% c("", "NA", "N/A")
+  ] <- ""
+  d$Pass_Destination_Subzone <- toupper(trimws(as.character(d$Pass_Destination_Subzone)))
+  d$Pass_Destination_Subzone[
+    is.na(d$Pass_Destination_Subzone) | d$Pass_Destination_Subzone %in% c("", "NA", "N/A")
+  ] <- ""
+  d$Reception_Evaluation_Code <- trimws(as.character(d$Reception_Evaluation_Code))
+  d$Pass_Quality <- trimws(as.character(d$Pass_Quality))
+
+  # The sample CSV has no Reception_Start_Subzone values. When that field is
+  # populated in future exports, use it; otherwise start at the centre of
+  # the recorded reception-start zone.
+  if (!"Pass_Category" %in% names(d)) d$Pass_Category <- NA_character_
+
+  category_for_row <- function(i) {
+    code <- d$Reception_Evaluation_Code[i]
+    quality <- tolower(d$Pass_Quality[i])
+    if (code == "=" || grepl("error", quality)) return("Passing errors")
+    if (code == "/" || grepl("poor", quality)) return("Poor passes")
+    if (code %in% c("!", "-") || grepl("oos|limited", quality)) return("OOS passes")
+    if (code %in% c("#", "+") || grepl("perfect|positive", quality)) return("Good passes")
+    "OOS passes"
+  }
+  d$Pass_Map_Category <- vapply(seq_len(nrow(d)), category_for_row, character(1))
+
+  category_colours <- c(
+    "Good passes" = "#159B69",
+    "OOS passes" = "#E6A11A",
+    "Poor passes" = "#F0782B",
+    "Passing errors" = "#D9433A"
+  )
+
+  from_choices <- c(
+    "All",
+    paste("Zone", sort(unique(d$Reception_Start_Zone[
+      !is.na(d$Reception_Start_Zone)
+    ])))
+  )
+  passer_choices <- c(
+    "All",
+    sort(unique(d$Player_Name[!is.na(d$Player_Name) & nzchar(d$Player_Name)]))
+  )
+  if (is.null(pass_from) || !pass_from %in% from_choices) pass_from <- "All"
+  if (is.null(passer_name) || !passer_name %in% passer_choices) passer_name <- "All"
+  if (is.null(selected_categories)) selected_categories <- names(category_colours)
+  selected_categories <- intersect(as.character(selected_categories), names(category_colours))
+
+  d_all <- d
+  if (pass_from != "All") {
+    selected_zone <- suppressWarnings(as.integer(sub("^Zone ", "", pass_from)))
+    d <- d[d$Reception_Start_Zone == selected_zone, , drop = FALSE]
+  }
+  if (passer_name != "All") d <- d[d$Player_Name == passer_name, , drop = FALSE]
+  d <- d[d$Pass_Map_Category %in% selected_categories, , drop = FALSE]
+
+  if (!nrow(d)) {
+    return(div(
+      class = "detail-section passing-map-section",
+      section_title,
+      div(
+        class = "pass-filter-row",
+        radioButtons("pass_from_filter", "RECEPTION START ZONE",
+                     choices = from_choices, selected = pass_from, inline = TRUE),
+        selectInput("pass_passer_filter", "PASSER",
+                    choices = passer_choices, selected = passer_name, width = "220px"),
+        checkboxInput("pass_lines_toggle", "Show passing lines", value = show_lines),
+        checkboxGroupInput("pass_category_filter", "SHOW OUTCOMES",
+                           choices = names(category_colours),
+                           selected = selected_categories, inline = TRUE)
+      ),
+      div(class = "detail-empty", "No passes match the selected filters.")
+    ))
+  }
+
+  # Court is shown from the receiving team's perspective, with the net at top.
+  # Zone layout follows the 3 x 3 receiving-court orientation.
+  zone_layout <- list(
+    "4" = c(row = 1, col = 1), "3" = c(row = 1, col = 2), "2" = c(row = 1, col = 3),
+    "7" = c(row = 2, col = 1), "8" = c(row = 2, col = 2), "9" = c(row = 2, col = 3),
+    "5" = c(row = 3, col = 1), "6" = c(row = 3, col = 2), "1" = c(row = 3, col = 3)
+  )
+
+  # Subzone coordinates are relative to each zone. The start-subzone field is
+  # blank in the supplied sample, so start positions safely fall back to zone centre.
+  subzone_xy <- list(
+    "A" = c(x = 76, y = 76),
+    "B" = c(x = 76, y = 24),
+    "C" = c(x = 24, y = 24),
+    "D" = c(x = 24, y = 76),
+    "1" = c(x = 24, y = 24),
+    "2" = c(x = 76, y = 24),
+    "3" = c(x = 24, y = 76),
+    "4" = c(x = 76, y = 76),
+    "CENTER" = c(x = 50, y = 50)
+  )
+
+  zone_point <- function(zone, subzone = NA_character_) {
+    loc <- zone_layout[[as.character(zone)]]
+    if (is.null(loc)) return(NULL)
+    sub <- toupper(trimws(as.character(subzone)))
+    if (is.na(sub) || !nzchar(sub) || is.null(subzone_xy[[sub]])) sub <- "CENTER"
+    xy <- subzone_xy[[sub]]
+    x <- (loc[["col"]] - 1) * 100 / 3 + xy[["x"]] / 3
+    y <- (loc[["row"]] - 1) * 100 / 3 + xy[["y"]] / 3
+    c(x = max(1, min(99, x)), y = max(1, min(99, y)))
+  }
+
+  start_points <- lapply(seq_len(nrow(d)), function(i) {
+    zone_point(d$Reception_Start_Zone[i], d$Reception_Start_Subzone[i])
+  })
+  end_points <- lapply(seq_len(nrow(d)), function(i) {
+    zone_point(d$Pass_Destination_Zone[i], d$Pass_Destination_Subzone[i])
+  })
+
+  line_nodes <- if (isTRUE(show_lines)) {
+    lapply(seq_len(nrow(d)), function(i) {
+      a <- start_points[[i]]
+      b <- end_points[[i]]
+      if (is.null(a) || is.null(b)) return(NULL)
+      tags$line(
+        x1 = a[["x"]], y1 = a[["y"]],
+        x2 = b[["x"]], y2 = b[["y"]],
+        stroke = "#9BAAB5", `stroke-width` = "0.24",
+        `stroke-opacity` = "0.30"
+      )
+    })
+  } else NULL
+
+  marker_nodes <- lapply(seq_len(nrow(d)), function(i) {
+    endpoint <- end_points[[i]]
+    if (is.null(endpoint)) return(NULL)
+    colour <- unname(category_colours[d$Pass_Map_Category[i]])
+    tip <- paste0(
+      d$Player_Name[i], " | Start Z", d$Reception_Start_Zone[i],
+      if (nzchar(d$Reception_Start_Subzone[i])) paste0("-", d$Reception_Start_Subzone[i]) else "",
+      " → Destination Z", d$Pass_Destination_Zone[i],
+      if (nzchar(d$Pass_Destination_Subzone[i])) paste0("-", d$Pass_Destination_Subzone[i]) else "",
+      " | ", d$Pass_Quality[i]
+    )
+    div(
+      class = "pass-map-marker",
+      title = tip,
+      style = paste0(
+        "left:", endpoint[["x"]], "%;top:", endpoint[["y"]], "%;",
+        "background:", colour, ";"
+      )
+    )
+  })
+
+  zone_cells <- lapply(names(zone_layout), function(zone) {
+    loc <- zone_layout[[zone]]
+    div(
+      class = "pass-zone-label",
+      style = paste0(
+        "left:", (loc[["col"]] - 1) * 100 / 3, "%;",
+        "top:", (loc[["row"]] - 1) * 100 / 3, "%;"
+      ),
+      strong(zone)
+    )
+  })
+
+  legend <- lapply(names(category_colours), function(nm) {
+    div(
+      class = "pass-legend-item",
+      span(class = "pass-legend-dot",
+           style = paste0("background:", category_colours[[nm]], ";")),
+      span(nm)
+    )
+  })
+
+  destination_zones <- sort(unique(d$Pass_Destination_Zone[
+    !is.na(d$Pass_Destination_Zone)
+  ]))
+  zone_summary_rows <- lapply(destination_zones, function(zone) {
+    z <- d[d$Pass_Destination_Zone == zone, , drop = FALSE]
+    n <- nrow(z)
+    good <- sum(z$Pass_Map_Category == "Good passes")
+    oos <- sum(z$Pass_Map_Category == "OOS passes")
+    poor <- sum(z$Pass_Map_Category == "Poor passes")
+    errors <- sum(z$Pass_Map_Category == "Passing errors")
+    pct <- function(x) if (n) paste0(round(100 * x / n), "%") else "—"
+    mix <- c(good, oos, poor, errors)
+    mix_cols <- unname(category_colours[c("Good passes", "OOS passes",
+                                          "Poor passes", "Passing errors")])
+    bar <- div(
+      class = "pass-summary-bar",
+      lapply(seq_along(mix), function(j) {
+        if (mix[j] <= 0) return(NULL)
+        div(style = paste0(
+          "width:", 100 * mix[j] / n, "%;background:", mix_cols[j], ";"
+        ))
+      })
+    )
+    tags$tr(
+      tags$td(paste("Zone", zone)),
+      tags$td(as.character(n)),
+      tags$td(bar),
+      tags$td(paste0(good, " (", pct(good), ")")),
+      tags$td(paste0(oos, " (", pct(oos), ")")),
+      tags$td(paste0(poor, " (", pct(poor), ")")),
+      tags$td(paste0(errors, " (", pct(errors), ")"))
+    )
+  })
+
+  div(
+    class = "detail-section passing-map-section",
+    section_title,
+    div(
+      class = "pass-filter-row",
+      radioButtons("pass_from_filter", "RECEPTION START ZONE",
+                   choices = from_choices, selected = pass_from, inline = TRUE),
+      selectInput("pass_passer_filter", "PASSER",
+                  choices = passer_choices, selected = passer_name, width = "220px"),
+      checkboxInput("pass_lines_toggle", "Show passing lines", value = show_lines),
+      checkboxGroupInput("pass_category_filter", "SHOW OUTCOMES",
+                         choices = names(category_colours),
+                         selected = selected_categories, inline = TRUE)
+    ),
+    div(class = "block-detail-subtitle",
+        paste(nrow(d), "passes displayed")),
+    div(
+      class = "pass-map-layout",
+      div(
+        class = "pass-court-column",
+        div(
+          class = "pass-court",
+          zone_cells,
+          tags$svg(
+            class = "pass-trajectory-layer",
+            viewBox = "0 0 100 100",
+            preserveAspectRatio = "none",
+            tags$circle(
+              cx = "58", cy = "24", r = "24",
+              fill = "#BFE8D8", `fill-opacity` = "0.38",
+              stroke = "#54BE98", `stroke-width` = "0.45",
+              `stroke-dasharray` = "1.4 1.1"
+            ),
+            line_nodes
+          ),
+          marker_nodes,
+          div(class = "pass-court-net", "NET")
+        ),
+        div(class = "pass-court-caption", "RECEIVING TEAM")
+      ),
+      div(
+        class = "pass-summary-column",
+        div(class = "pass-show-hide-title", "SHOW / HIDE"),
+        div(class = "pass-legend", legend),
+        div(class = "pass-boundary-key",
+            span(class = "pass-boundary-swatch"),
+            span("Good-pass boundary (7 ft from net)")),
+        div(class = "pass-summary-title", "BY PASSING ZONE"),
+        tags$table(
+          class = "pass-summary-table",
+          tags$thead(tags$tr(
+            tags$th("ZONE"), tags$th("N"), tags$th("OUTCOME MIX"),
+            tags$th("GOOD"), tags$th("OOS"), tags$th("POOR"), tags$th("ERROR")
+          )),
+          tags$tbody(zone_summary_rows)
+        )
+      )
+    )
+  )
+}
+
 # ----------------------------- ROSTER -----------------------------
 
 roster <- read_csv_safe(ROSTER_PATH)
@@ -2824,6 +3130,59 @@ ui <- fluidPage(
         .serve-outcome-cards{grid-template-columns:repeat(2,minmax(0,1fr));}
         .serve-legend{grid-template-columns:1fr;}}
 
+
+      /* Passing map */
+      .pass-filter-row{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;
+        background:#f1f4f6;border-radius:11px;padding:12px 14px;margin:12px 0;}
+      .pass-filter-row .form-group{margin:0;}
+      .pass-filter-row label{font-family:'Barlow Condensed';font-size:11px;
+        letter-spacing:.6px;color:#536577;font-weight:800;}
+      .pass-filter-row .shiny-options-group{display:flex;gap:8px;flex-wrap:wrap;}
+      .pass-map-layout{display:grid;grid-template-columns:minmax(420px,1.08fr) minmax(350px,1fr);
+        gap:22px;align-items:start;margin-top:12px;}
+      .pass-court-column{min-width:0;}
+      .pass-court{position:relative;width:100%;aspect-ratio:1/1.02;overflow:hidden;
+        background:#f3f7f9;border:1px solid #cbd7df;border-radius:4px;
+        box-shadow:0 2px 8px rgba(38,55,70,.08);}
+      .pass-zone-label{position:absolute;width:33.3333%;height:33.3333%;
+        display:flex;align-items:center;justify-content:center;z-index:1;
+        border:0;pointer-events:none;}
+      .pass-zone-label strong{font-family:'Barlow Condensed';font-size:clamp(25px,3.2vw,48px);
+        color:#c5d3dc;font-weight:800;opacity:.82;}
+      .pass-trajectory-layer{position:absolute;inset:0;width:100%;height:100%;
+        z-index:2;overflow:visible;pointer-events:none;}
+      .pass-map-marker{position:absolute;width:10px;height:10px;border-radius:50%;
+        border:1.5px solid #fff;box-shadow:0 1px 3px rgba(20,35,48,.28);
+        transform:translate(-50%,-50%);z-index:4;}
+      .pass-court-net{position:absolute;left:0;right:0;top:0;height:5px;
+        background:#263746;color:#fff;font-family:'Barlow Condensed';font-size:9px;
+        font-weight:800;letter-spacing:1px;text-align:left;padding-left:7px;
+        line-height:5px;z-index:5;}
+      .pass-court-caption{text-align:center;font-family:'Barlow Condensed';
+        font-size:11px;font-weight:800;letter-spacing:1px;color:#536577;padding:8px;}
+      .pass-summary-column{min-width:0;padding:4px 0;}
+      .pass-show-hide-title,.pass-summary-title{font-family:'Barlow Condensed';
+        color:#536577;font-size:12px;font-weight:800;letter-spacing:.8px;margin:2px 0 12px;}
+      .pass-legend{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:16px;}
+      .pass-legend-item{display:flex;align-items:center;gap:8px;font-size:11px;
+        color:#536577;font-weight:700;}
+      .pass-legend-dot{width:11px;height:11px;border-radius:50%;flex:0 0 11px;}
+      .pass-boundary-key{display:flex;align-items:center;gap:8px;font-size:10px;
+        color:#87939e;margin:8px 0 18px;}
+      .pass-boundary-swatch{width:18px;border-top:2px dashed #54BE98;}
+      .pass-summary-title{border-top:1px solid #dce4eb;padding-top:14px;margin-top:12px;}
+      .pass-summary-table{width:100%;border-collapse:collapse;font-size:10px;text-align:center;}
+      .pass-summary-table th{background:#f1f4f6;color:#536577;font-family:'Barlow Condensed';
+        font-size:10px;padding:8px 5px;white-space:nowrap;border-bottom:2px solid #d6dfe6;}
+      .pass-summary-table td{padding:9px 5px;border-bottom:1px solid #e3e8ed;
+        color:#344454;font-weight:700;white-space:nowrap;}
+      .pass-summary-table td:first-child{text-align:left;font-weight:800;}
+      .pass-summary-bar{height:10px;min-width:65px;width:100%;display:flex;
+        overflow:hidden;border-radius:8px;background:#e7edf1;}
+      .pass-summary-bar>div{height:100%;}
+      @media(max-width:900px){.pass-map-layout{grid-template-columns:1fr;}
+        .pass-court{max-width:650px;margin:0 auto;}}
+
       .detail-empty{padding:20px;color:#82909d;text-align:center;font-size:12px;}
 
       .report-card{background:#fff;border:1px solid #dfe6ed;border-radius:15px;
@@ -3201,6 +3560,13 @@ server <- function(input, output, session) {
             input$serve_from_filter,
             input$serve_server_filter,
             input$serve_outcome_filter
+          ),
+          passing_map_ui(
+            mid,
+            input$pass_from_filter,
+            input$pass_passer_filter,
+            input$pass_category_filter,
+            if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
           )
         )
       )
@@ -3363,6 +3729,13 @@ server <- function(input, output, session) {
         input$serve_from_filter,
         input$serve_server_filter,
         input$serve_outcome_filter
+      ),
+      passing_map_ui(
+        selected_ids,
+        input$pass_from_filter,
+        input$pass_passer_filter,
+        input$pass_category_filter,
+        if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
       )
     )
   })
