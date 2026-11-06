@@ -1655,7 +1655,7 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
 
 # ----------------------------- SERVING MAP -----------------------------
 
-serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_number = "All") {
+serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selected_outcomes = c("Ace", "Positive", "Negative")) {
 
   d <- load_detail_csvs("SERVING_MAP_EVENTS\\.csv$", ids)
 
@@ -1707,6 +1707,14 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
 
   d$Outcome_Display <- unname(outcome_map[d$Serve_Outcome])
   d <- d[!is.na(d$Outcome_Display), , drop = FALSE]
+  d$Outcome_Group <- ifelse(
+    d$Outcome_Display == "Ace", "Ace",
+    ifelse(d$Outcome_Display == "Negative – Free Attack", "Negative", "Positive")
+  )
+  outcome_filter_choices <- c("Ace", "Positive", "Negative")
+  if (is.null(selected_outcomes)) selected_outcomes <- outcome_filter_choices
+  selected_outcomes <- intersect(as.character(selected_outcomes), outcome_filter_choices)
+  d <- d[d$Outcome_Group %in% selected_outcomes, , drop = FALSE]
   # Keep every classified serve in totals. If the export has a landing zone
   # but no subzone, plot it at the centre of that zone rather than dropping it.
   d <- d[d$Landing_Zone %in% 1:9, , drop = FALSE]
@@ -1725,18 +1733,13 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
   # Filters use values from the loaded match files.
   from_choices <- c("All", paste("Zone", sort(unique(d$Serve_Start_Zone[!is.na(d$Serve_Start_Zone)]))))
   server_choices <- c("All", sort(unique(d$Server_Name[!is.na(d$Server_Name) & nzchar(d$Server_Name)])))
-  set_choices <- c("All", as.character(sort(unique(d$Set_Number[!is.na(d$Set_Number)]))))
-
   if (is.null(serve_from) || !serve_from %in% from_choices) serve_from <- "All"
   if (is.null(server_name) || !server_name %in% server_choices) server_name <- "All"
-  if (is.null(set_number) || !set_number %in% set_choices) set_number <- "All"
-
   if (serve_from != "All") {
     z <- suppressWarnings(as.integer(sub("^Zone ", "", serve_from)))
     d <- d[d$Serve_Start_Zone == z, , drop = FALSE]
   }
   if (server_name != "All") d <- d[d$Server_Name == server_name, , drop = FALSE]
-  if (set_number != "All") d <- d[d$Set_Number == as.integer(set_number), , drop = FALSE]
 
   if (!nrow(d)) {
     return(div(
@@ -1747,7 +1750,8 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
         radioButtons("serve_from_filter", "SERVE FROM", choices = from_choices,
                      selected = serve_from, inline = TRUE),
         selectInput("serve_server_filter", "SERVER", choices = server_choices, selected = server_name, width = "210px"),
-        selectInput("serve_set_filter", "SET", choices = set_choices, selected = set_number, width = "100px")
+        checkboxGroupInput("serve_outcome_filter", "SHOW OUTCOMES",
+                           choices = outcome_filter_choices, selected = selected_outcomes, inline = TRUE)
       ),
       div(class = "detail-empty", "No serves match the selected filters.")
     ))
@@ -1837,7 +1841,6 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
     colour <- outcome_colours[[d$Outcome_Display[i]]]
     title_text <- paste0(
       d$Server_Name[i], " (#", d$Player_Number[i], ")",
-      " | Set ", d$Set_Number[i],
       " | Serve from Zone ", d$Serve_Start_Zone[i],
       " | Landing ", d$Landing_Zone[i], "-", d$Landing_Subzone[i],
       " | ", d$Outcome_Display[i]
@@ -1880,26 +1883,22 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
     )
   })
 
-  # Server summary table: serve volume and outcome percentages for each player.
-  server_rows <- split(d, d$Server_Name)
-  server_summary <- lapply(names(server_rows), function(nm) {
-    x <- server_rows[[nm]]
-    n <- nrow(x)
-    ace <- sum(x$Outcome_Display == "Ace")
-    forced <- sum(x$Outcome_Display == "Positive – Forced OOS")
-    medium <- sum(x$Outcome_Display == "Positive – Medium")
-    no_first <- sum(x$Outcome_Display == "No First Tempo")
-    negative <- sum(x$Outcome_Display == "Negative – Free Attack")
+  # Serve target matrix: rows are serving positions, columns are opponent landing zones.
+  start_zones_for_table <- sort(unique(d$Serve_Start_Zone[!is.na(d$Serve_Start_Zone)]))
+  make_target_row <- function(label, rows) {
+    counts <- vapply(1:9, function(z) sum(rows$Landing_Zone == z, na.rm = TRUE), numeric(1))
     tags$tr(
-      tags$td(nm),
-      tags$td(as.character(n)),
-      tags$td(paste0(sprintf("%.0f", 100 * ace / n), "%")),
-      tags$td(as.character(forced)),
-      tags$td(as.character(medium)),
-      tags$td(as.character(no_first)),
-      tags$td(as.character(negative))
+      tags$td(label),
+      lapply(counts, function(value) tags$td(as.character(value))),
+      tags$td(as.character(nrow(rows)))
     )
-  })
+  }
+  target_rows <- c(
+    list(make_target_row("All serves", d)),
+    lapply(start_zones_for_table, function(z) {
+      make_target_row(paste("From Zone", z), d[d$Serve_Start_Zone == z, , drop = FALSE])
+    })
+  )
 
   legend <- lapply(outcome_levels, function(outcome) {
     div(
@@ -1917,7 +1916,8 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
       radioButtons("serve_from_filter", "SERVE FROM", choices = from_choices,
                    selected = serve_from, inline = TRUE),
       selectInput("serve_server_filter", "SERVER", choices = server_choices, selected = server_name, width = "210px"),
-      selectInput("serve_set_filter", "SET", choices = set_choices, selected = set_number, width = "100px")
+      checkboxGroupInput("serve_outcome_filter", "SHOW OUTCOMES",
+                         choices = outcome_filter_choices, selected = selected_outcomes, inline = TRUE)
     ),
     div(class = "block-detail-subtitle", paste(total_serves, "serves displayed")),
     div(
@@ -1942,16 +1942,17 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
       div(
         class = "serve-summary-column",
         div(class = "serve-legend", legend),
-        div(class = "serve-server-summary-title", "SERVER SUMMARY"),
+        div(class = "serve-server-summary-title", "SERVE START → LANDING ZONE"),
         div(
           class = "serve-table-wrap",
           tags$table(
-            class = "serve-server-table",
+            class = "serve-server-table serve-target-table",
             tags$thead(tags$tr(
-              tags$th("SERVER"), tags$th("N"), tags$th("ACE"),
-              tags$th("FORCED OOS"), tags$th("MEDIUM"), tags$th("NO 1ST"), tags$th("FREE ATK")
+              tags$th("SERVE FROM"),
+              lapply(1:9, function(z) tags$th(paste0("Z", z))),
+              tags$th("TOTAL")
             )),
-            tags$tbody(server_summary)
+            tags$tbody(target_rows)
           )
         )
       )
@@ -2619,6 +2620,16 @@ ui <- fluidPage(
         background:#f1f4f6;border-radius:10px;padding:10px 12px;margin:8px 0 14px;}
       .serve-filter-row .form-group{margin:0;}
       .serve-filter-row .shiny-options-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+      .serve-filter-row .checkbox-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+      .serve-filter-row .checkbox-inline{position:relative;display:inline-flex;align-items:center;
+        margin:0;padding:6px 12px;border-radius:7px;background:#e3e8ec;color:#536577;
+        font-family:'Barlow Condensed';font-size:11px;font-weight:800;letter-spacing:.35px;cursor:pointer;}
+      .serve-filter-row .checkbox-inline input{position:absolute;opacity:0;pointer-events:none;}
+      .serve-filter-row .checkbox-inline:has(input:checked){background:#C8102E;color:#fff;}
+      .serve-target-table th,.serve-target-table td{text-align:center !important;}
+      .serve-target-table th:first-child,.serve-target-table td:first-child{text-align:left !important;}
+      .serve-target-table tbody tr:first-child{background:#f4f6f8;font-weight:900;}
+
       .serve-filter-row .radio-inline{position:relative;display:inline-flex;align-items:center;
         margin:0;padding:6px 12px;border-radius:7px;background:#e3e8ec;color:#536577;
         font-family:'Barlow Condensed';font-size:11px;font-weight:800;letter-spacing:.35px;
@@ -2639,9 +2650,8 @@ ui <- fluidPage(
         background:linear-gradient(to bottom,#eee9e2 0%,#eee9e2 80%,#f3f6f8 80%,#f3f6f8 100%);
         box-shadow:0 2px 8px rgba(31,49,67,.12);}
       .serve-zone-cell{position:absolute;width:33.3333%;height:26.6667%;
-        border-right:2px dashed rgba(255,255,255,.92);border-bottom:2px dashed rgba(255,255,255,.92);
-        display:flex;align-items:center;justify-content:center;z-index:1;}
-      .serve-zone-cell:nth-of-type(3n){border-right:0;}
+        border:0 !important;background:transparent;display:flex;align-items:center;
+        justify-content:center;z-index:1;}
       .serve-zone-cell strong{font-family:'Barlow Condensed';font-size:36px;color:#c6d2da;
         font-weight:900;z-index:2;text-shadow:none;}
       .serve-trajectory-layer{position:absolute;inset:0;width:100%;height:100%;z-index:2;
@@ -2650,7 +2660,7 @@ ui <- fluidPage(
         border-radius:50%;z-index:4;transform:translate(-50%,-50%);
         box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:help;}
       .serve-court-net{position:absolute;left:0;right:0;top:80%;height:5px;
-        background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);font-size:0;z-index:5;}
+        background:#263746;box-shadow:0 1px 2px rgba(0,0,0,.16);font-size:0;z-index:5;}
       .serve-origin{position:absolute;top:86.5%;transform:translateX(-50%);z-index:6;
         display:flex;flex-direction:column;align-items:center;gap:3px;color:#53616b;
         font-family:'Barlow Condensed';font-size:10px;line-height:1;}
@@ -3066,7 +3076,7 @@ server <- function(input, output, session) {
             mid,
             input$serve_from_filter,
             input$serve_server_filter,
-            input$serve_set_filter
+            input$serve_outcome_filter
           )
         )
       )
@@ -3228,7 +3238,7 @@ server <- function(input, output, session) {
         selected_ids,
         input$serve_from_filter,
         input$serve_server_filter,
-        input$serve_set_filter
+        input$serve_outcome_filter
       )
     )
   })
