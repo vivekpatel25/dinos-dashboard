@@ -1776,43 +1776,71 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
     )
   })
 
-  # The source provides zone + A/B/C/D subzone, not continuous X/Y coordinates.
-  # Place each marker inside the corresponding subzone with deterministic visual spread.
+  # The source provides landing zone + A/B/C/D subzone, not continuous X/Y.
+  # Rotate the receiving court 180 degrees so the net is at the bottom:
+  # back row 1-6-5, middle 9-8-7, front row 2-3-4.
+  # Subzones are used to calculate endpoints but are not printed on the court.
   zone_layout <- list(
-    "4" = c(row = 1, col = 1), "3" = c(row = 1, col = 2), "2" = c(row = 1, col = 3),
-    "7" = c(row = 2, col = 1), "8" = c(row = 2, col = 2), "9" = c(row = 2, col = 3),
-    "5" = c(row = 3, col = 1), "6" = c(row = 3, col = 2), "1" = c(row = 3, col = 3)
+    "1" = c(row = 1, col = 1), "6" = c(row = 1, col = 2), "5" = c(row = 1, col = 3),
+    "9" = c(row = 2, col = 1), "8" = c(row = 2, col = 2), "7" = c(row = 2, col = 3),
+    "2" = c(row = 3, col = 1), "3" = c(row = 3, col = 2), "4" = c(row = 3, col = 3)
   )
+  # A/B/C/D are rotated with the court. Coordinates are relative to each zone.
   subzone_xy <- list(
-    "A" = c(x = 76, y = 76),
-    "B" = c(x = 76, y = 24),
-    "C" = c(x = 24, y = 24),
-    "D" = c(x = 24, y = 76),
+    "A" = c(x = 24, y = 24),
+    "B" = c(x = 24, y = 76),
+    "C" = c(x = 76, y = 76),
+    "D" = c(x = 76, y = 24),
     "CENTER" = c(x = 50, y = 50)
   )
 
-  d$Event_Jitter <- seq_len(nrow(d))
-  marker_nodes <- lapply(seq_len(nrow(d)), function(i) {
+  # Serve origins are shown on the serving side below the net.
+  # Standard back-row starts: 5 = left, 6 = middle, 1 = right.
+  # Other observed start zones are placed in the corresponding lateral lane.
+  serve_origin_x <- c("1" = 84, "5" = 16, "6" = 50, "7" = 28, "9" = 72)
+  start_zone_text <- as.character(d$Serve_Start_Zone)
+
+  landing_xy <- lapply(seq_len(nrow(d)), function(i) {
     zone <- as.character(d$Landing_Zone[i])
     sub <- d$Landing_Subzone[i]
     cell <- zone_layout[[zone]]
     xy <- subzone_xy[[sub]]
     if (is.null(cell) || is.null(xy)) return(NULL)
 
-    # Small deterministic offsets prevent identical zone/subzone markers hiding one another.
-    jx <- ((i * 7) %% 13) - 6
-    jy <- ((i * 11) %% 13) - 6
-    x <- (cell[["col"]] - 1) * 100 / 3 + xy[["x"]] / 3 + jx
-    y <- (cell[["row"]] - 1) * 100 / 3 + xy[["y"]] / 3 + jy
-    x <- max(1, min(99, x))
-    y <- max(1, min(99, y))
+    x <- (cell[["col"]] - 1) * 100 / 3 + xy[["x"]] / 3
+    y <- (cell[["row"]] - 1) * 80 / 3 + xy[["y"]] / 3 * 0.8
+    # Tiny deterministic jitter separates repeated landing coordinates.
+    jx <- ((i * 7) %% 9) - 4
+    jy <- ((i * 11) %% 9) - 4
+    c(x = max(1, min(99, x + jx)), y = max(1, min(79, y + jy)))
+  })
+
+  # SVG trajectory layer: each line begins at the actual serving-zone lane,
+  # crosses the net, and ends at the A/B/C/D-derived landing coordinate.
+  serve_lines <- lapply(seq_len(nrow(d)), function(i) {
+    endpoint <- landing_xy[[i]]
+    start_zone <- start_zone_text[i]
+    x_start <- unname(serve_origin_x[start_zone])
+    if (is.null(endpoint) || !length(x_start) || is.na(x_start)) return(NULL)
+
+    tags$line(
+      x1 = x_start, y1 = 88.5,
+      x2 = endpoint[["x"]], y2 = endpoint[["y"]],
+      stroke = "#718096", `stroke-width` = "0.32",
+      `stroke-opacity` = "0.32"
+    )
+  })
+
+  marker_nodes <- lapply(seq_len(nrow(d)), function(i) {
+    endpoint <- landing_xy[[i]]
+    if (is.null(endpoint)) return(NULL)
 
     colour <- outcome_colours[[d$Outcome_Display[i]]]
     title_text <- paste0(
       d$Server_Name[i], " (#", d$Player_Number[i], ")",
       " | Set ", d$Set_Number[i],
-      " | Serve from ", d$Serve_Start_Zone[i],
-      " | Landing ", zone, "-", sub,
+      " | Serve from Zone ", d$Serve_Start_Zone[i],
+      " | Landing ", d$Landing_Zone[i], "-", d$Landing_Subzone[i],
       " | ", d$Outcome_Display[i]
     )
 
@@ -1820,24 +1848,36 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
       class = "serve-map-marker",
       title = title_text,
       `aria-label` = title_text,
-      style = paste0("left:", x, "%;top:", y, "%;background:", colour, ";")
+      style = paste0(
+        "left:", endpoint[["x"]], "%;top:", endpoint[["y"]], "%;",
+        "background:", colour, ";"
+      )
     )
   })
 
   zone_cells <- lapply(1:9, function(zone) {
     loc <- zone_layout[[as.character(zone)]]
-    sublabels <- c("C", "B", "D", "A")
     div(
       class = "serve-zone-cell",
       style = paste0(
         "left:", (loc[["col"]] - 1) * 100 / 3, "%;",
-        "top:", (loc[["row"]] - 1) * 100 / 3, "%;"
+        "top:", (loc[["row"]] - 1) * 80 / 3, "%;"
       ),
-      span(class = "serve-subzone serve-subzone-c", "C"),
-      span(class = "serve-subzone serve-subzone-b", "B"),
-      span(class = "serve-subzone serve-subzone-d", "D"),
-      span(class = "serve-subzone serve-subzone-a", "A"),
       strong(as.character(zone))
+    )
+  })
+
+  start_zones <- sort(unique(start_zone_text[!is.na(start_zone_text)]))
+  origin_nodes <- lapply(start_zones, function(z) {
+    x <- unname(serve_origin_x[z])
+    if (!length(x) || is.na(x)) return(NULL)
+    n <- sum(start_zone_text == z, na.rm = TRUE)
+    div(
+      class = "serve-origin",
+      style = paste0("left:", x, "%;"),
+      span(class = "serve-origin-dot"),
+      strong(paste0("Z", z)),
+      tags$small(paste0("(", n, ")"))
     )
   })
 
@@ -1889,8 +1929,15 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_num
         div(
           class = "serve-court",
           zone_cells,
+          tags$svg(
+            class = "serve-trajectory-layer",
+            viewBox = "0 0 100 100",
+            preserveAspectRatio = "none",
+            serve_lines
+          ),
           marker_nodes,
-          div(class = "serve-court-net", "NET")
+          div(class = "serve-court-net", "NET"),
+          origin_nodes
         ),
         div(class = "serve-map-server-label", "SERVING TEAM")
       ),
@@ -2580,26 +2627,30 @@ ui <- fluidPage(
       .serve-map-layout{display:grid;grid-template-columns:minmax(320px,1.05fr) minmax(400px,1fr);
         gap:18px;align-items:start;margin-top:12px;}
       .serve-court-column{min-width:0;}
-      .serve-court{position:relative;width:100%;height:440px;overflow:hidden;
+      .serve-court{position:relative;width:100%;height:500px;overflow:hidden;
         border:3px solid #fff;outline:1px solid #d4e0e8;border-radius:3px;
-        background:#f3b86e;box-shadow:0 2px 8px rgba(31,49,67,.12);}
-      .serve-zone-cell{position:absolute;width:33.3333%;height:33.3333%;
-        border-right:2px dashed rgba(255,255,255,.9);border-bottom:2px dashed rgba(255,255,255,.9);
-        display:flex;align-items:center;justify-content:center;}
+        background:linear-gradient(to bottom,#f3b86e 0%,#f3b86e 80%,#3479b9 80%,#3479b9 100%);
+        box-shadow:0 2px 8px rgba(31,49,67,.12);}
+      .serve-zone-cell{position:absolute;width:33.3333%;height:26.6667%;
+        border-right:2px dashed rgba(255,255,255,.92);border-bottom:2px dashed rgba(255,255,255,.92);
+        display:flex;align-items:center;justify-content:center;z-index:1;}
       .serve-zone-cell:nth-of-type(3n){border-right:0;}
       .serve-zone-cell strong{font-family:'Barlow Condensed';font-size:36px;color:#fff;
-        font-weight:900;z-index:1;text-shadow:0 1px 2px rgba(100,70,30,.18);}
-      .serve-subzone{position:absolute;font-family:'Barlow Condensed';font-size:17px;
-        font-weight:900;color:rgba(133,91,42,.48);line-height:1;}
-      .serve-subzone-c{left:16%;top:13%;}
-      .serve-subzone-b{right:16%;top:13%;}
-      .serve-subzone-d{left:16%;bottom:13%;}
-      .serve-subzone-a{right:16%;bottom:13%;}
+        font-weight:900;z-index:2;text-shadow:0 1px 2px rgba(100,70,30,.18);}
+      .serve-trajectory-layer{position:absolute;inset:0;width:100%;height:100%;z-index:2;
+        overflow:visible;pointer-events:none;}
       .serve-map-marker{position:absolute;width:11px;height:11px;border:1.5px solid #fff;
         border-radius:50%;z-index:4;transform:translate(-50%,-50%);
         box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:help;}
-      .serve-court-net{position:absolute;left:0;right:0;top:33.3333%;height:4px;
-        background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12);font-size:0;}
+      .serve-court-net{position:absolute;left:0;right:0;top:80%;height:5px;
+        background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);font-size:0;z-index:5;}
+      .serve-origin{position:absolute;top:86.5%;transform:translateX(-50%);z-index:6;
+        display:flex;flex-direction:column;align-items:center;gap:2px;color:#fff;
+        font-family:'Barlow Condensed';font-size:10px;line-height:1;}
+      .serve-origin-dot{width:13px;height:13px;border-radius:50%;background:#263746;
+        border:1px solid rgba(255,255,255,.8);box-shadow:0 1px 2px rgba(0,0,0,.25);}
+      .serve-origin strong{font-size:11px;color:#fff;font-weight:900;}
+      .serve-origin small{font-size:8px;color:rgba(255,255,255,.85);}
       .serve-map-server-label{text-align:center;font-family:'Barlow Condensed';font-size:10px;
         font-weight:800;letter-spacing:1px;color:#718096;margin-top:8px;}
       .serve-summary-column{min-width:0;}
@@ -2627,8 +2678,8 @@ ui <- fluidPage(
         color:#263746;margin-top:4px;}
       .serve-stat-card small{font-size:9px;color:#87939e;}
       @media(max-width:900px){.serve-map-layout{grid-template-columns:1fr;}
-        .serve-court{height:390px;}.serve-outcome-cards{grid-template-columns:repeat(3,minmax(0,1fr));}}
-      @media(max-width:600px){.serve-court{height:330px;}
+        .serve-court{height:450px;}.serve-outcome-cards{grid-template-columns:repeat(3,minmax(0,1fr));}}
+      @media(max-width:600px){.serve-court{height:390px;}
         .serve-outcome-cards{grid-template-columns:repeat(2,minmax(0,1fr));}
         .serve-legend{grid-template-columns:1fr;}}
 
