@@ -1431,14 +1431,7 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
   ]
 
   # Attack-type controls: all eligible codes are selected by default.
-  observed_attack_codes <- toupper(trimws(as.character(d$Opponent_Attack_Code)))
-  # Keep the known attack controls visible even when a code is absent from
-  # the currently selected match/period (e.g. X8 / Five).
-  standard_attack_codes <- c("C2", "C5", "C6", "C8", "V5", "X1", "XV", "X8", "XX")
-  attack_type_codes <- sort(unique(c(
-    standard_attack_codes,
-    observed_attack_codes[!is.na(observed_attack_codes) & grepl("^C", observed_attack_codes)]
-  )))
+  attack_type_codes <- sort(unique(toupper(trimws(as.character(d$Opponent_Attack_Code)))))
   attack_type_labels <- c(
     "C2" = "C2 - Gap",
     "C5" = "C5",
@@ -1656,6 +1649,269 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
     ),
 
     NULL
+  )
+}
+
+
+# ----------------------------- SERVING MAP -----------------------------
+
+serving_map_ui <- function(ids, serve_from = "All", server_name = "All", set_number = "All") {
+
+  d <- load_detail_csvs("SERVING_MAP_EVENTS\\.csv$", ids)
+
+  section_title <- div(class = "detail-section-title", "SERVING MAP")
+
+  if (!nrow(d)) {
+    return(div(
+      class = "detail-section serving-map-section",
+      section_title,
+      div(class = "detail-empty", "No SERVING_MAP_EVENTS.csv found for this match selection.")
+    ))
+  }
+
+  required <- c(
+    "Server_Name", "Player_Number", "Serve_Start_Zone",
+    "Landing_Zone", "Landing_Subzone", "Serve_Outcome", "Set_Number"
+  )
+  missing <- setdiff(required, names(d))
+  if (length(missing)) {
+    return(div(
+      class = "detail-section serving-map-section",
+      section_title,
+      div(class = "detail-empty",
+          paste("Serving export is missing required columns:", paste(missing, collapse = ", ")))
+    ))
+  }
+
+  d$Serve_Outcome <- trimws(as.character(d$Serve_Outcome))
+  d$Server_Name <- trimws(as.character(d$Server_Name))
+  d$Serve_Start_Zone <- suppressWarnings(as.integer(d$Serve_Start_Zone))
+  d$Landing_Zone <- suppressWarnings(as.integer(d$Landing_Zone))
+  d$Landing_Subzone <- toupper(trimws(as.character(d$Landing_Subzone)))
+  d$Set_Number <- suppressWarnings(as.integer(d$Set_Number))
+
+  outcome_map <- c(
+    "Ace" = "Ace",
+    "Positive - No Attack" = "Positive – Forced OOS",
+    "Positive - Some Attack" = "Positive – Medium",
+    "No First Tempo" = "No First Tempo",
+    "Negative - Free Attack" = "Negative – Free Attack",
+    "Serve Error" = "Serve Error"
+  )
+  outcome_colours <- c(
+    "Ace" = "#D9433A",
+    "Positive – Forced OOS" = "#159B69",
+    "Positive – Medium" = "#79BFA0",
+    "No First Tempo" = "#E0A21A",
+    "Negative – Free Attack" = "#F0782B",
+    "Serve Error" = "#9F2638"
+  )
+
+  d$Outcome_Display <- unname(outcome_map[d$Serve_Outcome])
+  d <- d[!is.na(d$Outcome_Display), , drop = FALSE]
+  # Keep every classified serve in totals. If the export has a landing zone
+  # but no subzone, plot it at the centre of that zone rather than dropping it.
+  d <- d[d$Landing_Zone %in% 1:9, , drop = FALSE]
+  d$Landing_Subzone[
+    is.na(d$Landing_Subzone) | !d$Landing_Subzone %in% c("A", "B", "C", "D")
+  ] <- "CENTER"
+
+  if (!nrow(d)) {
+    return(div(
+      class = "detail-section serving-map-section",
+      section_title,
+      div(class = "detail-empty", "No serve events with valid landing zones and subzones were found.")
+    ))
+  }
+
+  # Filters use values from the loaded match files.
+  from_choices <- c("All", paste("Zone", sort(unique(d$Serve_Start_Zone[!is.na(d$Serve_Start_Zone)]))))
+  server_choices <- c("All", sort(unique(d$Server_Name[!is.na(d$Server_Name) & nzchar(d$Server_Name)])))
+  set_choices <- c("All", as.character(sort(unique(d$Set_Number[!is.na(d$Set_Number)]))))
+
+  if (is.null(serve_from) || !serve_from %in% from_choices) serve_from <- "All"
+  if (is.null(server_name) || !server_name %in% server_choices) server_name <- "All"
+  if (is.null(set_number) || !set_number %in% set_choices) set_number <- "All"
+
+  if (serve_from != "All") {
+    z <- suppressWarnings(as.integer(sub("^Zone ", "", serve_from)))
+    d <- d[d$Serve_Start_Zone == z, , drop = FALSE]
+  }
+  if (server_name != "All") d <- d[d$Server_Name == server_name, , drop = FALSE]
+  if (set_number != "All") d <- d[d$Set_Number == as.integer(set_number), , drop = FALSE]
+
+  if (!nrow(d)) {
+    return(div(
+      class = "detail-section serving-map-section",
+      section_title,
+      div(
+        class = "serve-filter-row",
+        selectInput("serve_from_filter", "SERVE FROM", choices = from_choices, selected = serve_from, width = "150px"),
+        selectInput("serve_server_filter", "SERVER", choices = server_choices, selected = server_name, width = "210px"),
+        selectInput("serve_set_filter", "SET", choices = set_choices, selected = set_number, width = "100px")
+      ),
+      div(class = "detail-empty", "No serves match the selected filters.")
+    ))
+  }
+
+  outcome_levels <- c(
+    "Ace", "Positive – Forced OOS", "Positive – Medium",
+    "No First Tempo", "Negative – Free Attack", "Serve Error"
+  )
+  total_serves <- nrow(d)
+  outcome_counts <- table(factor(d$Outcome_Display, levels = outcome_levels))
+  outcome_counts <- as.integer(outcome_counts)
+  names(outcome_counts) <- outcome_levels
+
+  stat_cards <- lapply(outcome_levels, function(outcome) {
+    n <- outcome_counts[[outcome]]
+    pct <- if (total_serves > 0) 100 * n / total_serves else 0
+    div(
+      class = "serve-stat-card",
+      div(class = "serve-stat-top",
+          span(class = "serve-stat-dot", style = paste0("background:", outcome_colours[[outcome]], ";")),
+          span(outcome)),
+      strong(as.character(n)),
+      small(paste0(sprintf("%.0f", pct), "%"))
+    )
+  })
+
+  # The source provides zone + A/B/C/D subzone, not continuous X/Y coordinates.
+  # Place each marker inside the corresponding subzone with deterministic visual spread.
+  zone_layout <- list(
+    "4" = c(row = 1, col = 1), "3" = c(row = 1, col = 2), "2" = c(row = 1, col = 3),
+    "7" = c(row = 2, col = 1), "8" = c(row = 2, col = 2), "9" = c(row = 2, col = 3),
+    "5" = c(row = 3, col = 1), "6" = c(row = 3, col = 2), "1" = c(row = 3, col = 3)
+  )
+  subzone_xy <- list(
+    "A" = c(x = 76, y = 76),
+    "B" = c(x = 76, y = 24),
+    "C" = c(x = 24, y = 24),
+    "D" = c(x = 24, y = 76),
+    "CENTER" = c(x = 50, y = 50)
+  )
+
+  d$Event_Jitter <- seq_len(nrow(d))
+  marker_nodes <- lapply(seq_len(nrow(d)), function(i) {
+    zone <- as.character(d$Landing_Zone[i])
+    sub <- d$Landing_Subzone[i]
+    cell <- zone_layout[[zone]]
+    xy <- subzone_xy[[sub]]
+    if (is.null(cell) || is.null(xy)) return(NULL)
+
+    # Small deterministic offsets prevent identical zone/subzone markers hiding one another.
+    jx <- ((i * 7) %% 13) - 6
+    jy <- ((i * 11) %% 13) - 6
+    x <- (cell[["col"]] - 1) * 100 / 3 + xy[["x"]] / 3 + jx
+    y <- (cell[["row"]] - 1) * 100 / 3 + xy[["y"]] / 3 + jy
+    x <- max(1, min(99, x))
+    y <- max(1, min(99, y))
+
+    colour <- outcome_colours[[d$Outcome_Display[i]]]
+    title_text <- paste0(
+      d$Server_Name[i], " (#", d$Player_Number[i], ")",
+      " | Set ", d$Set_Number[i],
+      " | Serve from ", d$Serve_Start_Zone[i],
+      " | Landing ", zone, "-", sub,
+      " | ", d$Outcome_Display[i]
+    )
+
+    tags$span(
+      class = "serve-map-marker",
+      title = title_text,
+      `aria-label` = title_text,
+      style = paste0("left:", x, "%;top:", y, "%;background:", colour, ";")
+    )
+  })
+
+  zone_cells <- lapply(1:9, function(zone) {
+    loc <- zone_layout[[as.character(zone)]]
+    sublabels <- c("C", "B", "D", "A")
+    div(
+      class = "serve-zone-cell",
+      style = paste0(
+        "left:", (loc[["col"]] - 1) * 100 / 3, "%;",
+        "top:", (loc[["row"]] - 1) * 100 / 3, "%;"
+      ),
+      span(class = "serve-subzone serve-subzone-c", "C"),
+      span(class = "serve-subzone serve-subzone-b", "B"),
+      span(class = "serve-subzone serve-subzone-d", "D"),
+      span(class = "serve-subzone serve-subzone-a", "A"),
+      strong(as.character(zone))
+    )
+  })
+
+  # Server summary table: serve volume and outcome percentages for each player.
+  server_rows <- split(d, d$Server_Name)
+  server_summary <- lapply(names(server_rows), function(nm) {
+    x <- server_rows[[nm]]
+    n <- nrow(x)
+    ace <- sum(x$Outcome_Display == "Ace")
+    errors <- sum(x$Outcome_Display == "Serve Error")
+    forced <- sum(x$Outcome_Display == "Positive – Forced OOS")
+    medium <- sum(x$Outcome_Display == "Positive – Medium")
+    no_first <- sum(x$Outcome_Display == "No First Tempo")
+    negative <- sum(x$Outcome_Display == "Negative – Free Attack")
+    tags$tr(
+      tags$td(nm),
+      tags$td(as.character(n)),
+      tags$td(paste0(sprintf("%.0f", 100 * ace / n), "%")),
+      tags$td(paste0(sprintf("%.0f", 100 * errors / n), "%")),
+      tags$td(as.character(forced)),
+      tags$td(as.character(medium)),
+      tags$td(as.character(no_first)),
+      tags$td(as.character(negative))
+    )
+  })
+
+  legend <- lapply(outcome_levels, function(outcome) {
+    div(
+      class = "serve-legend-item",
+      span(class = "serve-stat-dot", style = paste0("background:", outcome_colours[[outcome]], ";")),
+      span(outcome)
+    )
+  })
+
+  div(
+    class = "detail-section serving-map-section",
+    section_title,
+    div(
+      class = "serve-filter-row",
+      selectInput("serve_from_filter", "SERVE FROM", choices = from_choices, selected = serve_from, width = "150px"),
+      selectInput("serve_server_filter", "SERVER", choices = server_choices, selected = server_name, width = "210px"),
+      selectInput("serve_set_filter", "SET", choices = set_choices, selected = set_number, width = "100px")
+    ),
+    div(class = "block-detail-subtitle", paste(total_serves, "serves displayed")),
+    div(
+      class = "serve-map-layout",
+      div(
+        class = "serve-court-column",
+        div(
+          class = "serve-court",
+          zone_cells,
+          marker_nodes,
+          div(class = "serve-court-net", "NET")
+        ),
+        div(class = "serve-map-server-label", "SERVING TEAM")
+      ),
+      div(
+        class = "serve-summary-column",
+        div(class = "serve-legend", legend),
+        div(class = "serve-server-summary-title", "SERVER SUMMARY"),
+        div(
+          class = "serve-table-wrap",
+          tags$table(
+            class = "serve-server-table",
+            tags$thead(tags$tr(
+              tags$th("SERVER"), tags$th("N"), tags$th("ACE"), tags$th("ERR"),
+              tags$th("FORCED OOS"), tags$th("MEDIUM"), tags$th("NO 1ST"), tags$th("FREE ATK")
+            )),
+            tags$tbody(server_summary)
+          )
+        )
+      )
+    ),
+    div(class = "serve-outcome-cards", stat_cards)
   )
 }
 
@@ -2310,6 +2566,72 @@ ui <- fluidPage(
       .attack-summary-benchmark span{position:absolute;transform:translateX(-50%);white-space:nowrap;top:1px;}
       .attack-benchmark-note{font-size:9px;color:#e33e35;text-align:right;margin:4px 0 0;font-weight:800;}
 
+
+      .serving-map-section{overflow:hidden;}
+      .serving-map-section .detail-section-title{background:#C8102E;color:#fff;border:0;
+        border-radius:9px;padding:11px 15px;margin:-18px -20px 14px;}
+      .serve-filter-row{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+        background:#f1f4f6;border-radius:10px;padding:10px 12px;margin:8px 0 14px;}
+      .serve-filter-row .form-group{margin:0;}
+      .serve-filter-row label{font-family:'Barlow Condensed';font-size:10px;letter-spacing:.8px;
+        color:#536577;font-weight:800;}
+      .serve-filter-row .form-control{height:31px;font-size:11px;border:1px solid #d5dfe7;
+        box-shadow:none;border-radius:7px;}
+      .serve-map-layout{display:grid;grid-template-columns:minmax(320px,1.05fr) minmax(400px,1fr);
+        gap:18px;align-items:start;margin-top:12px;}
+      .serve-court-column{min-width:0;}
+      .serve-court{position:relative;width:100%;height:440px;overflow:hidden;
+        border:3px solid #fff;outline:1px solid #d4e0e8;border-radius:3px;
+        background:#f3b86e;box-shadow:0 2px 8px rgba(31,49,67,.12);}
+      .serve-zone-cell{position:absolute;width:33.3333%;height:33.3333%;
+        border-right:2px dashed rgba(255,255,255,.9);border-bottom:2px dashed rgba(255,255,255,.9);
+        display:flex;align-items:center;justify-content:center;}
+      .serve-zone-cell:nth-of-type(3n){border-right:0;}
+      .serve-zone-cell strong{font-family:'Barlow Condensed';font-size:36px;color:#fff;
+        font-weight:900;z-index:1;text-shadow:0 1px 2px rgba(100,70,30,.18);}
+      .serve-subzone{position:absolute;font-family:'Barlow Condensed';font-size:17px;
+        font-weight:900;color:rgba(133,91,42,.48);line-height:1;}
+      .serve-subzone-c{left:16%;top:13%;}
+      .serve-subzone-b{right:16%;top:13%;}
+      .serve-subzone-d{left:16%;bottom:13%;}
+      .serve-subzone-a{right:16%;bottom:13%;}
+      .serve-map-marker{position:absolute;width:11px;height:11px;border:1.5px solid #fff;
+        border-radius:50%;z-index:4;transform:translate(-50%,-50%);
+        box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:help;}
+      .serve-court-net{position:absolute;left:0;right:0;top:33.3333%;height:4px;
+        background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12);font-size:0;}
+      .serve-map-server-label{text-align:center;font-family:'Barlow Condensed';font-size:10px;
+        font-weight:800;letter-spacing:1px;color:#718096;margin-top:8px;}
+      .serve-summary-column{min-width:0;}
+      .serve-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;
+        padding:4px 0 14px;border-bottom:1px solid #e0e6eb;}
+      .serve-legend-item{display:flex;align-items:center;gap:7px;font-size:10px;
+        font-weight:700;color:#536577;min-width:0;}
+      .serve-stat-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 10px;}
+      .serve-server-summary-title{font-family:'Barlow Condensed';font-size:14px;font-weight:800;
+        letter-spacing:1px;color:#5b6d7c;margin:13px 0 7px;}
+      .serve-table-wrap{overflow-x:auto;}
+      .serve-server-table{width:100%;border-collapse:collapse;font-size:10px;text-align:center;}
+      .serve-server-table th{background:#f1f4f6;color:#536577;font-family:'Barlow Condensed';
+        font-size:10px;padding:8px 5px;white-space:nowrap;border-bottom:2px solid #d6dfe6;}
+      .serve-server-table td{padding:8px 5px;border-bottom:1px solid #e3e8ed;
+        color:#344454;font-weight:700;white-space:nowrap;}
+      .serve-server-table td:first-child{text-align:left;font-weight:800;}
+      .serve-outcome-cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+        gap:8px;margin-top:15px;}
+      .serve-stat-card{background:#f3f6f8;border:1px solid #e0e6eb;border-radius:9px;
+        padding:9px 10px;min-width:0;}
+      .serve-stat-top{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;
+        color:#536577;min-height:25px;line-height:1.15;}
+      .serve-stat-card strong{display:block;font-family:'Barlow Condensed';font-size:23px;
+        color:#263746;margin-top:4px;}
+      .serve-stat-card small{font-size:9px;color:#87939e;}
+      @media(max-width:900px){.serve-map-layout{grid-template-columns:1fr;}
+        .serve-court{height:390px;}.serve-outcome-cards{grid-template-columns:repeat(3,minmax(0,1fr));}}
+      @media(max-width:600px){.serve-court{height:330px;}
+        .serve-outcome-cards{grid-template-columns:repeat(2,minmax(0,1fr));}
+        .serve-legend{grid-template-columns:1fr;}}
+
       .detail-empty{padding:20px;color:#82909d;text-align:center;font-size:12px;}
 
       .report-card{background:#fff;border:1px solid #dfe6ed;border-radius:15px;
@@ -2681,7 +3003,13 @@ server <- function(input, output, session) {
               drop = FALSE
             ]
           ),
-          block_detail_ui(mid, input$block_attack_type_filter)
+          block_detail_ui(mid, input$block_attack_type_filter),
+          serving_map_ui(
+            mid,
+            input$serve_from_filter,
+            input$serve_server_filter,
+            input$serve_set_filter
+          )
         )
       )
     }
@@ -2837,7 +3165,13 @@ server <- function(input, output, session) {
         show_opponent = show_opponent,
         metric_data = match_data
       ),
-      block_detail_ui(selected_ids, input$block_attack_type_filter)
+      block_detail_ui(selected_ids, input$block_attack_type_filter),
+      serving_map_ui(
+        selected_ids,
+        input$serve_from_filter,
+        input$serve_server_filter,
+        input$serve_set_filter
+      )
     )
   })
 
