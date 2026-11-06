@@ -125,6 +125,42 @@ load_match_metrics <- function() {
 
 all_metrics <- load_match_metrics()
 
+# Match-level results are sourced from MATCH_DASHBOARD_SUMMARY.csv.
+# KEY_METRICS.csv remains the source for detailed metric rows only.
+find_match_summary_files <- function() {
+  if (!dir.exists(MATCH_ROOT)) return(character(0))
+  list.files(
+    MATCH_ROOT,
+    pattern = "^MATCH_DASHBOARD_SUMMARY\\.csv$",
+    recursive = TRUE,
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+}
+
+load_match_summaries <- function() {
+  files <- find_match_summary_files()
+  if (!length(files)) return(data.frame())
+
+  out <- lapply(files, function(f) {
+    d <- read_csv_safe(f)
+    if (is.null(d) || !nrow(d) ||
+        !all(c("match_id", "team", "opponent") %in% names(d))) {
+      return(NULL)
+    }
+    d$match_folder <- basename(dirname(f))
+    d$summary_source_path <- f
+    d
+  })
+  out <- Filter(Negate(is.null), out)
+  if (!length(out)) return(data.frame())
+  z <- do.call(rbind, out)
+  z$match_id <- as.character(z$match_id)
+  z
+}
+
+match_summaries <- load_match_summaries()
+
 # ----------------------------- SKILL AREA DATA -----------------------------
 
 find_skill_area_files <- function() {
@@ -668,364 +704,181 @@ load_detail_csvs <- function(pattern, ids) {
 }
 
 rotation_display_names <- c(
-  SO_pct = "SO%",
-  FBSO_pct = "FBSO%",
-  PS_pct = "PS%",
-  In_System_pct = "IN SYS%",
-  OOS_pct = "OOS%",
-  Aced_pct = "ACED%",
-  Serve_In_pct = "SERVE IN%",
-  Attack_Efficiency = "ATK EFF",
-  First_Ball_Efficiency = "FIRST BALL EFF",
-  Transition_Efficiency = "TRANSITION EFF",
-  Dig_to_Kill_pct = "DIG CONV%"
+  SO_num = "SO WON", SO_den = "SO CHANCES", SO_pct = "SO%",
+  FBSO_num = "FIRST-BALL SO WON", FBSO_den = "FIRST-BALL SO CHANCES", FBSO_pct = "FBSO%",
+  PS_num = "POINTS SCORED", PS_den = "POINT SCORING CHANCES", PS_pct = "PS%",
+  Reception_n = "RECEPTIONS", In_System_n = "IN-SYSTEM PASSES", In_System_pct = "IN SYS%",
+  OOS_n = "OUT-OF-SYSTEM PASSES", OOS_pct = "OOS%", Aced_n = "ACES ALLOWED", Aced_pct = "ACED%",
+  Total_Serves = "SERVES", Aces = "ACES", Opp_OOS = "OPP. OOS", Serve_Errors = "SERVE ERRORS",
+  Serve_In_pct = "SERVE IN%", Attack_Attempts = "ATTACK ATTEMPTS", Kills = "KILLS",
+  Attack_Errors = "ATTACK ERRORS", Attack_Efficiency = "ATTACK EFF",
+  First_Ball_Attempts = "FIRST-BALL ATT", First_Ball_Kills = "FIRST-BALL KILLS",
+  First_Ball_Errors = "FIRST-BALL ERR", First_Ball_Efficiency = "FIRST-BALL EFF",
+  Transition_Attempts = "TRANSITION ATT", Transition_Kills = "TRANSITION KILLS",
+  Transition_Errors = "TRANSITION ERR", Transition_Efficiency = "TRANSITION EFF",
+  Digs = "DIGS", Dig_to_Kill_n = "DIG-TO-KILL", Dig_to_Kill_pct = "DIG CONV%", Dig_Errors = "DIG ERRORS"
 )
 
 rotation_table_ui <- function(ids) {
-
   d <- load_detail_csvs("ROTATION_DETAILS\\.csv$", ids)
+  if (!nrow(d) || !all(c("team", "rotation") %in% names(d))) return(NULL)
 
-  if (!nrow(d) || !"team" %in% names(d)) return(NULL)
+  d <- d[grepl("University of Calgary", d$team, ignore.case = TRUE), , drop = FALSE]
+  if (!nrow(d)) return(NULL)
 
-  d <- d[
-    grepl("University of Calgary", d$team, ignore.case = TRUE),
-    ,
-    drop = FALSE
-  ]
-
-  if (!nrow(d) || !"rotation" %in% names(d)) return(NULL)
-
-  # Ignore precomputed AVG rows. Aggregate actual R1-R6 counts.
   rot <- d[d$rotation %in% paste0("R", 1:6), , drop = FALSE]
-
   if (!nrow(rot)) return(NULL)
 
-  count_cols <- intersect(
-    c(
-      "SO_num", "SO_den", "FBSO_num", "FBSO_den",
-      "PS_num", "PS_den", "Reception_n", "In_System_n",
-      "OOS_n", "Aced_n", "Total_Serves", "Aces",
-      "Serve_Errors", "Dig_to_Kill_n", "Digs", "Dig_Errors",
-      "Attack_Attempts", "Kills", "Attack_Errors",
-      "First_Ball_Attempts", "First_Ball_Kills", "First_Ball_Errors",
-      "Transition_Attempts", "Transition_Kills", "Transition_Errors"
-    ),
-    names(rot)
+  metadata_cols <- c("match_id", "match_date", "source_file", "team", "rotation")
+  numeric_cols <- names(rot)[vapply(rot, function(x) {
+    is.numeric(x) || all(is.na(x) | grepl("^-?[0-9]+(\\.[0-9]+)?$", as.character(x)))
+  }, logical(1))]
+  numeric_cols <- setdiff(numeric_cols, metadata_cols)
+  if (!length(numeric_cols)) return(NULL)
+
+  for (nm in numeric_cols) rot[[nm]] <- suppressWarnings(as.numeric(rot[[nm]]))
+
+  # Pool raw counts across selected matches; rates are averaged temporarily,
+  # then recalculated from pooled numerators/denominators where possible.
+  rate_cols <- numeric_cols[grepl("(_pct$|Efficiency$)", numeric_cols)]
+  count_cols <- setdiff(numeric_cols, rate_cols)
+
+  if (length(ids) > 1 || anyDuplicated(rot$rotation)) {
+    count_part <- if (length(count_cols)) aggregate(
+      rot[, count_cols, drop = FALSE], by = list(rotation = rot$rotation),
+      FUN = function(x) sum(x, na.rm = TRUE)
+    ) else data.frame(rotation = unique(rot$rotation))
+    rate_part <- if (length(rate_cols)) aggregate(
+      rot[, rate_cols, drop = FALSE], by = list(rotation = rot$rotation),
+      FUN = function(x) mean(x, na.rm = TRUE)
+    ) else data.frame(rotation = unique(rot$rotation))
+    rot <- merge(count_part, rate_part, by = "rotation", all = TRUE, sort = FALSE)
+  }
+
+  calc <- function(n, den) ifelse(!is.na(den) & den > 0, 100 * n / den, NA_real_)
+  rate_pairs <- list(
+    SO_pct = c("SO_num", "SO_den"), FBSO_pct = c("FBSO_num", "FBSO_den"),
+    PS_pct = c("PS_num", "PS_den"), In_System_pct = c("In_System_n", "Reception_n"),
+    OOS_pct = c("OOS_n", "Reception_n"), Aced_pct = c("Aced_n", "Reception_n"),
+    Serve_In_pct = c("Total_Serves", "Serve_Errors"),
+    Dig_to_Kill_pct = c("Dig_to_Kill_n", "Digs", "Dig_Errors")
   )
-
-  if (length(ids) > 1) {
-
-    rot <- aggregate(
-      rot[, count_cols, drop = FALSE],
-      by = list(rotation = rot$rotation),
-      FUN = function(x) sum(as.numeric(x), na.rm = TRUE)
-    )
-
-  } else {
-
-    if (anyDuplicated(rot$rotation)) {
-      rot <- aggregate(
-        rot[, count_cols, drop = FALSE],
-        by = list(rotation = rot$rotation),
-        FUN = function(x) sum(as.numeric(x), na.rm = TRUE)
-      )
+  for (nm in names(rate_pairs)) {
+    pair <- rate_pairs[[nm]]
+    if (all(pair %in% names(rot))) {
+      if (nm == "Serve_In_pct") rot[[nm]] <- calc(rot[[pair[1]]] - rot[[pair[2]]], rot[[pair[1]]])
+      else if (nm == "Dig_to_Kill_pct") rot[[nm]] <- calc(rot[[pair[1]]], rot[[pair[2]]] - rot[[pair[3]]])
+      else rot[[nm]] <- calc(rot[[pair[1]]], rot[[pair[2]]])
+    }
+  }
+  efficiency_pairs <- list(
+    Attack_Efficiency = c("Attack_Attempts", "Kills", "Attack_Errors"),
+    First_Ball_Efficiency = c("First_Ball_Attempts", "First_Ball_Kills", "First_Ball_Errors"),
+    Transition_Efficiency = c("Transition_Attempts", "Transition_Kills", "Transition_Errors")
+  )
+  for (nm in names(efficiency_pairs)) {
+    pair <- efficiency_pairs[[nm]]
+    if (all(pair %in% names(rot))) {
+      rot[[nm]] <- ifelse(rot[[pair[1]]] > 0,
+        (rot[[pair[2]]] - rot[[pair[3]]]) / rot[[pair[1]]], NA_real_)
     }
   }
 
-  calc <- function(n, den) {
-    ifelse(!is.na(den) & den > 0, 100 * n / den, NA_real_)
-  }
-
-  if (all(c("SO_num", "SO_den") %in% names(rot))) {
-    rot$SO_pct <- calc(rot$SO_num, rot$SO_den)
-  }
-
-  if (all(c("FBSO_num", "FBSO_den") %in% names(rot))) {
-    rot$FBSO_pct <- calc(rot$FBSO_num, rot$FBSO_den)
-  }
-
-  if (all(c("PS_num", "PS_den") %in% names(rot))) {
-    rot$PS_pct <- calc(rot$PS_num, rot$PS_den)
-  }
-
-  if (all(c("In_System_n", "Reception_n") %in% names(rot))) {
-    rot$In_System_pct <- calc(rot$In_System_n, rot$Reception_n)
-  }
-
-  if (all(c("OOS_n", "Reception_n") %in% names(rot))) {
-    rot$OOS_pct <- calc(rot$OOS_n, rot$Reception_n)
-  }
-
-  if (all(c("Aced_n", "Reception_n") %in% names(rot))) {
-    rot$Aced_pct <- calc(rot$Aced_n, rot$Reception_n)
-  }
-
-  if (all(c("Total_Serves", "Serve_Errors") %in% names(rot))) {
-    rot$Serve_In_pct <- calc(
-      rot$Total_Serves - rot$Serve_Errors,
-      rot$Total_Serves
-    )
-  }
-
-  # Dig conversion = successful conversions / playable digs.
-  if (all(c("Dig_to_Kill_n", "Digs", "Dig_Errors") %in% names(rot))) {
-    rot$Dig_to_Kill_pct <- calc(
-      rot$Dig_to_Kill_n,
-      rot$Digs - rot$Dig_Errors
-    )
-  }
-
-  if (all(c("Attack_Attempts", "Kills", "Attack_Errors") %in% names(rot))) {
-    rot$Attack_Efficiency <- ifelse(
-      rot$Attack_Attempts > 0,
-      (rot$Kills - rot$Attack_Errors) / rot$Attack_Attempts,
-      NA_real_
-    )
-  }
-
-  if (all(c("First_Ball_Attempts", "First_Ball_Kills", "First_Ball_Errors") %in% names(rot))) {
-    rot$First_Ball_Efficiency <- ifelse(
-      rot$First_Ball_Attempts > 0,
-      (rot$First_Ball_Kills - rot$First_Ball_Errors) / rot$First_Ball_Attempts,
-      NA_real_
-    )
-  }
-
-  if (all(c("Transition_Attempts", "Transition_Kills", "Transition_Errors") %in% names(rot))) {
-    rot$Transition_Efficiency <- ifelse(
-      rot$Transition_Attempts > 0,
-      (rot$Transition_Kills - rot$Transition_Errors) / rot$Transition_Attempts,
-      NA_real_
-    )
-  }
-
-  # AVG row: pooled rates, average counts per rotation.
+  # AVG counts represent average volume per rotation; rates are pooled rates.
   avg <- rot[1, , drop = FALSE]
   avg[,] <- NA
   avg$rotation <- "AVG"
-
-  for (nm in count_cols) {
-    avg[[nm]] <- mean(as.numeric(rot[[nm]]), na.rm = TRUE)
+  for (nm in numeric_cols) avg[[nm]] <- mean(rot[[nm]], na.rm = TRUE)
+  for (nm in names(rate_pairs)) {
+    pair <- rate_pairs[[nm]]
+    if (all(pair %in% names(rot))) {
+      if (nm == "Serve_In_pct") avg[[nm]] <- calc(sum(rot[[pair[1]]]-rot[[pair[2]]], na.rm=TRUE), sum(rot[[pair[1]]], na.rm=TRUE))
+      else if (nm == "Dig_to_Kill_pct") avg[[nm]] <- calc(sum(rot[[pair[1]]], na.rm=TRUE), sum(rot[[pair[2]]]-rot[[pair[3]]], na.rm=TRUE))
+      else avg[[nm]] <- calc(sum(rot[[pair[1]]], na.rm=TRUE), sum(rot[[pair[2]]], na.rm=TRUE))
+    }
   }
-
-  if (all(c("SO_num", "SO_den") %in% names(rot))) {
-    avg$SO_pct <- calc(sum(rot$SO_num), sum(rot$SO_den))
-  }
-
-  if (all(c("FBSO_num", "FBSO_den") %in% names(rot))) {
-    avg$FBSO_pct <- calc(sum(rot$FBSO_num), sum(rot$FBSO_den))
-  }
-
-  if (all(c("PS_num", "PS_den") %in% names(rot))) {
-    avg$PS_pct <- calc(sum(rot$PS_num), sum(rot$PS_den))
-  }
-
-  if (all(c("In_System_n", "Reception_n") %in% names(rot))) {
-    avg$In_System_pct <- calc(sum(rot$In_System_n), sum(rot$Reception_n))
-  }
-
-  if (all(c("OOS_n", "Reception_n") %in% names(rot))) {
-    avg$OOS_pct <- calc(sum(rot$OOS_n), sum(rot$Reception_n))
-  }
-
-  if (all(c("Aced_n", "Reception_n") %in% names(rot))) {
-    avg$Aced_pct <- calc(sum(rot$Aced_n), sum(rot$Reception_n))
-  }
-
-  if (all(c("Total_Serves", "Serve_Errors") %in% names(rot))) {
-    avg$Serve_In_pct <- calc(
-      sum(rot$Total_Serves - rot$Serve_Errors),
-      sum(rot$Total_Serves)
-    )
-  }
-
-  if (all(c("Dig_to_Kill_n", "Digs", "Dig_Errors") %in% names(rot))) {
-    avg$Dig_to_Kill_pct <- calc(
-      sum(rot$Dig_to_Kill_n),
-      sum(rot$Digs - rot$Dig_Errors)
-    )
-  }
-
-  if (all(c("Attack_Attempts", "Kills", "Attack_Errors") %in% names(rot))) {
-    avg$Attack_Efficiency <- if (sum(rot$Attack_Attempts) > 0) {
-      (sum(rot$Kills) - sum(rot$Attack_Errors)) / sum(rot$Attack_Attempts)
-    } else NA_real_
-  }
-
-  if (all(c("First_Ball_Attempts", "First_Ball_Kills", "First_Ball_Errors") %in% names(rot))) {
-    avg$First_Ball_Efficiency <- if (sum(rot$First_Ball_Attempts) > 0) {
-      (sum(rot$First_Ball_Kills) - sum(rot$First_Ball_Errors)) /
-        sum(rot$First_Ball_Attempts)
-    } else NA_real_
-  }
-
-  if (all(c("Transition_Attempts", "Transition_Kills", "Transition_Errors") %in% names(rot))) {
-    avg$Transition_Efficiency <- if (sum(rot$Transition_Attempts) > 0) {
-      (sum(rot$Transition_Kills) - sum(rot$Transition_Errors)) /
-        sum(rot$Transition_Attempts)
-    } else NA_real_
+  for (nm in names(efficiency_pairs)) {
+    pair <- efficiency_pairs[[nm]]
+    if (all(pair %in% names(rot))) avg[[nm]] <- if (sum(rot[[pair[1]]], na.rm=TRUE) > 0)
+      (sum(rot[[pair[2]]], na.rm=TRUE)-sum(rot[[pair[3]]], na.rm=TRUE))/sum(rot[[pair[1]]], na.rm=TRUE) else NA_real_
   }
 
   rot <- rbind(rot, avg)
   rot$rotation <- factor(rot$rotation, levels = c(paste0("R", 1:6), "AVG"))
   rot <- rot[order(rot$rotation), , drop = FALSE]
 
-  display_map <- c(
-    SO_pct = "SO%",
-    FBSO_pct = "FBSO%",
-    PS_pct = "PS%",
-    In_System_pct = "IN SYS%",
-    OOS_pct = "OOS%",
-    Aced_pct = "ACED%",
-    Serve_In_pct = "SERVE IN%",
-    Attack_Efficiency = "ATK EFF",
-    First_Ball_Efficiency = "FIRST BALL EFF",
-    Transition_Efficiency = "TRANSITION EFF",
-    Dig_to_Kill_pct = "DIG CONV%"
-  )
+  # Display every numeric metric present in the CSV, not just a hard-coded subset.
+  metric_cols <- intersect(numeric_cols, names(rot))
+  display <- data.frame(ROTATION = as.character(rot$rotation), stringsAsFactors = FALSE)
+  pct_cols <- metric_cols[grepl("_pct$", metric_cols)]
+  eff_cols <- metric_cols[grepl("Efficiency$", metric_cols)]
+  for (nm in metric_cols) display[[nm]] <- rot[[nm]]
 
-  pct_cols <- intersect(
-    c(
-      "SO_pct", "FBSO_pct", "PS_pct", "In_System_pct",
-      "OOS_pct", "Aced_pct", "Serve_In_pct", "Dig_to_Kill_pct"
-    ),
-    names(rot)
-  )
-
-  eff_cols <- intersect(
-    c("Attack_Efficiency", "First_Ball_Efficiency", "Transition_Efficiency"),
-    names(rot)
-  )
-
-  metric_cols <- c(pct_cols, eff_cols)
-  display <- data.frame(ROT = as.character(rot$rotation), stringsAsFactors = FALSE)
-
-  for (nm in metric_cols) {
-    vals <- suppressWarnings(as.numeric(rot[[nm]]))
-
-    if (nm %in% pct_cols && any(is.finite(vals)) &&
-        max(vals, na.rm = TRUE) <= 1) {
-      vals <- vals * 100
-    }
-
-    display[[display_map[[nm]]]] <- vals
+  label_for <- function(nm) {
+    if (nm %in% names(rotation_display_names)) return(unname(rotation_display_names[[nm]]))
+    toupper(gsub("_", " ", nm))
   }
+  names(display) <- c("ROTATION", vapply(metric_cols, label_for, character(1)))
 
-  groups <- c(
-    "ROT", "SO%", "FBSO%", "PS%", "IN SYS%", "OOS%",
-    "ACED%", "SERVE IN%", "ATK EFF",
-    "FIRST BALL EFF", "TRANSITION EFF", "DIG CONV%"
-  )
-
-  present <- intersect(groups, names(display))
-
-  group_names <- c(
-    "ROT" = "ROTATION",
-    "SO%" = "GAME PHASE",
-    "FBSO%" = "GAME PHASE",
-    "PS%" = "GAME PHASE",
-    "IN SYS%" = "RECEPTION & DEFENSE",
-    "OOS%" = "RECEPTION & DEFENSE",
-    "ACED%" = "RECEPTION & DEFENSE",
-    "DIG CONV%" = "DEFENSE",
-    "SERVE IN%" = "SERVE",
-    "ATK EFF" = "ATTACK",
-    "FIRST BALL EFF" = "ATTACK",
-    "TRANSITION EFF" = "ATTACK"
-  )
-
-  # Merged and centred group headers.
-  group_for_col <- unname(group_names[present])
-  group_for_col[present == "ROT"] <- "ROTATION"
-
-  group_cells <- list()
-  i <- 1L
-
-  while (i <= length(present)) {
-    g <- group_for_col[i]
+  groups <- function(nm) {
+    if (nm == "ROTATION") return("ROTATION")
+    if (grepl("SO_|FBSO_|PS_", nm)) return("GAME PHASE")
+    if (grepl("Reception|In_System|OOS|Aced|Dig", nm)) return("RECEPTION & DEFENSE")
+    if (grepl("Serve|Aces|Opp_OOS", nm)) return("SERVE")
+    if (grepl("Attack|Kills", nm)) return("ATTACK")
+    if (grepl("First_Ball", nm)) return("FIRST BALL")
+    if (grepl("Transition", nm)) return("TRANSITION")
+    "OTHER METRICS"
+  }
+  group_labels <- vapply(c("ROTATION", metric_cols), groups, character(1))
+  group_cells <- list(); i <- 1L
+  while (i <= length(group_labels)) {
     j <- i
-
-    while (j < length(present) && identical(group_for_col[j + 1L], g)) {
-      j <- j + 1L
-    }
-
+    while (j < length(group_labels) && identical(group_labels[j + 1L], group_labels[i])) j <- j + 1L
     group_cells[[length(group_cells) + 1L]] <- tags$th(
-      colspan = j - i + 1L,
-      class = "rotation-group-head",
-      g
+      colspan = j - i + 1L, class = "rotation-group-head", group_labels[i]
     )
-
     i <- j + 1L
   }
+  head_row <- tags$tr(lapply(names(display), function(nm) tags$th(nm)))
 
-  group_row <- tags$tr(group_cells)
-  head_row <- tags$tr(lapply(present, function(nm) tags$th(nm)))
+  # Heatmap ranks each metric across R1-R6. Error/negative metrics are reversed.
+  error_cols <- metric_cols[grepl("Error|Aced|OOS", metric_cols, ignore.case = TRUE)]
+  rows <- lapply(seq_len(nrow(display)), function(r) {
+    is_avg <- display$ROTATION[r] == "AVG"
+    cells <- lapply(seq_along(names(display)), function(j) {
+      nm <- names(display)[j]
+      if (j == 1L) return(tags$td(class = if (is_avg) "rot-avg-label" else "rot-label", display$ROTATION[r]))
+      raw_nm <- metric_cols[j - 1L]
+      v <- suppressWarnings(as.numeric(display[[nm]][r]))
+      if (!is.finite(v)) return(tags$td(class = "rot-cell rot-neutral", "—"))
+      is_pct <- raw_nm %in% pct_cols
+      is_eff <- raw_nm %in% eff_cols
+      if (is_pct) label <- sprintf("%.1f%%", v)
+      else if (is_eff) label <- sprintf("%.3f", v)
+      else if (abs(v - round(v)) < 1e-8) label <- format(round(v), big.mark = ",", scientific = FALSE)
+      else label <- sprintf("%.1f", v)
 
-  rows <- lapply(seq_len(nrow(display)), function(i) {
-
-    is_avg <- display$ROT[i] == "AVG"
-
-    cells <- lapply(present, function(nm) {
-
-      v <- if (nm == "ROT") NA_real_ else display[[nm]][i]
-
-      if (nm == "ROT") {
-        return(
-          tags$td(
-            class = if (is_avg) "rot-avg-label" else "rot-label",
-            display$ROT[i]
-          )
-        )
+      values <- suppressWarnings(as.numeric(display[[nm]][display$ROTATION != "AVG"]))
+      values <- values[is.finite(values)]
+      score <- if (length(values) <= 1L || length(unique(values)) <= 1L) 0.5 else {
+        rank_value <- rank(values, ties.method = "average")
+        rank_value[which(display$ROTATION[display$ROTATION != "AVG"] == display$ROTATION[r])[1]] / length(values)
       }
-
-      is_pct <- grepl("%", nm, fixed = TRUE)
-
-      score <- if (!is.finite(v)) {
-        0
-      } else if (is_pct) {
-        max(0, min(1, v / 100))
-      } else {
-        max(0, min(1, (v + 0.5) / 1))
-      }
-
-      bg <- if (is_avg || !is.finite(v)) {
-        "#f4f6f8"
-      } else if (score >= 0.5) {
-        "rgba(64,174,122,.22)"
-      } else {
-        "rgba(220,75,65,.20)"
-      }
-
-      label <- if (!is.finite(v)) {
-        "—"
-      } else if (is_pct) {
-        sprintf("%.1f%%", v)
-      } else {
-        sprintf("%.3f", v)
-      }
-
-      tags$td(
-        class = if (is_avg) "rot-avg-cell" else "rot-cell",
-        style = paste0("background:", bg, ";"),
-        label
-      )
+      if (raw_nm %in% error_cols) score <- 1 - score
+      bg <- if (is_avg) "#e8edf1" else if (score >= .75) "#198754" else if (score >= .50) "#bfe8cf" else if (score >= .25) "#f6c36a" else "#f3c1c1"
+      fg <- if (!is_avg && score >= .75) "#ffffff" else "#243447"
+      tags$td(class = if (is_avg) "rot-avg-cell" else "rot-cell",
+        style = paste0("background:", bg, ";color:", fg, ";"), label)
     })
-
-    tags$tr(
-      class = if (is_avg) "rotation-average-row" else "",
-      cells
-    )
+    tags$tr(class = if (is_avg) "rotation-average-row" else "", cells)
   })
 
-  div(
-    class = "detail-section",
+  div(class = "detail-section",
     div(class = "detail-section-title", "CALGARY ROTATION DETAILS"),
-    div(
-      class = "rotation-table-wrap",
-      tags$table(
-        class = "rotation-table",
-        tags$thead(group_row, head_row),
-        tags$tbody(rows)
+    div(class = "rotation-table-wrap",
+      tags$table(class = "rotation-table rotation-table-full",
+        tags$thead(do.call(tags$tr, group_cells), head_row), tags$tbody(rows)
       )
     )
   )
@@ -2533,22 +2386,28 @@ if (!is.null(roster) && nrow(roster)) {
 
 # ----------------------------- MATCH INDEX -----------------------------
 
-if (nrow(all_metrics)) {
+if (nrow(all_metrics) || nrow(match_summaries)) {
 
-  index_cols <- intersect(
-    c(
-      "match_id", "match_date", "opponent",
-      "match_result", "match_set_score",
-      "sets_won", "match_folder"
-    ),
-    names(all_metrics)
+  index_cols <- c(
+    "match_id", "match_date", "opponent",
+    "match_result", "match_set_score", "sets_won", "match_folder"
   )
 
-  calgary_rows <- all_metrics[
-    grepl("University of Calgary", all_metrics$team, ignore.case = TRUE),
-    index_cols,
-    drop = FALSE
-  ]
+  if (nrow(all_metrics)) {
+    metric_index_cols <- intersect(index_cols, names(all_metrics))
+    calgary_rows <- all_metrics[
+      grepl("University of Calgary", all_metrics$team, ignore.case = TRUE),
+      metric_index_cols,
+      drop = FALSE
+    ]
+  } else {
+    summary_index_cols <- intersect(index_cols, names(match_summaries))
+    calgary_rows <- match_summaries[
+      grepl("University of Calgary", match_summaries$team, ignore.case = TRUE),
+      summary_index_cols,
+      drop = FALSE
+    ]
+  }
 
   match_index <- unique(calgary_rows)
 
@@ -2567,6 +2426,34 @@ if (nrow(all_metrics)) {
   ]
 
   rownames(match_index) <- NULL
+
+  # Fill result, score, opponent and date from the dedicated dashboard summary.
+  if (nrow(match_summaries)) {
+    summary_rows <- match_summaries[
+      grepl("University of Calgary", match_summaries$team, ignore.case = TRUE),
+      , drop = FALSE
+    ]
+    summary_rows <- summary_rows[!duplicated(as.character(summary_rows$match_id)), , drop = FALSE]
+    summary_fields <- intersect(
+      c("match_id", "match_date", "opponent", "match_result", "match_set_score", "sets_won", "match_folder"),
+      names(summary_rows)
+    )
+    summary_rows <- summary_rows[, summary_fields, drop = FALSE]
+    names(summary_rows)[names(summary_rows) != "match_id"] <- paste0(names(summary_rows)[names(summary_rows) != "match_id"], ".summary")
+    match_index <- merge(match_index, summary_rows, by = "match_id", all = TRUE, sort = FALSE)
+    for (nm in c("match_date", "opponent", "match_result", "match_set_score", "sets_won", "match_folder")) {
+      sn <- paste0(nm, ".summary")
+      if (sn %in% names(match_index)) {
+        if (!nm %in% names(match_index)) match_index[[nm]] <- NA
+        missing <- is.na(match_index[[nm]]) | !nzchar(as.character(match_index[[nm]]))
+        match_index[[nm]][missing] <- match_index[[sn]][missing]
+        match_index[[sn]] <- NULL
+      }
+    }
+    match_index <- match_index[order(as.Date(match_index$match_date), decreasing = TRUE), , drop = FALSE]
+    match_index <- match_index[!duplicated(as.character(match_index$match_id)), , drop = FALSE]
+    rownames(match_index) <- NULL
+  }
 
 } else {
 
@@ -3086,25 +2973,32 @@ ui <- fluidPage(
       .detail-section{background:#fff;border:1px solid #dfe6ed;border-radius:16px;
         padding:18px 20px;margin:18px 0;box-shadow:0 5px 16px rgba(31,49,67,.05);overflow:hidden;}
 
+      .report-card-result{margin-top:7px;font-family:Inter,Arial,sans-serif;font-size:12px;
+        font-weight:850;letter-spacing:.8px;color:#263746;text-align:left;}
+
       .detail-section-title{font-family:'Barlow Condensed';font-size:24px;font-weight:800;
         letter-spacing:1px;color:#5b6d7c;border-bottom:1px solid #dce4eb;padding-bottom:9px;margin-bottom:12px;}
 
       .rotation-table-wrap{overflow-x:auto;}
-      .rotation-table{width:100%;min-width:1050px;border-collapse:separate;
-        border-spacing:0;table-layout:fixed;font-size:12px;text-align:center;}
+      .rotation-table{width:max-content;min-width:100%;border-collapse:separate;
+        border-spacing:0;table-layout:auto;font-size:12px;text-align:center;font-variant-numeric:tabular-nums;}
 
-      .rotation-table th{font-family:'Barlow Condensed';font-size:12px;letter-spacing:.35px;
-        color:#425466;background:#f2f5f7;padding:10px 5px;border-bottom:1px solid #d6dfe6;white-space:nowrap;}
+      .rotation-table th{font-family:Inter,Arial,sans-serif;font-size:11px;letter-spacing:.25px;
+        color:#344454;background:#f2f5f7;padding:10px 9px;border-bottom:1px solid #d6dfe6;white-space:nowrap;
+        text-align:center !important;vertical-align:middle;font-weight:800;}
 
       .rotation-table .rotation-group-head{background:#263746;color:#fff;font-size:11px;
-        letter-spacing:1px;border-right:2px solid #fff;text-align:center;vertical-align:middle;}
+        letter-spacing:.8px;border-right:2px solid #fff;text-align:center !important;vertical-align:middle;}
 
-      .rotation-table td{padding:11px 5px;border-right:1px solid rgba(255,255,255,.65);
-        font-family:'Barlow Condensed';font-size:14px;font-weight:800;color:#263746;}
+      .rotation-table td{padding:10px 9px;border-right:1px solid rgba(255,255,255,.8);
+        font-family:Inter,Arial,sans-serif;font-size:12px;font-weight:750;color:#243447;
+        text-align:center !important;vertical-align:middle;white-space:nowrap;min-width:76px;}
 
-      .rotation-table .rot-label{background:#f7f9fa;color:#5c6e7e;text-align:left;padding-left:12px;font-size:15px;}
-      .rotation-table .rot-avg-label{background:#e8edf1;color:#263746;text-align:left;padding-left:12px;font-weight:900;}
+      .rotation-table .rot-label,.rotation-table .rot-avg-label{background:#edf1f5;color:#263746;
+        text-align:center !important;padding:10px 12px;font-size:13px;font-weight:900;}
       .rotation-table .rot-avg-cell{font-weight:900;border-top:2px solid #9eabb5;}
+      .rotation-table .rot-neutral{background:#f5f7f9;color:#667788;}
+      .rotation-table-full .rotation-average-row td{border-top:2px solid #9eabb5;}
       .rotation-average-row td{border-top:2px solid #9eabb5;background-color:#f4f6f8 !important;}
 
       .attack-filter-row{display:flex;justify-content:flex-end;margin:-5px 0 10px;}
@@ -3688,6 +3582,15 @@ server <- function(input, output, session) {
                   div(
                     class = "report-card-date",
                     format(as.Date(row$match_date), "%B %d, %Y")
+                  ),
+                  div(
+                    class = "report-card-result",
+                    paste0(
+                      if (!is.na(row$match_result) && nzchar(as.character(row$match_result))) {
+                        if (toupper(as.character(row$match_result)) %in% c("W", "WIN")) "WIN" else if (toupper(as.character(row$match_result)) %in% c("L", "LOSS")) "LOSS" else toupper(as.character(row$match_result))
+                      } else "RESULT PENDING",
+                      if (!is.na(row$match_set_score) && nzchar(as.character(row$match_set_score))) paste0("  ·  ", row$match_set_score) else ""
+                    )
                   )
                 ),
 
