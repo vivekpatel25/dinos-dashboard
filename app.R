@@ -2065,7 +2065,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
 
 passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
                            selected_categories = c("Good passes", "OOS passes",
-                                                   "Poor passes", "Passing errors"),
+                                                   "Overpasses", "Passing errors"),
                            show_lines = TRUE) {
 
   d <- load_detail_csvs("PASSING_MAP_EVENTS\\.csv$", ids)
@@ -2118,9 +2118,12 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
   category_for_row <- function(i) {
     code <- d$Reception_Evaluation_Code[i]
     quality <- tolower(d$Pass_Quality[i])
-    if (code == "=" || grepl("error", quality)) return("Passing errors")
-    if (code == "/" || grepl("poor", quality)) return("Poor passes")
-    if (code %in% c("!", "-") || grepl("oos|limited", quality)) return("OOS passes")
+    # These three outcomes do not have a reliable setter destination in the DVW.
+    # They are plotted at the reception contact point only.
+    if (code == "=") return("Passing errors")
+    if (code == "/") return("Overpasses")
+    if (code == "-") return("OOS passes")
+    if (code == "!" || grepl("oos|limited", quality)) return("OOS passes")
     if (code %in% c("#", "+") || grepl("perfect|positive", quality)) return("Good passes")
     "OOS passes"
   }
@@ -2129,7 +2132,7 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
   category_colours <- c(
     "Good passes" = "#159B69",
     "OOS passes" = "#E6A11A",
-    "Poor passes" = "#F0782B",
+    "Overpasses" = "#D9433A",
     "Passing errors" = "#D9433A"
   )
 
@@ -2178,8 +2181,8 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
   # Court orientation follows the supplied court diagram, with the net
   # running horizontally below the front row:
   # Front / nearest net: 4-3-2; middle: 7-8-9; back: 5-6-1.
-  # Each trajectory runs from Reception_Start_Zone/Subzone to
-  # Pass_Destination_Zone/Subzone.
+  # Valid pass trajectories run from reception contact to recorded destination.
+  # For codes =, / and -, the DVW does not provide a reliable setter destination.
   zone_layout <- list(
     "4" = c(row = 1, col = 1), "3" = c(row = 1, col = 2), "2" = c(row = 1, col = 3),
     "7" = c(row = 2, col = 1), "8" = c(row = 2, col = 2), "9" = c(row = 2, col = 3),
@@ -2220,9 +2223,9 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
 
   line_nodes <- if (isTRUE(show_lines)) {
     lapply(seq_len(nrow(d)), function(i) {
-      # A reception error has no completed pass trajectory: show only the
-      # contact/start location for that event.
-      if (d$Pass_Map_Category[i] == "Passing errors") return(NULL)
+      # DVW does not provide a reliable setter destination for =, /, or -.
+      # These outcomes must never receive a trajectory line.
+      if (d$Reception_Evaluation_Code[i] %in% c("=", "/", "-")) return(NULL)
       a <- start_points[[i]]
       b <- end_points[[i]]
       if (is.null(a) || is.null(b)) return(NULL)
@@ -2236,25 +2239,38 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
   } else NULL
 
   marker_nodes <- lapply(seq_len(nrow(d)), function(i) {
-    # Errors are marked at the reception contact/start point, not at a
-    # destination that was never reached.
-    endpoint <- if (d$Pass_Map_Category[i] == "Passing errors") {
-      start_points[[i]]
-    } else {
-      end_points[[i]]
-    }
+    code <- d$Reception_Evaluation_Code[i]
+    no_destination <- code %in% c("=", "/", "-")
+    endpoint <- if (no_destination) start_points[[i]] else end_points[[i]]
     if (is.null(endpoint)) return(NULL)
-    colour <- unname(category_colours[d$Pass_Map_Category[i]])
+
+    # Exact requested marker styling:
+    # = solid red, no white border
+    # / red with white border
+    # - orange with white border
+    marker_class <- if (code == "=") {
+      "marker-error"
+    } else if (code == "/") {
+      "marker-overpass"
+    } else if (code == "-") {
+      "marker-oos"
+    } else {
+      "marker-standard"
+    }
+    colour <- if (code == "-") "#E6A11A" else
+      if (code %in% c("=", "/")) "#D9433A" else
+      unname(category_colours[d$Pass_Map_Category[i]])
+
     tip <- paste0(
-      d$Player_Name[i], " | Start Z", d$Reception_Start_Zone[i],
+      d$Player_Name[i], " | Reception Z", d$Reception_Start_Zone[i],
       if (nzchar(d$Reception_Start_Subzone[i])) paste0("-", d$Reception_Start_Subzone[i]) else "",
-      " → Destination Z", d$Pass_Destination_Zone[i],
-      if (nzchar(d$Pass_Destination_Subzone[i])) paste0("-", d$Pass_Destination_Subzone[i]) else "",
-      " | ", d$Pass_Quality[i],
-      if (d$Pass_Map_Category[i] == "Passing errors") " | Error marker at contact/start point" else ""
+      " | Code ", code, " | ", d$Pass_Quality[i],
+      if (no_destination) " | Reception contact only; no setter destination recorded" else
+        paste0(" | Destination Z", d$Pass_Destination_Zone[i],
+               if (nzchar(d$Pass_Destination_Subzone[i])) paste0("-", d$Pass_Destination_Subzone[i]) else "")
     )
     div(
-      class = "pass-map-marker",
+      class = paste("pass-map-marker", marker_class),
       title = tip,
       style = paste0(
         "left:", endpoint[["x"]], "%;top:", endpoint[["y"]], "%;",
@@ -2278,26 +2294,39 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
   legend <- lapply(names(category_colours), function(nm) {
     div(
       class = "pass-legend-item",
-      span(class = "pass-legend-dot",
-           style = paste0("background:", category_colours[[nm]], ";")),
+      span(
+        class = paste(
+          "pass-legend-dot",
+          if (nm == "Passing errors") "legend-error" else
+            if (nm == "Overpasses") "legend-overpass" else
+            if (nm == "OOS passes") "legend-oos" else "legend-standard"
+        ),
+        style = paste0("background:", category_colours[[nm]], ";")
+      ),
       span(nm)
     )
   })
 
-  destination_zones <- sort(unique(d$Pass_Destination_Zone[
-    !is.na(d$Pass_Destination_Zone)
+  # Destination-zone summaries include only events with a valid recorded
+  # pass destination. Codes =, / and - are contact-only markers.
+  destination_data <- d[
+    !d$Reception_Evaluation_Code %in% c("=", "/", "-"),
+    , drop = FALSE
+  ]
+  destination_zones <- sort(unique(destination_data$Pass_Destination_Zone[
+    !is.na(destination_data$Pass_Destination_Zone)
   ]))
   zone_summary_rows <- lapply(destination_zones, function(zone) {
-    z <- d[d$Pass_Destination_Zone == zone, , drop = FALSE]
+    z <- destination_data[destination_data$Pass_Destination_Zone == zone, , drop = FALSE]
     n <- nrow(z)
     good <- sum(z$Pass_Map_Category == "Good passes")
     oos <- sum(z$Pass_Map_Category == "OOS passes")
-    poor <- sum(z$Pass_Map_Category == "Poor passes")
+    overpasses <- sum(z$Pass_Map_Category == "Overpasses")
     errors <- sum(z$Pass_Map_Category == "Passing errors")
     pct <- function(x) if (n) paste0(round(100 * x / n), "%") else "—"
-    mix <- c(good, oos, poor, errors)
-    mix_cols <- unname(category_colours[c("Good passes", "OOS passes",
-                                          "Poor passes", "Passing errors")])
+    mix <- c(good, oos, overpasses, errors)
+    mix_cols <- c(category_colours[["Good passes"]], category_colours[["OOS passes"]],
+                  category_colours[["Overpasses"]], category_colours[["Passing errors"]])
     bar <- div(
       class = "pass-summary-bar",
       lapply(seq_along(mix), function(j) {
@@ -2313,7 +2342,7 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
       tags$td(bar),
       tags$td(paste0(good, " (", pct(good), ")")),
       tags$td(paste0(oos, " (", pct(oos), ")")),
-      tags$td(paste0(poor, " (", pct(poor), ")")),
+      tags$td(paste0(overpasses, " (", pct(overpasses), ")")),
       tags$td(paste0(errors, " (", pct(errors), ")"))
     )
   })
@@ -2365,12 +2394,12 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
         div(class = "pass-boundary-key",
             span(class = "pass-boundary-swatch"),
             span("Good-pass boundary (7 ft from net)")),
-        div(class = "pass-summary-title", "BY PASSING ZONE"),
+        div(class = "pass-summary-title", "BY RECORDED DESTINATION ZONE"),
         tags$table(
           class = "pass-summary-table",
           tags$thead(tags$tr(
             tags$th("ZONE"), tags$th("N"), tags$th("OUTCOME MIX"),
-            tags$th("GOOD"), tags$th("OOS"), tags$th("POOR"), tags$th("ERROR")
+            tags$th("GOOD"), tags$th("OOS (- / !)"), tags$th("OVERPASS (/)"), tags$th("ERROR (=)")
           )),
           tags$tbody(zone_summary_rows)
         )
@@ -3167,6 +3196,9 @@ ui <- fluidPage(
       .pass-map-marker{position:absolute;width:10px;height:10px;border-radius:50%;
         border:1.5px solid #fff;box-shadow:0 1px 3px rgba(20,35,48,.28);
         transform:translate(-50%,-50%);z-index:4;}
+      .pass-map-marker.marker-error{border:0;box-shadow:0 1px 3px rgba(20,35,48,.28);}
+      .pass-map-marker.marker-overpass{border:1.5px solid #fff;}
+      .pass-map-marker.marker-oos{border:1.5px solid #fff;}
       .pass-court-net{position:absolute;left:0;right:0;top:33.3333%;height:5px;
         background:#263746;color:#fff;font-family:'Barlow Condensed';font-size:9px;
         font-weight:800;letter-spacing:1px;text-align:left;padding-left:7px;
@@ -3179,7 +3211,10 @@ ui <- fluidPage(
       .pass-legend{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:16px;}
       .pass-legend-item{display:flex;align-items:center;gap:8px;font-size:11px;
         color:#536577;font-weight:700;}
-      .pass-legend-dot{width:11px;height:11px;border-radius:50%;flex:0 0 11px;}
+      .pass-legend-dot{width:11px;height:11px;border-radius:50%;flex:0 0 11px;
+        border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(30,45,58,.16);}
+      .pass-legend-dot.legend-error{border:0;}
+      .pass-legend-dot.legend-overpass,.pass-legend-dot.legend-oos{border:1.5px solid #fff;}
       .pass-boundary-key{display:flex;align-items:center;gap:8px;font-size:10px;
         color:#87939e;margin:8px 0 18px;}
       .pass-boundary-swatch{width:18px;border-top:2px dashed #54BE98;}
