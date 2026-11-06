@@ -107,11 +107,10 @@ load_match_metrics <- function() {
 
     d$source_path <- f
 
-    d$match_folder <- if (basename(f) == "MATCH_DASHBOARD_SUMMARY.csv") {
-      basename(dirname(f))
-    } else {
-      tools::file_path_sans_ext(basename(f))
-    }
+    # Every export belongs to its game folder, for example:
+    # data/exports/matches/2026-10-23_CAL_vs_UBC/KEY_METRICS.csv
+    # Always store the parent folder, regardless of the CSV filename.
+    d$match_folder <- basename(dirname(f))
 
     d
   })
@@ -587,18 +586,39 @@ skill_area_panel_ui <- function(ids, show_opponent = FALSE) {
 
 MATCH_DETAIL_ROOT <- MATCH_ROOT
 
+match_folders_for_ids <- function(ids) {
+  if (!length(ids) || !nrow(match_index)) return(character(0))
+
+  rows <- match_index[
+    as.character(match_index$match_id) %in% as.character(ids),
+    , drop = FALSE
+  ]
+
+  folders <- if ("match_folder" %in% names(rows)) {
+    as.character(rows$match_folder)
+  } else {
+    character(0)
+  }
+
+  folders <- folders[!is.na(folders) & nzchar(folders)]
+  unique(folders)
+}
+
 match_dates_for_ids <- function(ids) {
   if (!length(ids) || !nrow(match_index)) return(character(0))
 
-  as.character(
-    match_index$match_date[match_index$match_id %in% ids]
-  )
+  rows <- match_index[
+    as.character(match_index$match_id) %in% as.character(ids),
+    , drop = FALSE
+  ]
+
+  dates <- as.character(rows$match_date)
+  dates <- dates[!is.na(dates) & nzchar(dates)]
+  unique(dates)
 }
 
 find_detail_files <- function(pattern, ids) {
-  dates <- match_dates_for_ids(ids)
-
-  if (!length(dates) || !dir.exists(MATCH_DETAIL_ROOT)) {
+  if (!length(ids) || !dir.exists(MATCH_DETAIL_ROOT)) {
     return(character(0))
   }
 
@@ -610,10 +630,27 @@ find_detail_files <- function(pattern, ids) {
     ignore.case = TRUE
   )
 
+  if (!length(files)) return(character(0))
+
+  # Match by the containing game folder, not the CSV filename. This is
+  # essential when files are named ROTATION_DETAILS.csv, TEAM_ATTACK.csv,
+  # etc. inside folders such as 2026-10-23_CAL_vs_UBC.
+  folders <- match_folders_for_ids(ids)
+
+  if (length(folders)) {
+    keep <- basename(dirname(files)) %in% folders
+    selected <- files[keep]
+    if (length(selected)) return(selected)
+  }
+
+  # Fallback for older exports where match_folder is unavailable:
+  # identify the game folder using the match date in its path.
+  dates <- match_dates_for_ids(ids)
+  if (!length(dates)) return(character(0))
+
   files[vapply(files, function(f) {
-    any(vapply(dates, function(dt) {
-      grepl(gsub("-", "[-_]", dt), basename(f))
-    }, logical(1)))
+    path_text <- gsub("-", "[-_]", normalizePath(f, winslash = "/", mustWork = FALSE))
+    any(vapply(dates, function(dt) grepl(dt, path_text), logical(1)))
   }, logical(1))]
 }
 
