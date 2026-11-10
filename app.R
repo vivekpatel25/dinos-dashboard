@@ -3452,24 +3452,33 @@ ui <- fluidPage(
       .attack-map-controls .shiny-options-group{display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
       .attack-type-toggles{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
       .attack-type-toggles .checkbox{margin:0;}
-      .attack-map-controls .checkbox-inline,.attack-map-controls .checkbox{
+      /* Real Shiny checkbox labels are the clickable switch surface.
+         Keep the input above the switch track so pointer clicks update Shiny. */
+      .attack-map-controls .checkbox-inline,
+      .attack-map-controls .checkbox{margin:0 10px 0 0;padding:0;background:transparent;}
+      .attack-map-controls .checkbox label,
+      .attack-map-controls .checkbox-inline{
         position:relative;display:inline-flex;align-items:center;min-height:22px;
-        margin:0 10px 0 0;padding:0 0 0 39px;font-size:11px;color:#405467;
-        cursor:pointer;white-space:nowrap;vertical-align:middle;}
-      .attack-map-controls .checkbox-inline input[type=checkbox],
-      .attack-map-controls .checkbox input[type=checkbox]{
-        position:absolute !important;opacity:0 !important;width:1px !important;
-        height:1px !important;margin:0 !important;left:0;pointer-events:none;}
-      .attack-map-controls .checkbox-inline:before,.attack-map-controls .checkbox:before{
+        padding:0 0 0 39px;font-size:11px;color:#405467;
+        cursor:pointer;white-space:nowrap;vertical-align:middle;font-weight:400;}
+      .attack-map-controls .checkbox label input[type=checkbox],
+      .attack-map-controls .checkbox-inline input[type=checkbox]{
+        position:absolute !important;left:0 !important;top:1px !important;
+        width:31px !important;height:20px !important;margin:0 !important;
+        opacity:0 !important;cursor:pointer !important;pointer-events:auto !important;
+        z-index:3 !important;}
+      .attack-map-controls .checkbox label:before,
+      .attack-map-controls .checkbox-inline:before{
         content:'';position:absolute;left:0;top:3px;width:31px;height:16px;
         border-radius:12px;background:#c5ced6;transition:background .15s;}
-      .attack-map-controls .checkbox-inline:after,.attack-map-controls .checkbox:after{
+      .attack-map-controls .checkbox label:after,
+      .attack-map-controls .checkbox-inline:after{
         content:'';position:absolute;left:2px;top:5px;width:12px;height:12px;
-        border-radius:50%;background:#fff;transition:transform .15s;}
-      .attack-map-controls .checkbox-inline:has(input:checked):before,
-      .attack-map-controls .checkbox:has(input:checked):before{background:#C8102E;}
-      .attack-map-controls .checkbox-inline:has(input:checked):after,
-      .attack-map-controls .checkbox:has(input:checked):after{transform:translateX(15px);}
+        border-radius:50%;background:#fff;transition:transform .15s;pointer-events:none;}
+      .attack-map-controls .checkbox label:has(input:checked):before,
+      .attack-map-controls .checkbox-inline:has(input:checked):before{background:#C8102E;}
+      .attack-map-controls .checkbox label:has(input:checked):after,
+      .attack-map-controls .checkbox-inline:has(input:checked):after{transform:translateX(15px);}
       .attack-map-controls .radio-inline{
         position:relative;display:inline-flex;align-items:center;margin:0;
         padding:5px 11px;border:1px solid #d8e0e7;border-right:0;
