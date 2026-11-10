@@ -3143,7 +3143,7 @@ setting_map_ui <- function() {
           selected = "All", inline = TRUE)
       )
     ),
-    plotOutput("setting_destination_map", height = "540px"),
+    plotOutput("setting_destination_map", height = "700px"),
     uiOutput("setting_map_summary")
   )
 }
@@ -4399,18 +4399,17 @@ server <- function(input, output, session) {
   output$setting_destination_map <- renderPlot({
     d <- setting_data_for_view()
     par(mar = c(1.0, 0.7, 2.0, 0.7), xaxs = "i", yaxs = "i")
-    plot(NA, xlim = c(-0.08, 6.08), ylim = c(-0.15, 6.42), asp = 1,
+    plot(NA, xlim = c(-0.08, 6.08), ylim = c(-0.15, 6.42), asp = NA,
          axes = FALSE, xlab = "", ylab = "")
     # Net is at the top, matching the supplied zone/subzone reference.
     text(3, 6.28, "NET", cex = 0.9, font = 2, col = "#52616b")
     segments(0, 6.12, 6, 6.12, col = "#344653", lwd = 4)
 
-    # Draw all 36 cells with three vertical two-column bands, matching the
-    # reference map: first two columns light, middle two slightly darker,
-    # final two warmest. The same banding runs through all six rows.
+    # Draw all 36 cells with three horizontal two-row bands.
+    # From NET toward the back court: light, medium, warm.
     band_cols <- c("#F1F3F4", "#EEE9E4", "#E9DDD3")
     for (x in 0:5) for (y in 0:5) {
-      band <- floor(x / 2) + 1
+      band <- floor((5 - y) / 2) + 1
       rect(x, y, x + 1, y + 1, col = band_cols[band],
            border = "#C7D1D9", lwd = 0.8)
     }
