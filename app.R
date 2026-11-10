@@ -2766,6 +2766,210 @@ metric_section_ui <- function(data, show_opponent = TRUE) {
   )
 }
 
+
+# ----------------------------- ATTACK MAP DATA -----------------------------
+
+find_attack_map_files <- function() {
+  if (!dir.exists(MATCH_ROOT)) return(character(0))
+  list.files(
+    MATCH_ROOT,
+    pattern = "ATTACK_MAP_EVENTS.*\\.csv$",
+    recursive = TRUE,
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+}
+
+load_attack_map_events <- function(ids = NULL) {
+  files <- find_attack_map_files()
+  if (!length(files)) return(data.frame())
+
+  out <- lapply(files, function(f) {
+    d <- read_csv_safe(f)
+    if (is.null(d) || !nrow(d)) return(NULL)
+
+    # Accept the standard pipeline column names without changing source labels.
+    required <- c("Match_ID", "Attack_Code", "Attack_Type", "Attack_Outcome",
+                  "Evaluation", "Start_Zone", "End_Zone")
+    if (!all(required %in% names(d))) return(NULL)
+
+    d$source_path <- f
+    d$match_folder <- basename(dirname(f))
+    d
+  })
+  out <- Filter(Negate(is.null), out)
+  if (!length(out)) return(data.frame())
+  d <- do.call(rbind, out)
+
+  if (!is.null(ids) && length(ids)) {
+    ids <- as.character(ids)
+    folders <- character(0)
+    if (exists("match_index", inherits = TRUE) && nrow(match_index) &&
+        "match_id" %in% names(match_index) && "match_folder" %in% names(match_index)) {
+      folders <- as.character(match_index$match_folder[
+        as.character(match_index$match_id) %in% ids
+      ])
+    }
+    keep <- as.character(d$Match_ID) %in% ids
+    if (length(folders)) keep <- keep | as.character(d$match_folder) %in% folders
+    d <- d[keep, , drop = FALSE]
+  }
+
+  if (!nrow(d)) return(d)
+  d$Start_Zone <- suppressWarnings(as.numeric(d$Start_Zone))
+  d$End_Zone <- suppressWarnings(as.numeric(d$End_Zone))
+  d$Attack_Code <- trimws(as.character(d$Attack_Code))
+  d$Attack_Type <- trimws(as.character(d$Attack_Type))
+  d$Attack_Outcome <- trimws(as.character(d$Attack_Outcome))
+  d$Evaluation <- trimws(as.character(d$Evaluation))
+  d
+}
+
+ATTACK_MAP_DEFINITIONS <- list(
+  right = list(title = "RIGHT SIDE", codes = c("XV", "X8"), labels = c("Red (XV)", "Five (X8)")),
+  left = list(title = "LEFT SIDE", codes = c("XX", "X1"), labels = c("Go (XX)", "Hut (X1)")),
+  gap_slide = list(title = "GAP & SLIDE", codes = c("C2", "C8"), labels = c("Gap (C2)", "Slide (C8)")),
+  middle = list(title = "MIDDLE VARIATIONS", codes = c("C6", "C5", "CH"), labels = c("C6", "C5", "CH")),
+  backrow = list(title = "BACK ROW ATTACKS", codes = c("V7"), labels = c("BIC (V7)", "Pipe"))
+)
+
+attack_map_ui <- function() {
+  map_card <- function(key, def) {
+    choices <- stats::setNames(def$codes, def$labels[seq_along(def$codes)])
+    if (identical(key, "backrow")) choices <- c("V7" = "V7", "PIPE" = "PIPE")
+    tagList(
+      div(class = "attack-map-card",
+        div(class = "attack-map-heading", def$title),
+        div(class = "attack-map-controls",
+          checkboxGroupInput(paste0("attack_codes_", key), NULL,
+            choices = choices, selected = unname(choices), inline = TRUE),
+          checkboxInput(paste0("attack_paths_", key), "Attack paths", value = TRUE),
+          radioButtons(paste0("attack_outcome_", key), NULL,
+            choices = c("All" = "All", "Kills" = "Kills", "In play" = "In play"),
+            selected = "All", inline = TRUE)
+        ),
+        plotOutput(paste0("attack_plot_", key), height = "340px"),
+        uiOutput(paste0("attack_summary_", key))
+      )
+    )
+  }
+  tagList(
+    div(class = "attack-maps-section",
+      div(class = "attack-maps-title", "ATTACK MAPS"),
+      div(class = "attack-map-legend",
+        span(class = "legend-kill", "●  KILL"),
+        span(class = "legend-inplay", "○  IN PLAY"),
+        span(class = "legend-line", "—  ATTACK PATH"),
+        span(class = "legend-touch", "■  BLOCK TOUCH"),
+        span(class = "legend-stuffed", "■  STUFFED")
+      ),
+      map_card("right", ATTACK_MAP_DEFINITIONS$right),
+      map_card("left", ATTACK_MAP_DEFINITIONS$left),
+      div(class = "attack-map-subsection-label", "MIDDLE ATTACKS"),
+      map_card("gap_slide", ATTACK_MAP_DEFINITIONS$gap_slide),
+      map_card("middle", ATTACK_MAP_DEFINITIONS$middle),
+      div(class = "attack-map-subsection-label", "BACK ROW ATTACKS"),
+      map_card("backrow", ATTACK_MAP_DEFINITIONS$backrow)
+    )
+  )
+}
+
+attack_map_outcome_class <- function(d) {
+  outcome <- tolower(trimws(as.character(d$Attack_Outcome)))
+  evaluation <- tolower(trimws(as.character(d$Evaluation)))
+  ifelse(outcome == "kill", "Kill",
+    ifelse(outcome %in% c("in play", "positive", "negative") |
+             evaluation == "blocked for reattack", "In Play", "Other"))
+}
+
+attack_zone_xy <- function(zone, is_origin = FALSE) {
+  # Standard 3x3 volleyball zone layout. Zone 9 is represented by the
+  # central back-row origin used for BIC/pipe attacks.
+  x_map <- c(`1` = 2.5, `2` = 2.5, `3` = 1.5, `4` = 0.5,
+             `5` = 0.5, `6` = 1.5, `7` = 0.5, `8` = 1.5, `9` = 1.5)
+  y_map <- c(`1` = 0.5, `2` = 2.5, `3` = 2.5, `4` = 2.5,
+             `5` = 0.5, `6` = 0.5, `7` = 1.5, `8` = 1.5, `9` = 0.5)
+  z <- as.character(as.integer(zone))
+  x <- unname(x_map[z]); y <- unname(y_map[z])
+  if (is_origin) y <- -0.62
+  list(x = x, y = y)
+}
+
+draw_attack_map <- function(d, title = "ATTACK MAP", show_paths = TRUE) {
+  par(mar = c(1.2, 1.2, 1.8, 1.2), xaxs = "i", yaxs = "i")
+  plot(NA, xlim = c(-0.15, 3.15), ylim = c(-1.05, 3.15),
+       asp = 1, axes = FALSE, xlab = "", ylab = "", main = "")
+  title(main = title, adj = 0, line = 0.1, cex.main = 1.15, font.main = 2, col.main = "#263746")
+  # Opponent half-court with zone grid and net.
+  rect(0, 0, 3, 3, col = "#f4f7f9", border = "#344653", lwd = 2)
+  abline(v = 1:2, h = 1:2, col = "#c8d2da", lwd = 1)
+  segments(0, 0, 3, 0, col = "#344653", lwd = 4)
+  text(1.5, -0.93, "ATTACK ORIGIN", cex = 0.65, col = "#758494")
+  for (z in 1:9) {
+    pos <- attack_zone_xy(z)
+    text(pos$x, pos$y, labels = z, col = "#aab5be", cex = 0.75)
+  }
+
+  if (!nrow(d)) {
+    text(1.5, 1.5, "No attack events for this selection", cex = 0.9, col = "#7b8996")
+    return(invisible(NULL))
+  }
+
+  valid <- !is.na(d$Start_Zone) & !is.na(d$End_Zone)
+  d <- d[valid, , drop = FALSE]
+  if (!nrow(d)) {
+    text(1.5, 1.5, "No valid start/end zones", cex = 0.9, col = "#7b8996")
+    return(invisible(NULL))
+  }
+
+  start <- attack_zone_xy(d$Start_Zone, is_origin = TRUE)
+  end <- attack_zone_xy(d$End_Zone)
+  cls <- attack_map_outcome_class(d)
+  pch <- ifelse(cls == "Kill", 21, ifelse(cls == "In Play", 21, 4))
+  bg <- ifelse(cls == "Kill", "#263746", ifelse(cls == "In Play", "white", "#c65b45"))
+  if (isTRUE(show_paths)) {
+    segments(start$x, start$y, end$x, end$y,
+             col = grDevices::adjustcolor("#52616b", alpha.f = 0.62), lwd = 1.1)
+  }
+  points(end$x, end$y, pch = pch, bg = bg, col = "#263746", cex = 1.05, lwd = 1.1)
+  points(start$x, start$y, pch = 21, bg = "#c65b00", col = "white", cex = 0.8)
+  invisible(NULL)
+}
+
+attack_map_summary_ui <- function(d) {
+  if (is.null(d) || !nrow(d)) return(div(class = "attack-map-summary", "No attack events found for this map."))
+  outcome <- tolower(trimws(as.character(d$Attack_Outcome)))
+  eval <- tolower(trimws(as.character(d$Evaluation)))
+  kills <- sum(outcome == "kill", na.rm = TRUE)
+  in_play <- sum(outcome %in% c("in play", "positive", "negative") |
+                   eval == "blocked for reattack", na.rm = TRUE)
+  stuffed <- sum(eval == "blocked", na.rm = TRUE)
+  touched_in_play <- sum(eval == "blocked for reattack", na.rm = TRUE)
+  block_touches <- stuffed + touched_in_play
+  total <- nrow(d)
+  efficiency <- if (total) round((kills - sum(outcome == "error", na.rm = TRUE)) / total * 100, 1) else 0
+  div(class = "attack-map-summary",
+    div(class = "attack-summary-stats",
+      div(span("SWINGS"), strong(total)),
+      div(span("KILLS"), strong(kills)),
+      div(span("IN PLAY"), strong(in_play)),
+      div(span("ATTACK EFF."), strong(paste0(efficiency, "%")))
+    ),
+    div(class = "attack-net-bar",
+      div(class = "net-bar-title", "BLOCK CONTACT NEAR THE NET"),
+      div(class = "net-bar-track",
+        div(class = "net-bar-touch", style = paste0("width:", if (total) touched_in_play / total * 100 else 0, "%")),
+        div(class = "net-bar-stuffed", style = paste0("width:", if (total) stuffed / total * 100 else 0, "%"))
+      ),
+      div(class = "net-bar-legend",
+        span(paste0("Touched, in play: ", touched_in_play)),
+        span(paste0("Stuffed: ", stuffed)),
+        span(paste0("No recorded touch: ", max(0, total - block_touches)))
+      )
+    )
+  )
+}
+
 # ----------------------------- UI -----------------------------
 
 ui <- fluidPage(
@@ -3170,6 +3374,40 @@ ui <- fluidPage(
       .serve-stat-card strong{display:block;font-family:'Barlow Condensed';font-size:23px;
         color:#263746;margin-top:4px;}
       .serve-stat-card small{font-size:9px;color:#87939e;}
+
+      .attack-maps-section{background:#fff;border:1px solid #dfe6ed;border-radius:17px;
+        padding:16px;margin:18px 0;box-shadow:0 4px 14px rgba(31,49,67,.04);}
+      .attack-maps-title,.attack-map-subsection-label{font-family:'Barlow Condensed';font-size:25px;
+        font-weight:800;color:#fff;background:#c65b00;padding:9px 14px;border-radius:10px;margin-bottom:10px;}
+      .attack-map-subsection-label{margin:18px 0 9px;font-size:19px;background:#344653;}
+      .attack-map-card{border:1px solid #dce4eb;border-radius:13px;margin:10px 0 15px;overflow:hidden;
+        box-shadow:0 4px 12px rgba(31,49,67,.06);}
+      .attack-map-heading{background:#c65b00;color:#fff;padding:9px 14px;font-family:'Barlow Condensed';
+        font-size:19px;font-weight:800;letter-spacing:.5px;}
+      .attack-map-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;
+        padding:5px 12px;border-bottom:1px solid #e0e6eb;flex-wrap:wrap;}
+      .attack-map-controls .form-group{margin:0;}
+      .attack-map-controls .checkbox{margin:0 8px 0 0;font-size:11px;color:#405467;}
+      .attack-map-controls .checkbox-inline{font-size:11px;color:#405467;margin:0 13px 0 0;}
+      .attack-map-controls .radio-inline{font-size:11px;color:#405467;margin:0 8px 0 0;}
+      .attack-map-controls .shiny-options-group{display:flex;gap:8px;flex-wrap:wrap;}
+      .attack-map-card .shiny-plot-output{width:100%;}
+      .attack-map-summary{padding:0 14px 13px;}
+      .attack-summary-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+      .attack-summary-stats div{background:#f3f6f8;border-radius:8px;padding:8px 10px;display:flex;
+        justify-content:space-between;align-items:center;gap:5px;}
+      .attack-summary-stats span{font-size:9px;color:#718096;font-weight:800;letter-spacing:.5px;}
+      .attack-summary-stats strong{font-family:'Barlow Condensed';font-size:20px;color:#263746;}
+      .net-bar-title{font-size:9px;font-weight:800;color:#526475;letter-spacing:.7px;margin-bottom:5px;}
+      .net-bar-track{height:13px;display:flex;background:#263746;border-radius:3px;overflow:hidden;}
+      .net-bar-touch{background:#159b70;height:100%;}
+      .net-bar-stuffed{background:#df4b40;height:100%;}
+      .net-bar-legend{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:9px;color:#718096;margin-top:5px;}
+      .attack-map-legend{display:flex;gap:16px;flex-wrap:wrap;padding:4px 4px 10px;font-size:10px;color:#667789;}
+      .legend-kill{color:#263746}.legend-inplay{color:#263746}.legend-touch{color:#159b70}.legend-stuffed{color:#df4b40}
+      @media(max-width:600px){.attack-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr));}
+        .attack-map-controls{display:block}.attack-map-controls .form-group{margin:5px 0;}}
+
       @media(max-width:900px){.serve-map-layout{grid-template-columns:1fr;}
         .serve-court{height:450px;}.serve-outcome-cards{grid-template-columns:repeat(3,minmax(0,1fr));}}
       @media(max-width:600px){.serve-court{height:390px;}
@@ -3677,6 +3915,7 @@ server <- function(input, output, session) {
         ),
             if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
           )
+          ,attack_map_ui()
         )
       )
     }
@@ -3851,6 +4090,7 @@ server <- function(input, output, session) {
         ),
         if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
       )
+      ,attack_map_ui()
     )
   })
 
@@ -3883,6 +4123,78 @@ server <- function(input, output, session) {
       })
     })
   })
+
+  # Attack maps: the same five-map structure is used on the dashboard and
+  # individual match reports. The selected period/match controls the source rows.
+  current_attack_match_ids <- reactive({
+    if (page() == "reports" && !is.null(selected_match())) return(as.character(selected_match()))
+    if (!nrow(match_index)) return(character(0))
+    switch(active_period(),
+      "MOST RECENT MATCH" = as.character(match_index$match_id[1]),
+      "PREVIOUS MATCH" = as.character(if (nrow(match_index) >= 2) match_index$match_id[2] else match_index$match_id[1]),
+      "LAST 5" = as.character(head(match_index$match_id, 5)),
+      "LAST 10" = as.character(head(match_index$match_id, 10)),
+      "FULL SEASON" = as.character(match_index$match_id),
+      as.character(match_index$match_id[1])
+    )
+  })
+
+  attack_map_keys <- c("right", "left", "gap_slide", "middle", "backrow")
+  lapply(attack_map_keys, function(key) {
+    local({
+      map_key <- key
+      output[[paste0("attack_plot_", map_key)]] <- renderPlot({
+        ids <- current_attack_match_ids()
+        d <- load_attack_map_events(ids)
+        def <- ATTACK_MAP_DEFINITIONS[[map_key]]
+        if (map_key == "backrow") {
+          type_lower <- tolower(d$Attack_Type)
+          code_upper <- toupper(d$Attack_Code)
+          keep <- code_upper == "V7" | grepl("pipe", type_lower)
+          selected <- input[[paste0("attack_codes_", map_key)]]
+          if (!is.null(selected) && !("PIPE" %in% selected)) keep <- keep & code_upper == "V7"
+          if (!is.null(selected) && !("V7" %in% selected)) keep <- keep & grepl("pipe", type_lower)
+          d <- d[keep, , drop = FALSE]
+        } else {
+          d <- d[d$Attack_Code %in% def$codes, , drop = FALSE]
+          selected <- input[[paste0("attack_codes_", map_key)]]
+          if (!is.null(selected)) d <- d[d$Attack_Code %in% selected, , drop = FALSE]
+        }
+        outcome_filter <- input[[paste0("attack_outcome_", map_key)]]
+        cls <- if (nrow(d)) attack_map_outcome_class(d) else character(0)
+        if (identical(outcome_filter, "Kills")) d <- d[cls == "Kill", , drop = FALSE]
+        if (identical(outcome_filter, "In play")) d <- d[cls == "In Play", , drop = FALSE]
+        show_paths <- is.null(input[[paste0("attack_paths_", map_key)]]) ||
+          isTRUE(input[[paste0("attack_paths_", map_key)]])
+        draw_attack_map(d, def$title, show_paths = show_paths)
+      }, res = 100)
+
+      output[[paste0("attack_summary_", map_key)]] <- renderUI({
+        ids <- current_attack_match_ids()
+        d <- load_attack_map_events(ids)
+        def <- ATTACK_MAP_DEFINITIONS[[map_key]]
+        if (map_key == "backrow") {
+          type_lower <- tolower(d$Attack_Type)
+          code_upper <- toupper(d$Attack_Code)
+          keep <- code_upper == "V7" | grepl("pipe", type_lower)
+          selected <- input[[paste0("attack_codes_", map_key)]]
+          if (!is.null(selected) && !("PIPE" %in% selected)) keep <- keep & code_upper == "V7"
+          if (!is.null(selected) && !("V7" %in% selected)) keep <- keep & grepl("pipe", type_lower)
+          d <- d[keep, , drop = FALSE]
+        } else {
+          d <- d[d$Attack_Code %in% def$codes, , drop = FALSE]
+          selected <- input[[paste0("attack_codes_", map_key)]]
+          if (!is.null(selected)) d <- d[d$Attack_Code %in% selected, , drop = FALSE]
+        }
+        outcome_filter <- input[[paste0("attack_outcome_", map_key)]]
+        cls <- if (nrow(d)) attack_map_outcome_class(d) else character(0)
+        if (identical(outcome_filter, "Kills")) d <- d[cls == "Kill", , drop = FALSE]
+        if (identical(outcome_filter, "In play")) d <- d[cls == "In Play", , drop = FALSE]
+        attack_map_summary_ui(d)
+      })
+    })
+  })
+
 }
 
 shinyApp(ui = ui, server = server)
