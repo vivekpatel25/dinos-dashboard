@@ -2869,7 +2869,8 @@ attack_map_ui <- function() {
         span(class = "legend-inplay", "○  IN PLAY"),
         span(class = "legend-line", "—  ATTACK PATH"),
         span(class = "legend-touch", "■  BLOCK TOUCH"),
-        span(class = "legend-stuffed", "■  STUFFED")
+        span(class = "legend-stuffed", "■  STUFFED"),
+        span(class = "legend-no-touch", "■  NO RECORDED BLOCK TOUCH")
       ),
       map_card("right", ATTACK_MAP_DEFINITIONS$right),
       map_card("left", ATTACK_MAP_DEFINITIONS$left),
@@ -2890,8 +2891,8 @@ attack_map_outcome_class <- function(d) {
              evaluation == "blocked for reattack", "In Play", "Other"))
 }
 
-attack_zone_xy <- function(zone, is_origin = FALSE) {
-  # Opponent court orientation matching the scouting reference:
+attack_zone_xy <- function(zone, subzone = NULL, is_origin = FALSE) {
+  # Court orientation follows the supplied scouting diagram:
   # far row 1-6-5, middle row 7-8-9, net row 2-3-4.
   x_map <- c(`1` = 0.5, `6` = 1.5, `5` = 2.5,
              `7` = 0.5, `8` = 1.5, `9` = 2.5,
@@ -2902,9 +2903,21 @@ attack_zone_xy <- function(zone, is_origin = FALSE) {
   z <- as.character(suppressWarnings(as.integer(zone)))
   x <- unname(x_map[z])
   y <- unname(y_map[z])
+
+  if (!is_origin && !is.null(subzone)) {
+    # Each zone is divided into four subzones, matching the diagram:
+    # A = upper-left, B = lower-left, C = lower-right, D = upper-right.
+    sz <- toupper(trimws(as.character(subzone)))
+    dx <- ifelse(sz %in% c("A", "B"), -0.25,
+          ifelse(sz %in% c("C", "D"), 0.25, 0))
+    dy <- ifelse(sz %in% c("A", "D"), 0.25,
+          ifelse(sz %in% c("B", "C"), -0.25, 0))
+    x <- x + dx
+    y <- y + dy
+  }
+
   if (is_origin) {
-    # Attacking-team origins are viewed from the opposite side of the net:
-    # own zone 2 is the right-side approach; own zone 4 is the left-side approach.
+    # Own zone 2 is the right-side approach; own zone 4 is the left-side approach.
     x <- 3 - x
     y <- rep(-0.18, length(zone))
   }
@@ -2925,6 +2938,17 @@ draw_attack_map <- function(d, title = "ATTACK MAP", show_paths = TRUE) {
   segments(2, 0, 2, 3, col = "#d2dce3", lwd = 1.15)
   segments(0, 1, 3, 1, col = "#d2dce3", lwd = 1.15)
   segments(0, 2, 3, 2, col = "#d2dce3", lwd = 1.15)
+  # Fine dashed lines divide each numbered zone into A/B/C/D subzones.
+  for (x_sub in c(0.5, 1.5, 2.5)) {
+    segments(x_sub, 0, x_sub, 3,
+             col = grDevices::adjustcolor("#d2dce3", alpha.f = 0.75),
+             lwd = 0.7, lty = 3)
+  }
+  for (y_sub in c(0.5, 1.5, 2.5)) {
+    segments(0, y_sub, 3, y_sub,
+             col = grDevices::adjustcolor("#d2dce3", alpha.f = 0.75),
+             lwd = 0.7, lty = 3)
+  }
   # Net / front boundary
   segments(0, 0, 3, 0, col = "#344653", lwd = 4)
   # Side and end lines
@@ -2948,7 +2972,7 @@ draw_attack_map <- function(d, title = "ATTACK MAP", show_paths = TRUE) {
   }
 
   start <- attack_zone_xy(d$Start_Zone, is_origin = TRUE)
-  end <- attack_zone_xy(d$End_Zone)
+  end <- attack_zone_xy(d$End_Zone, subzone = d$End_Subzone)
   cls <- attack_map_outcome_class(d)
   marker_fill <- ifelse(cls == "Kill", "#263746",
                  ifelse(cls == "In Play", "#159b70", "#df4b40"))
@@ -3470,7 +3494,7 @@ ui <- fluidPage(
       .net-bar-stuffed{background:#df4b40;}
       .net-bar-none{background:#263746;}
       .attack-map-legend{display:flex;gap:16px;flex-wrap:wrap;padding:4px 4px 10px;font-size:10px;color:#667789;}
-      .legend-kill{color:#263746}.legend-inplay{color:#263746}.legend-touch{color:#159b70}.legend-stuffed{color:#df4b40}
+      .legend-kill{color:#263746}.legend-inplay{color:#263746}.legend-touch{color:#159b70}.legend-stuffed{color:#df4b40}.legend-no-touch{color:#263746}
       @media(max-width:600px){.attack-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr));}
         .attack-map-controls{display:block}.attack-map-controls .form-group{margin:5px 0;}}
 
