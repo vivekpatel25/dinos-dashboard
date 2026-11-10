@@ -3099,11 +3099,30 @@ load_setting_analysis <- function(ids = NULL) {
   d
 }
 
-setting_zone_xy <- function(zone, subzone) {
-  xy <- attack_zone_xy(zone, subzone, is_origin = FALSE)
-  xy$x <- xy$x
-  xy$y <- xy$y
-  xy
+setting_zone_cell <- function(zone, subzone) {
+  # Reference court orientation: NET at top; zones 4-3-2 / 7-8-9 / 5-6-1.
+  zone_layout <- matrix(c(4, 3, 2,
+                          7, 8, 9,
+                          5, 6, 1), nrow = 3, byrow = TRUE)
+  zone <- suppressWarnings(as.integer(as.character(zone)))
+  subzone <- toupper(trimws(as.character(subzone)))
+  out_x <- out_y <- rep(NA_real_, length(zone))
+  for (i in seq_along(zone)) {
+    pos <- which(zone_layout == zone[i], arr.ind = TRUE)
+    if (!nrow(pos)) next
+    # Subzone layout within each numbered zone:
+    # C B
+    # D A
+    sub_pos <- switch(subzone[i],
+      "C" = c(1, 1), "B" = c(1, 2),
+      "D" = c(2, 1), "A" = c(2, 2),
+      NULL
+    )
+    if (is.null(sub_pos)) next
+    out_x[i] <- (pos[1, 2] - 1) * 2 + sub_pos[2] - 0.5
+    out_y[i] <- 6 - ((pos[1, 1] - 1) * 2 + sub_pos[1] - 0.5)
+  }
+  list(x = out_x, y = out_y)
 }
 
 setting_map_ui <- function() {
@@ -3111,14 +3130,20 @@ setting_map_ui <- function() {
     class = "attack-maps-section setting-maps-section",
     div(class = "attack-maps-title", "SETTING MAPS"),
     div(class = "setting-map-note",
-        "University of Calgary setters · Destination = recorded setting zone and subzone · All sets are counted, including unlinked sets"),
+        "University of Calgary setters · Setting destination by zone and subzone · All sets are counted, including unlinked sets"),
     div(class = "setting-map-controls",
-      selectInput("setting_setter_filter", "SETTER", choices = c("All setters" = "All"), selected = "All", width = "240px"),
-      radioButtons("setting_phase_filter", "PHASE",
-        choices = c("All phases" = "All", "First Ball" = "First Ball", "Transition" = "Transition"),
-        selected = "All", inline = TRUE)
+      div(class = "setting-filter-block",
+        tags$label("SETTER"),
+        uiOutput("setting_setter_buttons")
+      ),
+      div(class = "setting-filter-block setting-phase-block",
+        tags$label("PHASE"),
+        radioButtons("setting_phase_filter", NULL,
+          choices = c("All phases" = "All", "First Ball" = "First Ball", "Transition" = "Transition"),
+          selected = "All", inline = TRUE)
+      )
     ),
-    plotOutput("setting_destination_map", height = "390px"),
+    plotOutput("setting_destination_map", height = "540px"),
     uiOutput("setting_map_summary")
   )
 }
@@ -3706,10 +3731,16 @@ ui <- fluidPage(
       @media(max-width:900px){.pass-map-layout{grid-template-columns:1fr;}
         .pass-court{max-width:650px;margin:0 auto;}}
 
-      .setting-map-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;
-        flex-wrap:wrap;padding:8px 12px;border:1px solid #e0e6eb;border-radius:9px;margin:8px 0 12px;}
+      .setting-map-controls{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;
+        flex-wrap:wrap;padding:10px 12px;border:1px solid #e0e6eb;border-radius:9px;margin:8px 0 12px;}
+      .setting-filter-block{min-width:0;}
+      .setting-filter-block>label{display:block;font-size:12px;font-weight:800;color:#344653;margin:0 0 7px;}
       .setting-map-controls .form-group{margin:0;}
-      .setting-map-controls .shiny-options-group{display:flex;gap:12px;flex-wrap:wrap;}
+      .setting-map-controls .shiny-options-group{display:flex;gap:6px;flex-wrap:wrap;}
+      .setting-map-controls .radio-inline{margin:0!important;padding:7px 13px;border:1px solid #d7dfe5;
+        border-radius:6px;background:#f3f6f8;font-size:12px;font-weight:700;color:#52616b;}
+      .setting-map-controls .radio-inline input{display:none;}
+      .setting-map-controls .radio-inline:has(input:checked){background:#c65a00;border-color:#c65a00;color:#fff;}
       .setting-map-note{font-size:11px;color:#6f8090;margin:4px 2px 10px;}
       .setting-summary{margin-top:10px;}
       .setting-summary-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
@@ -4355,43 +4386,50 @@ server <- function(input, output, session) {
     d
   })
 
-  observe({
+  output$setting_setter_buttons <- renderUI({
     d <- load_setting_analysis(current_setting_match_ids())
     setters <- if (nrow(d)) sort(unique(d$Setter_Name[!is.na(d$Setter_Name) & nzchar(d$Setter_Name)])) else character(0)
     choices <- c("All setters" = "All", stats::setNames(setters, setters))
-    current <- isolate(input$setting_setter_filter)
+    current <- input$setting_setter_filter
     selected <- if (!is.null(current) && current %in% unname(choices)) current else "All"
-    updateSelectInput(session, "setting_setter_filter", choices = choices, selected = selected)
+    radioButtons("setting_setter_filter", NULL, choices = choices,
+                 selected = selected, inline = TRUE)
   })
 
   output$setting_destination_map <- renderPlot({
     d <- setting_data_for_view()
-    par(mar = c(0.7, 0.7, 1.2, 0.7), xaxs = "i", yaxs = "i")
-    plot(NA, xlim = c(-0.35, 3.35), ylim = c(-0.35, 3.25), asp = 1,
+    par(mar = c(1.0, 0.7, 2.0, 0.7), xaxs = "i", yaxs = "i")
+    plot(NA, xlim = c(-0.08, 6.08), ylim = c(-0.15, 6.42), asp = 1,
          axes = FALSE, xlab = "", ylab = "")
-    rect(-0.18, -0.18, 3.18, 3.08, col = "#eaf1f5", border = NA)
-    rect(0, 0, 3, 3, col = "#f7f9fa", border = "#344653", lwd = 2)
-    segments(1, 0, 1, 3, col = "#d2dce3", lwd = 1.1)
-    segments(2, 0, 2, 3, col = "#d2dce3", lwd = 1.1)
-    segments(0, 1, 3, 1, col = "#d2dce3", lwd = 1.1)
-    segments(0, 2, 3, 2, col = "#d2dce3", lwd = 1.1)
-    for (x in c(0.5, 1.5, 2.5)) segments(x, 0, x, 3, col = "#d2dce3", lty = 3)
-    for (y in c(0.5, 1.5, 2.5)) segments(0, y, 3, y, col = "#d2dce3", lty = 3)
-    segments(0, 0, 3, 0, col = "#344653", lwd = 4)
-    text(1.5, -0.13, "NET", cex = 0.75, font = 2, col = "#344653")
+    # Net is at the top, matching the supplied zone/subzone reference.
+    text(3, 6.28, "NET", cex = 0.9, font = 2, col = "#52616b")
+    segments(0, 6.12, 6, 6.12, col = "#344653", lwd = 4)
+
+    # Draw all 36 cells so the court remains a consistent 6 x 6 grid.
+    rect(0, 0, 6, 6, col = "#f7f8f9", border = "#aebbc5", lwd = 1.1)
+    for (x in 1:5) segments(x, 0, x, 6, col = "#cbd5dc", lwd = 1)
+    for (y in 1:5) segments(0, y, 6, y, col = "#cbd5dc", lwd = 1)
+    # Subtle back-court tint, as in the supplied example.
+    rect(0, 0, 6, 3, col = grDevices::adjustcolor("#d9a98a", alpha.f = 0.18), border = NA)
+    for (x in 0:5) for (y in 0:5) {
+      rect(x, y, x + 1, y + 1, col = if (y < 3) "#f1e8e1" else "#f0f2f3",
+           border = "#cbd5dc", lwd = 0.8)
+    }
+
     if (!nrow(d)) {
-      text(1.5, 1.5, "No setting analysis data for this selection", col = "#7b8996", cex = 0.9)
+      text(3, 3, "No setting analysis data for this selection", col = "#7b8996", cex = 0.9)
       return(invisible(NULL))
     }
 
-    valid <- !is.na(d$Setting_Destination_Zone) & d$Setting_Destination_Zone %in% 1:9
+    valid <- !is.na(d$Setting_Destination_Zone) &
+      d$Setting_Destination_Zone %in% 1:9 &
+      d$Setting_Destination_Subzone %in% c("A", "B", "C", "D")
     d <- d[valid, , drop = FALSE]
     if (!nrow(d)) {
-      text(1.5, 1.5, "No valid setting destinations", col = "#7b8996", cex = 0.9)
+      text(3, 3, "No valid setting destinations", col = "#7b8996", cex = 0.9)
       return(invisible(NULL))
     }
 
-    # One row per setting event. Destination volume includes unlinked sets.
     key <- paste(d$Setting_Destination_Zone, d$Setting_Destination_Subzone, sep = "_")
     groups <- split(seq_len(nrow(d)), key)
     counts <- data.frame(
@@ -4404,16 +4442,26 @@ server <- function(input, output, session) {
     counts$linked <- vapply(groups, function(ix) sum(d$Linked_Attack[ix], na.rm = TRUE), integer(1))
     counts$kills <- vapply(groups, function(ix) sum(d$Linked_Attack[ix] & d$Attack_Kill[ix], na.rm = TRUE), integer(1))
     counts$errors <- vapply(groups, function(ix) sum(d$Linked_Attack[ix] & d$Attack_Error[ix], na.rm = TRUE), integer(1))
-    counts$eff <- ifelse(counts$linked > 0, (counts$kills - counts$errors) / counts$linked, NA_real_)
-    xy <- setting_zone_xy(counts$zone, counts$subzone)
-    radius <- 0.13 + 0.24 * sqrt(counts$n / max(counts$n))
-    fill <- ifelse(is.na(counts$eff), "#9aa7b2",
-            ifelse(counts$eff >= 0.35, "#159B69",
-            ifelse(counts$eff >= 0.15, "#C8102E", "#263746")))
-    symbols <- rep(21, nrow(counts))
-    points(xy$x, xy$y, pch = symbols, cex = radius * 5.2,
-           bg = grDevices::adjustcolor(fill, alpha.f = 0.88), col = "white", lwd = 1.5)
-    text(xy$x, xy$y, labels = counts$n, col = "white", font = 2, cex = 0.85)
+    counts$unknown <- vapply(groups, function(ix) sum(d$Linked_Attack[ix] & d$Attack_Unknown_Outcome[ix], na.rm = TRUE), integer(1))
+    counts$known <- pmax(0, counts$linked - counts$unknown)
+    counts$eff <- ifelse(counts$known > 0, (counts$kills - counts$errors) / counts$known, NA_real_)
+    xy <- setting_zone_cell(counts$zone, counts$subzone)
+
+    for (i in seq_len(nrow(counts))) {
+      x <- xy$x[i]; y <- xy$y[i]
+      if (is.na(x) || is.na(y)) next
+      eff_label <- if (is.na(counts$eff[i])) "—" else paste0(round(counts$eff[i] * 100), "%")
+      eff_col <- if (is.na(counts$eff[i])) "#8b98a3" else "#263746"
+      text(x, y + 0.16, eff_label, cex = 1.18, font = 2, col = eff_col)
+      detail <- if (counts$known[i] > 0) {
+        paste0("K ", counts$kills[i], "  E ", counts$errors[i])
+      } else {
+        "No linked result"
+      }
+      text(x, y - 0.10, detail, cex = 0.58, font = 2, col = "#71808c")
+      text(x, y - 0.34, paste0("n=", counts$n[i]), cex = 0.62,
+           font = 2, col = "#8996a1")
+    }
     invisible(NULL)
   }, res = 110)
 
