@@ -2891,7 +2891,7 @@ attack_zone_xy <- function(zone, is_origin = FALSE) {
              `5` = 0.5, `6` = 0.5, `7` = 1.5, `8` = 1.5, `9` = 0.5)
   z <- as.character(as.integer(zone))
   x <- unname(x_map[z]); y <- unname(y_map[z])
-  if (is_origin) y <- -0.62
+  if (is_origin) y <- rep(-0.62, length(zone))
   list(x = x, y = y)
 }
 
@@ -2947,13 +2947,15 @@ attack_map_summary_ui <- function(d) {
   touched_in_play <- sum(eval == "blocked for reattack", na.rm = TRUE)
   block_touches <- stuffed + touched_in_play
   total <- nrow(d)
-  efficiency <- if (total) round((kills - sum(outcome == "error", na.rm = TRUE)) / total * 100, 1) else 0
+  efficiency <- if (total) {
+    round((kills - sum(outcome == "error", na.rm = TRUE)) / total, 3)
+  } else 0
   div(class = "attack-map-summary",
     div(class = "attack-summary-stats",
       div(span("SWINGS"), strong(total)),
       div(span("KILLS"), strong(kills)),
       div(span("IN PLAY"), strong(in_play)),
-      div(span("ATTACK EFF."), strong(paste0(efficiency, "%")))
+      div(span("ATTACK EFF."), strong(sprintf("%.3f", efficiency)))
     ),
     div(class = "attack-net-bar",
       div(class = "net-bar-title", "BLOCK CONTACT NEAR THE NET"),
@@ -3378,19 +3380,43 @@ ui <- fluidPage(
       .attack-maps-section{background:#fff;border:1px solid #dfe6ed;border-radius:17px;
         padding:16px;margin:18px 0;box-shadow:0 4px 14px rgba(31,49,67,.04);}
       .attack-maps-title,.attack-map-subsection-label{font-family:'Barlow Condensed';font-size:25px;
-        font-weight:800;color:#fff;background:#c65b00;padding:9px 14px;border-radius:10px;margin-bottom:10px;}
-      .attack-map-subsection-label{margin:18px 0 9px;font-size:19px;background:#344653;}
+        font-weight:800;color:#fff;background:#C8102E;padding:9px 14px;border-radius:10px;margin-bottom:10px;}
+      .attack-map-subsection-label{margin:18px 0 9px;font-size:19px;background:#C8102E;}
       .attack-map-card{border:1px solid #dce4eb;border-radius:13px;margin:10px 0 15px;overflow:hidden;
         box-shadow:0 4px 12px rgba(31,49,67,.06);}
-      .attack-map-heading{background:#c65b00;color:#fff;padding:9px 14px;font-family:'Barlow Condensed';
+      .attack-map-heading{background:#C8102E;color:#fff;padding:9px 14px;font-family:'Barlow Condensed';
         font-size:19px;font-weight:800;letter-spacing:.5px;}
       .attack-map-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;
         padding:5px 12px;border-bottom:1px solid #e0e6eb;flex-wrap:wrap;}
       .attack-map-controls .form-group{margin:0;}
-      .attack-map-controls .checkbox{margin:0 8px 0 0;font-size:11px;color:#405467;}
-      .attack-map-controls .checkbox-inline{font-size:11px;color:#405467;margin:0 13px 0 0;}
-      .attack-map-controls .radio-inline{font-size:11px;color:#405467;margin:0 8px 0 0;}
-      .attack-map-controls .shiny-options-group{display:flex;gap:8px;flex-wrap:wrap;}
+      .attack-map-controls .shiny-options-group{display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
+      .attack-map-controls .checkbox-inline,.attack-map-controls .checkbox{
+        position:relative;display:inline-flex;align-items:center;min-height:22px;
+        margin:0 10px 0 0;padding:0 0 0 39px;font-size:11px;color:#405467;
+        cursor:pointer;white-space:nowrap;vertical-align:middle;}
+      .attack-map-controls .checkbox-inline input[type=checkbox],
+      .attack-map-controls .checkbox input[type=checkbox]{
+        position:absolute !important;opacity:0 !important;width:1px !important;
+        height:1px !important;margin:0 !important;left:0;pointer-events:none;}
+      .attack-map-controls .checkbox-inline:before,.attack-map-controls .checkbox:before{
+        content:'';position:absolute;left:0;top:3px;width:31px;height:16px;
+        border-radius:12px;background:#c5ced6;transition:background .15s;}
+      .attack-map-controls .checkbox-inline:after,.attack-map-controls .checkbox:after{
+        content:'';position:absolute;left:2px;top:5px;width:12px;height:12px;
+        border-radius:50%;background:#fff;transition:transform .15s;}
+      .attack-map-controls .checkbox-inline:has(input:checked):before,
+      .attack-map-controls .checkbox:has(input:checked):before{background:#C8102E;}
+      .attack-map-controls .checkbox-inline:has(input:checked):after,
+      .attack-map-controls .checkbox:has(input:checked):after{transform:translateX(15px);}
+      .attack-map-controls .radio-inline{
+        position:relative;display:inline-flex;align-items:center;margin:0;
+        padding:5px 11px;border:1px solid #d8e0e7;border-right:0;
+        background:#fff;color:#536577;font-size:10px;font-weight:800;cursor:pointer;}
+      .attack-map-controls .radio-inline:first-child{border-radius:7px 0 0 7px;}
+      .attack-map-controls .radio-inline:last-child{border-right:1px solid #d8e0e7;border-radius:0 7px 7px 0;}
+      .attack-map-controls .radio-inline input{position:absolute;opacity:0;pointer-events:none;}
+      .attack-map-controls .radio-inline:has(input:checked){
+        background:#C8102E;color:#fff;border-color:#C8102E;}
       .attack-map-card .shiny-plot-output{width:100%;}
       .attack-map-summary{padding:0 14px 13px;}
       .attack-summary-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;}
