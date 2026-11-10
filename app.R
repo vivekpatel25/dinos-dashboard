@@ -204,17 +204,17 @@ all_skill_area <- load_skill_area_data()
 skill_palette <- c(
   "Kills" = "#159B69",
   "In play" = "#9CB6C5",
-  "Blocked" = "#C8102E",
+  "Blocked" = "#F39A27",
   "Errors" = "#E34D40",
   "Good pass" = "#159B69",
-  "Medium" = "#C8102E",
-  "Out-of-system" = "#C8102E",
-  "Overpass" = "#C8102E",
+  "Medium" = "#F4B12E",
+  "Out-of-system" = "#F39A27",
+  "Overpass" = "#F36B21",
   "Aced" = "#E34D40",
   "Stuff" = "#159B69",
   "Positive" = "#C45A00",
   "Fulfilled" = "#9CB6C5",
-  "Negative" = "#C8102E",
+  "Negative" = "#F0A12C",
   "Aces" = "#08764F",
   "OOS Pass" = "#7CC7A5",
   "Good Pass" = "#9CB6C5",
@@ -879,7 +879,7 @@ rotation_table_ui <- function(ids) {
         rank_value[which(display$ROTATION[display$ROTATION != "AVG"] == display$ROTATION[r])[1]] / length(values)
       }
       if (raw_nm %in% error_cols) score <- 1 - score
-      bg <- if (is_avg) "#e8edf1" else if (score >= .75) "#198754" else if (score >= .50) "#bfe8cf" else if (score >= .25) "#e7aab5" else "#f3c1c1"
+      bg <- if (is_avg) "#e8edf1" else if (score >= .75) "#198754" else if (score >= .50) "#bfe8cf" else if (score >= .25) "#f6c36a" else "#f3c1c1"
       fg <- if (!is_avg && score >= .75) "#ffffff" else "#243447"
       tags$td(class = if (is_avg) "rot-avg-cell" else "rot-cell",
         style = paste0("background:", bg, ";color:", fg, ";"), label)
@@ -1380,7 +1380,7 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
 
   outcome_colours <- c(
     "Block Point" = "#159B69",
-    "Positive" = "#C8102E",
+    "Positive" = "#E0A21A",
     "Negative" = "#C94A35",
     "Block Error" = "#718096"
   )
@@ -1613,7 +1613,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
     "Ace" = "#D9433A",
     "OOS" = "#159B69",
     "Medium" = "#79BFA0",
-    "Negative – Free Attack" = "#C8102E",
+    "Negative – Free Attack" = "#F0782B",
     "Error" = "#AAB5C0",
     "No Attack (/)" = "#9AA7B2"
   )
@@ -1688,7 +1688,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
   card_codes <- c("#", "+", "!", "-", "=")
   card_colours <- c(
     "Ace" = "#D9433A", "OOS" = "#159B69", "Medium" = "#79BFA0",
-    "Negative" = "#C8102E", "Error" = "#AAB5C0"
+    "Negative" = "#F0782B", "Error" = "#AAB5C0"
   )
   card_total <- nrow(card_source)
   stat_cards <- lapply(seq_along(card_levels), function(i) {
@@ -1861,7 +1861,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
     )
     mix_colours <- c(
       Ace = "#D9433A", OOS = "#159B69", Medium = "#79BFA0",
-      Negative = "#C8102E", Error = "#AAB5C0",
+      Negative = "#F0782B", Error = "#AAB5C0",
       `No attack (/)` = "#D6DDE3"
     )
     mix_bar <- div(
@@ -2062,7 +2062,7 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
 
   category_colours <- c(
     "Good passes" = "#159B69",
-    "OOS passes" = "#C8102E",
+    "OOS passes" = "#E6A11A",
     "Overpasses" = "#D9433A",
     "Passing errors" = "#D9433A"
   )
@@ -2183,7 +2183,7 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
     } else {
       "marker-standard"
     }
-    colour <- if (code == "-") "#C8102E" else
+    colour <- if (code == "-") "#E6A11A" else
       if (code %in% c("=", "/")) "#D9433A" else
       unname(category_colours[d$Pass_Map_Category[i]])
 
@@ -3032,6 +3032,97 @@ attack_map_summary_ui <- function(d) {
   )
 }
 
+# ----------------------------- SETTING MAPS -----------------------------
+
+# Reads the match-specific setting analysis exports. These files retain every
+# setter event, including sets that could not be linked to an attack. Linked
+# attacks are used only for attack outcome and efficiency calculations.
+find_setting_analysis_files <- function(ids = NULL) {
+  if (!dir.exists(MATCH_ROOT)) return(character(0))
+
+  files <- list.files(
+    MATCH_ROOT,
+    pattern = "SETTING_ANALYSIS\\.csv$",
+    recursive = TRUE,
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+  if (!length(files)) return(character(0))
+  if (is.null(ids) || !length(ids)) return(files)
+
+  folders <- match_folders_for_ids(ids)
+  if (length(folders)) {
+    keep <- basename(dirname(files)) %in% folders
+    selected <- files[keep]
+    if (length(selected)) return(selected)
+  }
+
+  dates <- match_dates_for_ids(ids)
+  if (!length(dates)) return(character(0))
+  files[vapply(files, function(f) {
+    any(vapply(dates, function(dt) grepl(gsub("-", "[_-]", dt), f), logical(1)))
+  }, logical(1))]
+}
+
+load_setting_analysis <- function(ids = NULL) {
+  files <- find_setting_analysis_files(ids)
+  if (!length(files)) return(data.frame())
+
+  out <- lapply(files, read_csv_safe)
+  out <- Filter(function(d) !is.null(d) && nrow(d), out)
+  if (!length(out)) return(data.frame())
+  d <- do.call(rbind, out)
+
+  required <- c(
+    "Team", "Setter_Name", "Setter_Number", "Setting_Destination_Zone",
+    "Setting_Destination_Subzone", "Setting_Phase", "Linked_Attack",
+    "Attack_Kill", "Attack_Error", "Attack_Unknown_Outcome"
+  )
+  missing <- setdiff(required, names(d))
+  if (length(missing)) {
+    warning(paste("Setting analysis export is missing columns:", paste(missing, collapse = ", ")))
+    return(data.frame())
+  }
+
+  d <- d[grepl("University of Calgary", d$Team, ignore.case = TRUE), , drop = FALSE]
+  if (!nrow(d)) return(d)
+
+  d$Setter_Name <- trimws(as.character(d$Setter_Name))
+  d$Setter_Number <- as.character(d$Setter_Number)
+  d$Setting_Destination_Zone <- suppressWarnings(as.integer(d$Setting_Destination_Zone))
+  d$Setting_Destination_Subzone <- toupper(trimws(as.character(d$Setting_Destination_Subzone)))
+  d$Setting_Phase <- trimws(as.character(d$Setting_Phase))
+  d$Linked_Attack <- tolower(as.character(d$Linked_Attack)) %in% c("true", "t", "1", "yes")
+  for (nm in c("Attack_Kill", "Attack_Error", "Attack_Unknown_Outcome")) {
+    d[[nm]] <- tolower(as.character(d[[nm]])) %in% c("true", "t", "1", "yes")
+  }
+  d
+}
+
+setting_zone_xy <- function(zone, subzone) {
+  xy <- attack_zone_xy(zone, subzone, is_origin = FALSE)
+  xy$x <- xy$x
+  xy$y <- xy$y
+  xy
+}
+
+setting_map_ui <- function() {
+  div(
+    class = "attack-maps-section setting-maps-section",
+    div(class = "attack-maps-title", "SETTING MAPS"),
+    div(class = "setting-map-note",
+        "University of Calgary setters · Destination = recorded setting zone and subzone · All sets are counted, including unlinked sets"),
+    div(class = "setting-map-controls",
+      selectInput("setting_setter_filter", "SETTER", choices = c("All setters" = "All"), selected = "All", width = "240px"),
+      radioButtons("setting_phase_filter", "PHASE",
+        choices = c("All phases" = "All", "First Ball" = "First Ball", "Transition" = "Transition"),
+        selected = "All", inline = TRUE)
+    ),
+    plotOutput("setting_destination_map", height = "390px"),
+    uiOutput("setting_map_summary")
+  )
+}
+
 # ----------------------------- UI -----------------------------
 
 ui <- fluidPage(
@@ -3130,7 +3221,7 @@ ui <- fluidPage(
       .metric-number{font-family:'Barlow Condensed';font-size:28px;font-weight:800;text-align:right;}
 
       .metric-track-wrap{position:relative;padding-top:23px;padding-bottom:3px;}
-      .metric-track{height:13px;border-radius:20px;background:#f2dce1;position:relative;overflow:visible;}
+      .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
       .metric-fill{height:13px;border-radius:20px;min-width:0;}
 
       .opponent-marker{position:absolute;top:-7px;height:27px;width:3px;background:#ef4438;
@@ -3192,7 +3283,7 @@ ui <- fluidPage(
         display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9px;color:#788999;}
 
       .skill-benchmark strong{font-family:'Barlow Condensed';font-size:15px;color:#263746;}
-      .skill-benchmark-track{grid-column:1/-1;height:13px;border-radius:20px;background:#f2dce1;
+      .skill-benchmark-track{grid-column:1/-1;height:13px;border-radius:20px;background:#f3e9e2;
         position:relative;overflow:visible;margin-top:8px;}
 
       .skill-benchmark-fill{height:13px;background:#159B69;border-radius:20px;min-width:0;}
@@ -3309,7 +3400,7 @@ ui <- fluidPage(
       .attack-summary-heading strong{font-family:'Barlow Condensed';font-size:23px;color:#159B69;}
 
       .attack-summary-track{
-        height:12px;background:#f2dce1;border-radius:20px;
+        height:12px;background:#f3e9e2;border-radius:20px;
         position:relative;overflow:visible;isolation:isolate;
       }
       .attack-summary-fill{
@@ -3383,7 +3474,7 @@ ui <- fluidPage(
       .serve-court-column{min-width:0;}
       .serve-court{position:relative;width:100%;height:500px;overflow:hidden;
         border:3px solid #fff;outline:1px solid #d4e0e8;border-radius:3px;
-        background:linear-gradient(to bottom,#f2dce1 0%,#f2dce1 80%,#f3f6f8 80%,#f3f6f8 100%);
+        background:linear-gradient(to bottom,#eee9e2 0%,#eee9e2 80%,#f3f6f8 80%,#f3f6f8 100%);
         box-shadow:0 2px 8px rgba(31,49,67,.12);}
       .serve-zone-cell{position:absolute;width:33.3333%;height:26.6667%;
         border:0 !important;background:transparent;display:flex;align-items:center;
@@ -3575,8 +3666,8 @@ ui <- fluidPage(
       .pass-toggle-panel label:has(input:checked):before{background:#159B69;}
       .pass-toggle-panel label:has(#pass_lines_toggle:checked):before{background:#344653;}
       .pass-toggle-panel label:has(#pass_show_good:checked):before{background:#159B69;}
-      .pass-toggle-panel label:has(#pass_show_oos:checked):before{background:#C8102E;}
-      .pass-toggle-panel label:has(#pass_show_overpass:checked):before{background:#C8102E;}
+      .pass-toggle-panel label:has(#pass_show_oos:checked):before{background:#E6A11A;}
+      .pass-toggle-panel label:has(#pass_show_overpass:checked):before{background:#F06422;}
       .pass-toggle-panel label:has(#pass_show_errors:checked):before{background:#D9433A;}
       .pass-toggle-panel label:has(input:checked):after{transform:translateX(14px);}
       .pass-summary-column{min-width:0;padding:4px 0;}
@@ -3609,11 +3700,24 @@ ui <- fluidPage(
         background:#e7edf1;box-shadow:inset 0 0 0 1px rgba(38,55,70,.04);}
       .pass-outcome-segment{height:100%;min-width:0;}
       .pass-good-segment{background:#159B69;}
-      .pass-oos-segment{background:#C8102E;}
+      .pass-oos-segment{background:#E6A11A;}
       .pass-error-segment{background:#D9433A;}
       .pass-table-note{font-size:9px;color:#87939e;margin-top:6px;}
       @media(max-width:900px){.pass-map-layout{grid-template-columns:1fr;}
         .pass-court{max-width:650px;margin:0 auto;}}
+
+      .setting-map-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;
+        flex-wrap:wrap;padding:8px 12px;border:1px solid #e0e6eb;border-radius:9px;margin:8px 0 12px;}
+      .setting-map-controls .form-group{margin:0;}
+      .setting-map-controls .shiny-options-group{display:flex;gap:12px;flex-wrap:wrap;}
+      .setting-map-note{font-size:11px;color:#6f8090;margin:4px 2px 10px;}
+      .setting-summary{margin-top:10px;}
+      .setting-summary-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+      .setting-summary-stats>div{background:#f3f6f8;border:1px solid #e0e6eb;border-radius:9px;padding:9px 10px;}
+      .setting-summary-stats span{display:block;font-size:9px;font-weight:800;color:#637486;letter-spacing:.4px;}
+      .setting-summary-stats strong{display:block;font-family:'Barlow Condensed';font-size:22px;color:#263746;margin-top:3px;}
+      .setting-summary-note{font-size:10px;color:#718091;margin-top:9px;line-height:1.5;}
+      @media(max-width:700px){.setting-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
       .detail-empty{padding:20px;color:#82909d;text-align:center;font-size:12px;}
 
@@ -4014,7 +4118,8 @@ server <- function(input, output, session) {
         ),
             if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
           )
-          ,attack_map_ui()
+          ,attack_map_ui(),
+          setting_map_ui()
         )
       )
     }
@@ -4189,7 +4294,8 @@ server <- function(input, output, session) {
         ),
         if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
       )
-      ,attack_map_ui()
+      ,attack_map_ui(),
+      setting_map_ui()
     )
   })
 
@@ -4221,6 +4327,120 @@ server <- function(input, output, session) {
 
       })
     })
+  })
+
+  # Setting map data follows the selected match/period or individual report.
+  current_setting_match_ids <- reactive({
+    if (page() == "reports" && !is.null(selected_match())) return(as.character(selected_match()))
+    if (!nrow(match_index)) return(character(0))
+    switch(active_period(),
+      "MOST RECENT MATCH" = as.character(match_index$match_id[1]),
+      "PREVIOUS MATCH" = as.character(if (nrow(match_index) >= 2) match_index$match_id[2] else match_index$match_id[1]),
+      "LAST 5" = as.character(head(match_index$match_id, 5)),
+      "LAST 10" = as.character(head(match_index$match_id, 10)),
+      "FULL SEASON" = as.character(match_index$match_id),
+      as.character(match_index$match_id[1])
+    )
+  })
+
+  setting_data_for_view <- reactive({
+    d <- load_setting_analysis(current_setting_match_ids())
+    if (!nrow(d)) return(d)
+    if (!is.null(input$setting_setter_filter) && input$setting_setter_filter != "All") {
+      d <- d[d$Setter_Name == input$setting_setter_filter, , drop = FALSE]
+    }
+    if (!is.null(input$setting_phase_filter) && input$setting_phase_filter != "All") {
+      d <- d[d$Setting_Phase == input$setting_phase_filter, , drop = FALSE]
+    }
+    d
+  })
+
+  observe({
+    d <- load_setting_analysis(current_setting_match_ids())
+    setters <- if (nrow(d)) sort(unique(d$Setter_Name[!is.na(d$Setter_Name) & nzchar(d$Setter_Name)])) else character(0)
+    choices <- c("All setters" = "All", stats::setNames(setters, setters))
+    current <- isolate(input$setting_setter_filter)
+    selected <- if (!is.null(current) && current %in% unname(choices)) current else "All"
+    updateSelectInput(session, "setting_setter_filter", choices = choices, selected = selected)
+  })
+
+  output$setting_destination_map <- renderPlot({
+    d <- setting_data_for_view()
+    par(mar = c(0.7, 0.7, 1.2, 0.7), xaxs = "i", yaxs = "i")
+    plot(NA, xlim = c(-0.35, 3.35), ylim = c(-0.35, 3.25), asp = 1,
+         axes = FALSE, xlab = "", ylab = "")
+    rect(-0.18, -0.18, 3.18, 3.08, col = "#eaf1f5", border = NA)
+    rect(0, 0, 3, 3, col = "#f7f9fa", border = "#344653", lwd = 2)
+    segments(1, 0, 1, 3, col = "#d2dce3", lwd = 1.1)
+    segments(2, 0, 2, 3, col = "#d2dce3", lwd = 1.1)
+    segments(0, 1, 3, 1, col = "#d2dce3", lwd = 1.1)
+    segments(0, 2, 3, 2, col = "#d2dce3", lwd = 1.1)
+    for (x in c(0.5, 1.5, 2.5)) segments(x, 0, x, 3, col = "#d2dce3", lty = 3)
+    for (y in c(0.5, 1.5, 2.5)) segments(0, y, 3, y, col = "#d2dce3", lty = 3)
+    segments(0, 0, 3, 0, col = "#344653", lwd = 4)
+    text(1.5, -0.13, "NET", cex = 0.75, font = 2, col = "#344653")
+    if (!nrow(d)) {
+      text(1.5, 1.5, "No setting analysis data for this selection", col = "#7b8996", cex = 0.9)
+      return(invisible(NULL))
+    }
+
+    valid <- !is.na(d$Setting_Destination_Zone) & d$Setting_Destination_Zone %in% 1:9
+    d <- d[valid, , drop = FALSE]
+    if (!nrow(d)) {
+      text(1.5, 1.5, "No valid setting destinations", col = "#7b8996", cex = 0.9)
+      return(invisible(NULL))
+    }
+
+    # One row per setting event. Destination volume includes unlinked sets.
+    key <- paste(d$Setting_Destination_Zone, d$Setting_Destination_Subzone, sep = "_")
+    groups <- split(seq_len(nrow(d)), key)
+    counts <- data.frame(
+      key = names(groups),
+      n = vapply(groups, length, integer(1)),
+      stringsAsFactors = FALSE
+    )
+    counts$zone <- as.integer(sub("_.*$", "", counts$key))
+    counts$subzone <- sub("^[^_]*_", "", counts$key)
+    counts$linked <- vapply(groups, function(ix) sum(d$Linked_Attack[ix], na.rm = TRUE), integer(1))
+    counts$kills <- vapply(groups, function(ix) sum(d$Linked_Attack[ix] & d$Attack_Kill[ix], na.rm = TRUE), integer(1))
+    counts$errors <- vapply(groups, function(ix) sum(d$Linked_Attack[ix] & d$Attack_Error[ix], na.rm = TRUE), integer(1))
+    counts$eff <- ifelse(counts$linked > 0, (counts$kills - counts$errors) / counts$linked, NA_real_)
+    xy <- setting_zone_xy(counts$zone, counts$subzone)
+    radius <- 0.13 + 0.24 * sqrt(counts$n / max(counts$n))
+    fill <- ifelse(is.na(counts$eff), "#9aa7b2",
+            ifelse(counts$eff >= 0.35, "#159B69",
+            ifelse(counts$eff >= 0.15, "#C8102E", "#263746")))
+    symbols <- rep(21, nrow(counts))
+    points(xy$x, xy$y, pch = symbols, cex = radius * 5.2,
+           bg = grDevices::adjustcolor(fill, alpha.f = 0.88), col = "white", lwd = 1.5)
+    text(xy$x, xy$y, labels = counts$n, col = "white", font = 2, cex = 0.85)
+    invisible(NULL)
+  }, res = 110)
+
+  output$setting_map_summary <- renderUI({
+    d <- setting_data_for_view()
+    if (!nrow(d)) return(div(class = "detail-empty", "No setting events found for this match selection."))
+    total <- nrow(d)
+    linked <- sum(d$Linked_Attack, na.rm = TRUE)
+    kills <- sum(d$Linked_Attack & d$Attack_Kill, na.rm = TRUE)
+    errors <- sum(d$Linked_Attack & d$Attack_Error, na.rm = TRUE)
+    unknown <- sum(d$Linked_Attack & d$Attack_Unknown_Outcome, na.rm = TRUE)
+    known <- linked - unknown
+    eff <- if (known > 0) (kills - errors) / known else NA_real_
+    setter_counts <- sort(table(d$Setter_Name), decreasing = TRUE)
+    setter_text <- paste(paste0(names(setter_counts), " (", as.integer(setter_counts), ")"), collapse = " · ")
+    div(class = "setting-summary",
+      div(class = "setting-summary-stats",
+        div(span("TOTAL SETS", strong(total))),
+        div(span("LINKED ATTACKS", strong(linked))),
+        div(span("KILLS", strong(kills))),
+        div(span("ATTACK ERRORS", strong(errors))),
+        div(span("LINKED ATTACK EFF.", strong(ifelse(is.na(eff), "—", sprintf("%.3f", eff)))))
+      ),
+      div(class = "setting-summary-note",
+        paste0("Setter distribution: ", setter_text,
+               " · Efficiency = (kills − attack errors) / linked attacks with a known outcome. Unlinked sets remain in total set counts."))
+    )
   })
 
   # Attack maps: the same five-map structure is used on the dashboard and
