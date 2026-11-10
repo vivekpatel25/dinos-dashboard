@@ -204,17 +204,17 @@ all_skill_area <- load_skill_area_data()
 skill_palette <- c(
   "Kills" = "#159B69",
   "In play" = "#9CB6C5",
-  "Blocked" = "#F39A27",
+  "Blocked" = "#C8102E",
   "Errors" = "#E34D40",
   "Good pass" = "#159B69",
-  "Medium" = "#F4B12E",
-  "Out-of-system" = "#F39A27",
-  "Overpass" = "#F36B21",
+  "Medium" = "#C8102E",
+  "Out-of-system" = "#C8102E",
+  "Overpass" = "#C8102E",
   "Aced" = "#E34D40",
   "Stuff" = "#159B69",
   "Positive" = "#C45A00",
   "Fulfilled" = "#9CB6C5",
-  "Negative" = "#F0A12C",
+  "Negative" = "#C8102E",
   "Aces" = "#08764F",
   "OOS Pass" = "#7CC7A5",
   "Good Pass" = "#9CB6C5",
@@ -879,7 +879,7 @@ rotation_table_ui <- function(ids) {
         rank_value[which(display$ROTATION[display$ROTATION != "AVG"] == display$ROTATION[r])[1]] / length(values)
       }
       if (raw_nm %in% error_cols) score <- 1 - score
-      bg <- if (is_avg) "#e8edf1" else if (score >= .75) "#198754" else if (score >= .50) "#bfe8cf" else if (score >= .25) "#f6c36a" else "#f3c1c1"
+      bg <- if (is_avg) "#e8edf1" else if (score >= .75) "#198754" else if (score >= .50) "#bfe8cf" else if (score >= .25) "#e7aab5" else "#f3c1c1"
       fg <- if (!is_avg && score >= .75) "#ffffff" else "#243447"
       tags$td(class = if (is_avg) "rot-avg-cell" else "rot-cell",
         style = paste0("background:", bg, ";color:", fg, ";"), label)
@@ -1380,7 +1380,7 @@ block_detail_ui <- function(ids, selected_attack_types = NULL) {
 
   outcome_colours <- c(
     "Block Point" = "#159B69",
-    "Positive" = "#E0A21A",
+    "Positive" = "#C8102E",
     "Negative" = "#C94A35",
     "Block Error" = "#718096"
   )
@@ -1613,7 +1613,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
     "Ace" = "#D9433A",
     "OOS" = "#159B69",
     "Medium" = "#79BFA0",
-    "Negative – Free Attack" = "#F0782B",
+    "Negative – Free Attack" = "#C8102E",
     "Error" = "#AAB5C0",
     "No Attack (/)" = "#9AA7B2"
   )
@@ -1688,7 +1688,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
   card_codes <- c("#", "+", "!", "-", "=")
   card_colours <- c(
     "Ace" = "#D9433A", "OOS" = "#159B69", "Medium" = "#79BFA0",
-    "Negative" = "#F0782B", "Error" = "#AAB5C0"
+    "Negative" = "#C8102E", "Error" = "#AAB5C0"
   )
   card_total <- nrow(card_source)
   stat_cards <- lapply(seq_along(card_levels), function(i) {
@@ -1861,7 +1861,7 @@ serving_map_ui <- function(ids, serve_from = "All", server_name = "All", selecte
     )
     mix_colours <- c(
       Ace = "#D9433A", OOS = "#159B69", Medium = "#79BFA0",
-      Negative = "#F0782B", Error = "#AAB5C0",
+      Negative = "#C8102E", Error = "#AAB5C0",
       `No attack (/)` = "#D6DDE3"
     )
     mix_bar <- div(
@@ -2062,7 +2062,7 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
 
   category_colours <- c(
     "Good passes" = "#159B69",
-    "OOS passes" = "#E6A11A",
+    "OOS passes" = "#C8102E",
     "Overpasses" = "#D9433A",
     "Passing errors" = "#D9433A"
   )
@@ -2183,7 +2183,7 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
     } else {
       "marker-standard"
     }
-    colour <- if (code == "-") "#E6A11A" else
+    colour <- if (code == "-") "#C8102E" else
       if (code %in% c("=", "/")) "#D9433A" else
       unname(category_colours[d$Pass_Map_Category[i]])
 
@@ -3130,7 +3130,7 @@ ui <- fluidPage(
       .metric-number{font-family:'Barlow Condensed';font-size:28px;font-weight:800;text-align:right;}
 
       .metric-track-wrap{position:relative;padding-top:23px;padding-bottom:3px;}
-      .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
+      .metric-track{height:13px;border-radius:20px;background:#f2dce1;position:relative;overflow:visible;}
       .metric-fill{height:13px;border-radius:20px;min-width:0;}
 
       .opponent-marker{position:absolute;top:-7px;height:27px;width:3px;background:#ef4438;
@@ -3192,7 +3192,7 @@ ui <- fluidPage(
         display:grid;grid-template-columns:1fr auto;gap:6px;font-size:9px;color:#788999;}
 
       .skill-benchmark strong{font-family:'Barlow Condensed';font-size:15px;color:#263746;}
-      .skill-benchmark-track{grid-column:1/-1;height:13px;border-radius:20px;background:#f3e9e2;
+      .skill-benchmark-track{grid-column:1/-1;height:13px;border-radius:20px;background:#f2dce1;
         position:relative;overflow:visible;margin-top:8px;}
 
       .skill-benchmark-fill{height:13px;background:#159B69;border-radius:20px;min-width:0;}
@@ -3309,7 +3309,7 @@ ui <- fluidPage(
       .attack-summary-heading strong{font-family:'Barlow Condensed';font-size:23px;color:#159B69;}
 
       .attack-summary-track{
-        height:12px;background:#f3e9e2;border-radius:20px;
+        height:12px;background:#f2dce1;border-radius:20px;
         position:relative;overflow:visible;isolation:isolate;
       }
       .attack-summary-fill{
@@ -3383,7 +3383,7 @@ ui <- fluidPage(
       .serve-court-column{min-width:0;}
       .serve-court{position:relative;width:100%;height:500px;overflow:hidden;
         border:3px solid #fff;outline:1px solid #d4e0e8;border-radius:3px;
-        background:linear-gradient(to bottom,#eee9e2 0%,#eee9e2 80%,#f3f6f8 80%,#f3f6f8 100%);
+        background:linear-gradient(to bottom,#f2dce1 0%,#f2dce1 80%,#f3f6f8 80%,#f3f6f8 100%);
         box-shadow:0 2px 8px rgba(31,49,67,.12);}
       .serve-zone-cell{position:absolute;width:33.3333%;height:26.6667%;
         border:0 !important;background:transparent;display:flex;align-items:center;
@@ -3575,8 +3575,8 @@ ui <- fluidPage(
       .pass-toggle-panel label:has(input:checked):before{background:#159B69;}
       .pass-toggle-panel label:has(#pass_lines_toggle:checked):before{background:#344653;}
       .pass-toggle-panel label:has(#pass_show_good:checked):before{background:#159B69;}
-      .pass-toggle-panel label:has(#pass_show_oos:checked):before{background:#E6A11A;}
-      .pass-toggle-panel label:has(#pass_show_overpass:checked):before{background:#F06422;}
+      .pass-toggle-panel label:has(#pass_show_oos:checked):before{background:#C8102E;}
+      .pass-toggle-panel label:has(#pass_show_overpass:checked):before{background:#C8102E;}
       .pass-toggle-panel label:has(#pass_show_errors:checked):before{background:#D9433A;}
       .pass-toggle-panel label:has(input:checked):after{transform:translateX(14px);}
       .pass-summary-column{min-width:0;padding:4px 0;}
@@ -3609,7 +3609,7 @@ ui <- fluidPage(
         background:#e7edf1;box-shadow:inset 0 0 0 1px rgba(38,55,70,.04);}
       .pass-outcome-segment{height:100%;min-width:0;}
       .pass-good-segment{background:#159B69;}
-      .pass-oos-segment{background:#E6A11A;}
+      .pass-oos-segment{background:#C8102E;}
       .pass-error-segment{background:#D9433A;}
       .pass-table-note{font-size:9px;color:#87939e;margin-top:6px;}
       @media(max-width:900px){.pass-map-layout{grid-template-columns:1fr;}
