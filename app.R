@@ -2836,13 +2836,21 @@ ATTACK_MAP_DEFINITIONS <- list(
 attack_map_ui <- function() {
   map_card <- function(key, def) {
     choices <- stats::setNames(def$codes, def$labels[seq_along(def$codes)])
-    if (identical(key, "backrow")) choices <- c("V7" = "V7", "PIPE" = "PIPE")
+    if (identical(key, "backrow")) choices <- c("BIC (V7)" = "V7", "Pipe" = "PIPE")
     tagList(
       div(class = "attack-map-card",
         div(class = "attack-map-heading", def$title),
         div(class = "attack-map-controls",
-          checkboxGroupInput(paste0("attack_codes_", key), NULL,
-            choices = choices, selected = unname(choices), inline = TRUE),
+          div(class = "attack-type-toggles",
+            lapply(seq_along(choices), function(i) {
+              code_value <- unname(choices[i])
+              checkboxInput(
+                paste0("attack_toggle_", key, "_", code_value),
+                names(choices)[i],
+                value = TRUE
+              )
+            })
+          ),
           checkboxInput(paste0("attack_paths_", key), "Attack paths", value = TRUE),
           radioButtons(paste0("attack_outcome_", key), NULL,
             choices = c("All" = "All", "Kills" = "Kills", "In play" = "In play"),
@@ -2894,7 +2902,12 @@ attack_zone_xy <- function(zone, is_origin = FALSE) {
   z <- as.character(suppressWarnings(as.integer(zone)))
   x <- unname(x_map[z])
   y <- unname(y_map[z])
-  if (is_origin) y <- rep(-0.18, length(zone))
+  if (is_origin) {
+    # Attacking-team origins are viewed from the opposite side of the net:
+    # own zone 2 is the right-side approach; own zone 4 is the left-side approach.
+    x <- 3 - x
+    y <- rep(-0.18, length(zone))
+  }
   list(x = x, y = y)
 }
 
@@ -2978,16 +2991,18 @@ attack_map_summary_ui <- function(d) {
     div(class = "attack-net-bar",
       div(class = "net-bar-title", "BLOCK CONTACT NEAR THE NET"),
       div(class = "net-bar-track",
-        div(class = "net-bar-touch", style = paste0("width:", if (total) touched_in_play / total * 100 else 0, "%")),
-        div(class = "net-bar-stuffed", style = paste0("width:", if (total) stuffed / total * 100 else 0, "%"))
-      ),
-      div(class = "net-bar-legend",
-        span(class = "net-label-touch",
-          paste0("Touched, in play: ", touched_in_play)),
-        span(class = "net-label-stuffed",
-          paste0("Stuffed: ", stuffed)),
-        span(class = "net-label-none",
-          paste0("No recorded touch: ", max(0, total - block_touches)))
+        div(class = "net-bar-touch",
+          style = paste0("width:", if (total) touched_in_play / total * 100 else 0, "%"),
+          if (touched_in_play > 0) span(touched_in_play)
+        ),
+        div(class = "net-bar-stuffed",
+          style = paste0("width:", if (total) stuffed / total * 100 else 0, "%"),
+          if (stuffed > 0) span(stuffed)
+        ),
+        div(class = "net-bar-none",
+          style = paste0("width:", if (total) max(0, total - block_touches) / total * 100 else 0, "%"),
+          if (total - block_touches > 0) span(max(0, total - block_touches))
+        )
       )
     )
   )
@@ -3411,6 +3426,8 @@ ui <- fluidPage(
         padding:5px 12px;border-bottom:1px solid #e0e6eb;flex-wrap:wrap;}
       .attack-map-controls .form-group{margin:0;}
       .attack-map-controls .shiny-options-group{display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
+      .attack-type-toggles{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+      .attack-type-toggles .checkbox{margin:0;}
       .attack-map-controls .checkbox-inline,.attack-map-controls .checkbox{
         position:relative;display:inline-flex;align-items:center;min-height:22px;
         margin:0 10px 0 0;padding:0 0 0 39px;font-size:11px;color:#405467;
@@ -3446,13 +3463,12 @@ ui <- fluidPage(
       .attack-summary-stats span{font-size:9px;color:#718096;font-weight:800;letter-spacing:.5px;}
       .attack-summary-stats strong{font-family:'Barlow Condensed';font-size:20px;color:#263746;}
       .net-bar-title{font-size:9px;font-weight:800;color:#526475;letter-spacing:.7px;margin-bottom:5px;}
-      .net-bar-track{height:13px;display:flex;background:#263746;border-radius:3px;overflow:hidden;}
-      .net-bar-touch{background:#159b70;height:100%;}
-      .net-bar-stuffed{background:#df4b40;height:100%;}
-      .net-bar-legend{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:10px;margin-top:5px;}
-       .net-label-touch{color:#159b70;font-weight:700;}
-       .net-label-stuffed{color:#df4b40;font-weight:700;}
-       .net-label-none{color:#263746;font-weight:700;}
+      .net-bar-track{height:20px;display:flex;background:#263746;border-radius:4px;overflow:hidden;}
+      .net-bar-touch,.net-bar-stuffed,.net-bar-none{height:100%;display:flex;align-items:center;
+        justify-content:center;min-width:0;color:#fff;font-size:11px;font-weight:800;line-height:1;}
+      .net-bar-touch{background:#159b70;}
+      .net-bar-stuffed{background:#df4b40;}
+      .net-bar-none{background:#263746;}
       .attack-map-legend{display:flex;gap:16px;flex-wrap:wrap;padding:4px 4px 10px;font-size:10px;color:#667789;}
       .legend-kill{color:#263746}.legend-inplay{color:#263746}.legend-touch{color:#159b70}.legend-stuffed{color:#df4b40}
       @media(max-width:600px){.attack-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr));}
@@ -4201,14 +4217,17 @@ server <- function(input, output, session) {
           type_lower <- tolower(d$Attack_Type)
           code_upper <- toupper(d$Attack_Code)
           keep <- code_upper == "V7" | grepl("pipe", type_lower)
-          selected <- input[[paste0("attack_codes_", map_key)]]
-          if (!is.null(selected) && !("PIPE" %in% selected)) keep <- keep & code_upper == "V7"
-          if (!is.null(selected) && !("V7" %in% selected)) keep <- keep & grepl("pipe", type_lower)
+          show_v7 <- isTRUE(input[["attack_toggle_backrow_V7"]])
+          show_pipe <- isTRUE(input[["attack_toggle_backrow_PIPE"]])
+          keep <- (code_upper == "V7" & show_v7) |
+                  (grepl("pipe", type_lower) & show_pipe)
           d <- d[keep, , drop = FALSE]
         } else {
           d <- d[d$Attack_Code %in% def$codes, , drop = FALSE]
-          selected <- input[[paste0("attack_codes_", map_key)]]
-          if (!is.null(selected)) d <- d[d$Attack_Code %in% selected, , drop = FALSE]
+          selected_codes <- def$codes[vapply(def$codes, function(code) {
+            isTRUE(input[[paste0("attack_toggle_", map_key, "_", code)]])
+          }, logical(1))]
+          d <- d[d$Attack_Code %in% selected_codes, , drop = FALSE]
         }
         outcome_filter <- input[[paste0("attack_outcome_", map_key)]]
         cls <- if (nrow(d)) attack_map_outcome_class(d) else character(0)
@@ -4227,14 +4246,17 @@ server <- function(input, output, session) {
           type_lower <- tolower(d$Attack_Type)
           code_upper <- toupper(d$Attack_Code)
           keep <- code_upper == "V7" | grepl("pipe", type_lower)
-          selected <- input[[paste0("attack_codes_", map_key)]]
-          if (!is.null(selected) && !("PIPE" %in% selected)) keep <- keep & code_upper == "V7"
-          if (!is.null(selected) && !("V7" %in% selected)) keep <- keep & grepl("pipe", type_lower)
+          show_v7 <- isTRUE(input[["attack_toggle_backrow_V7"]])
+          show_pipe <- isTRUE(input[["attack_toggle_backrow_PIPE"]])
+          keep <- (code_upper == "V7" & show_v7) |
+                  (grepl("pipe", type_lower) & show_pipe)
           d <- d[keep, , drop = FALSE]
         } else {
           d <- d[d$Attack_Code %in% def$codes, , drop = FALSE]
-          selected <- input[[paste0("attack_codes_", map_key)]]
-          if (!is.null(selected)) d <- d[d$Attack_Code %in% selected, , drop = FALSE]
+          selected_codes <- def$codes[vapply(def$codes, function(code) {
+            isTRUE(input[[paste0("attack_toggle_", map_key, "_", code)]])
+          }, logical(1))]
+          d <- d[d$Attack_Code %in% selected_codes, , drop = FALSE]
         }
         outcome_filter <- input[[paste0("attack_outcome_", map_key)]]
         cls <- if (nrow(d)) attack_map_outcome_class(d) else character(0)
