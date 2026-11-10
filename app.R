@@ -3740,7 +3740,7 @@ ui <- fluidPage(
       .setting-map-controls .radio-inline{margin:0!important;padding:7px 13px;border:1px solid #d7dfe5;
         border-radius:6px;background:#f3f6f8;font-size:12px;font-weight:700;color:#52616b;}
       .setting-map-controls .radio-inline input{display:none;}
-      .setting-map-controls .radio-inline:has(input:checked){background:#c65a00;border-color:#c65a00;color:#fff;}
+      .setting-map-controls .radio-inline:has(input:checked){background:#C8102E;border-color:#C8102E;color:#fff;}
       .setting-map-note{font-size:11px;color:#6f8090;margin:4px 2px 10px;}
       .setting-summary{margin-top:10px;}
       .setting-summary-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
@@ -4405,16 +4405,16 @@ server <- function(input, output, session) {
     text(3, 6.28, "NET", cex = 0.9, font = 2, col = "#52616b")
     segments(0, 6.12, 6, 6.12, col = "#344653", lwd = 4)
 
-    # Draw all 36 cells so the court remains a consistent 6 x 6 grid.
-    rect(0, 0, 6, 6, col = "#f7f8f9", border = "#aebbc5", lwd = 1.1)
-    for (x in 1:5) segments(x, 0, x, 6, col = "#cbd5dc", lwd = 1)
-    for (y in 1:5) segments(0, y, 6, y, col = "#cbd5dc", lwd = 1)
-    # Subtle back-court tint, as in the supplied example.
-    rect(0, 0, 6, 3, col = grDevices::adjustcolor("#d9a98a", alpha.f = 0.18), border = NA)
+    # Draw all 36 cells with three vertical two-column bands, matching the
+    # reference map: first two columns light, middle two slightly darker,
+    # final two warmest. The same banding runs through all six rows.
+    band_cols <- c("#F1F3F4", "#EEE9E4", "#E9DDD3")
     for (x in 0:5) for (y in 0:5) {
-      rect(x, y, x + 1, y + 1, col = if (y < 3) "#f1e8e1" else "#f0f2f3",
-           border = "#cbd5dc", lwd = 0.8)
+      band <- floor(x / 2) + 1
+      rect(x, y, x + 1, y + 1, col = band_cols[band],
+           border = "#C7D1D9", lwd = 0.8)
     }
+    rect(0, 0, 6, 6, border = "#AEBBC5", lwd = 1.1)
 
     if (!nrow(d)) {
       text(3, 3, "No setting analysis data for this selection", col = "#7b8996", cex = 0.9)
@@ -4450,7 +4450,7 @@ server <- function(input, output, session) {
     for (i in seq_len(nrow(counts))) {
       x <- xy$x[i]; y <- xy$y[i]
       if (is.na(x) || is.na(y)) next
-      eff_label <- if (is.na(counts$eff[i])) "—" else paste0(round(counts$eff[i] * 100), "%")
+      eff_label <- if (is.na(counts$eff[i])) "—" else sprintf("%.2f", counts$eff[i])
       eff_col <- if (is.na(counts$eff[i])) "#8b98a3" else "#263746"
       text(x, y + 0.16, eff_label, cex = 1.18, font = 2, col = eff_col)
       detail <- if (counts$known[i] > 0) {
