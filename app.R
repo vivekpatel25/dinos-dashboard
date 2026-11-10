@@ -4398,8 +4398,10 @@ server <- function(input, output, session) {
 
   output$setting_destination_map <- renderPlot({
     d <- setting_data_for_view()
-    par(mar = c(1.0, 0.7, 2.0, 0.7), xaxs = "i", yaxs = "i")
-    plot(NA, xlim = c(-0.08, 6.08), ylim = c(-0.15, 6.42), asp = NA,
+    # Keep the 6 m x 6 m setting grid square like a real volleyball court,
+    # rather than stretching it across the full-width Shiny plotting device.
+    par(mar = c(1.0, 0.7, 2.0, 0.7), xaxs = "i", yaxs = "i", pty = "s")
+    plot(NA, xlim = c(-0.08, 6.08), ylim = c(-0.15, 6.42), asp = 1,
          axes = FALSE, xlab = "", ylab = "")
     # Net is at the top, matching the supplied zone/subzone reference.
     text(3, 6.28, "NET", cex = 0.9, font = 2, col = "#52616b")
