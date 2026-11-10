@@ -2883,56 +2883,74 @@ attack_map_outcome_class <- function(d) {
 }
 
 attack_zone_xy <- function(zone, is_origin = FALSE) {
-  # Standard 3x3 volleyball zone layout. Zone 9 is represented by the
-  # central back-row origin used for BIC/pipe attacks.
-  x_map <- c(`1` = 2.5, `2` = 2.5, `3` = 1.5, `4` = 0.5,
-             `5` = 0.5, `6` = 1.5, `7` = 0.5, `8` = 1.5, `9` = 1.5)
-  y_map <- c(`1` = 0.5, `2` = 2.5, `3` = 2.5, `4` = 2.5,
-             `5` = 0.5, `6` = 0.5, `7` = 1.5, `8` = 1.5, `9` = 0.5)
-  z <- as.character(as.integer(zone))
-  x <- unname(x_map[z]); y <- unname(y_map[z])
-  if (is_origin) y <- rep(-0.62, length(zone))
+  # Opponent court orientation matching the scouting reference:
+  # far row 1-6-5, middle row 7-8-9, net row 2-3-4.
+  x_map <- c(`1` = 0.5, `6` = 1.5, `5` = 2.5,
+             `7` = 0.5, `8` = 1.5, `9` = 2.5,
+             `2` = 0.5, `3` = 1.5, `4` = 2.5)
+  y_map <- c(`1` = 2.5, `6` = 2.5, `5` = 2.5,
+             `7` = 1.5, `8` = 1.5, `9` = 1.5,
+             `2` = 0.5, `3` = 0.5, `4` = 0.5)
+  z <- as.character(suppressWarnings(as.integer(zone)))
+  x <- unname(x_map[z])
+  y <- unname(y_map[z])
+  if (is_origin) y <- rep(-0.18, length(zone))
   list(x = x, y = y)
 }
 
 draw_attack_map <- function(d, title = "ATTACK MAP", show_paths = TRUE) {
-  par(mar = c(1.2, 1.2, 1.8, 1.2), xaxs = "i", yaxs = "i")
-  plot(NA, xlim = c(-0.15, 3.15), ylim = c(-1.05, 3.15),
+  par(mar = c(0.6, 0.6, 1.8, 0.6), xaxs = "i", yaxs = "i")
+  plot(NA, xlim = c(-0.35, 3.35), ylim = c(-0.35, 3.25),
        asp = 1, axes = FALSE, xlab = "", ylab = "", main = "")
-  title(main = title, adj = 0, line = 0.1, cex.main = 1.15, font.main = 2, col.main = "#263746")
-  # Opponent half-court with zone grid and net.
-  rect(0, 0, 3, 3, col = "#f4f7f9", border = "#344653", lwd = 2)
-  abline(v = 1:2, h = 1:2, col = "#c8d2da", lwd = 1)
+  # The card header already names the map; keep the court graphic uncluttered.
+
+  # Light run-off area and clean half-court. Zone numbers are intentionally
+  # omitted; the CSV End_Zone values determine endpoint locations.
+  rect(-0.18, -0.18, 3.18, 3.08, col = "#eaf1f5", border = NA)
+  rect(0, 0, 3, 3, col = "#f7f9fa", border = "#344653", lwd = 2)
+  segments(1, 0, 1, 3, col = "#d2dce3", lwd = 1.15)
+  segments(2, 0, 2, 3, col = "#d2dce3", lwd = 1.15)
+  segments(0, 1, 3, 1, col = "#d2dce3", lwd = 1.15)
+  segments(0, 2, 3, 2, col = "#d2dce3", lwd = 1.15)
+  # Net / front boundary
   segments(0, 0, 3, 0, col = "#344653", lwd = 4)
-  text(1.5, -0.93, "ATTACK ORIGIN", cex = 0.65, col = "#758494")
-  for (z in 1:9) {
-    pos <- attack_zone_xy(z)
-    text(pos$x, pos$y, labels = z, col = "#aab5be", cex = 0.75)
-  }
+  # Side and end lines
+  segments(0, 3, 3, 3, col = "#344653", lwd = 1.8)
+  segments(0, 0, 0, 3, col = "#344653", lwd = 1.8)
+  segments(3, 0, 3, 3, col = "#344653", lwd = 1.8)
 
   if (!nrow(d)) {
-    text(1.5, 1.5, "No attack events for this selection", cex = 0.9, col = "#7b8996")
+    text(1.5, 1.5, "No attack events for this selection",
+         cex = 0.9, col = "#7b8996")
     return(invisible(NULL))
   }
 
-  valid <- !is.na(d$Start_Zone) & !is.na(d$End_Zone)
+  valid <- !is.na(d$Start_Zone) & !is.na(d$End_Zone) &
+    d$End_Zone %in% 1:9 & d$Start_Zone %in% 1:9
   d <- d[valid, , drop = FALSE]
   if (!nrow(d)) {
-    text(1.5, 1.5, "No valid start/end zones", cex = 0.9, col = "#7b8996")
+    text(1.5, 1.5, "No valid start/end zones",
+         cex = 0.9, col = "#7b8996")
     return(invisible(NULL))
   }
 
   start <- attack_zone_xy(d$Start_Zone, is_origin = TRUE)
   end <- attack_zone_xy(d$End_Zone)
   cls <- attack_map_outcome_class(d)
-  pch <- ifelse(cls == "Kill", 21, ifelse(cls == "In Play", 21, 4))
-  bg <- ifelse(cls == "Kill", "#263746", ifelse(cls == "In Play", "white", "#c65b45"))
+  marker_fill <- ifelse(cls == "Kill", "#263746",
+                 ifelse(cls == "In Play", "#159b70", "#df4b40"))
+  marker_pch <- ifelse(cls == "Other", 4, 21)
+
   if (isTRUE(show_paths)) {
     segments(start$x, start$y, end$x, end$y,
-             col = grDevices::adjustcolor("#52616b", alpha.f = 0.62), lwd = 1.1)
+             col = grDevices::adjustcolor("#52616b", alpha.f = 0.62),
+             lwd = 1.15)
   }
-  points(end$x, end$y, pch = pch, bg = bg, col = "#263746", cex = 1.05, lwd = 1.1)
-  points(start$x, start$y, pch = 21, bg = "#c65b00", col = "white", cex = 0.8)
+  points(end$x, end$y, pch = marker_pch, bg = marker_fill,
+         col = marker_fill, cex = 1.15, lwd = 1.5)
+  # Attack origins are positioned by their actual Start_Zone.
+  points(start$x, start$y, pch = 21, bg = "#C8102E",
+         col = "white", cex = 0.85, lwd = 1)
   invisible(NULL)
 }
 
@@ -2964,9 +2982,12 @@ attack_map_summary_ui <- function(d) {
         div(class = "net-bar-stuffed", style = paste0("width:", if (total) stuffed / total * 100 else 0, "%"))
       ),
       div(class = "net-bar-legend",
-        span(paste0("Touched, in play: ", touched_in_play)),
-        span(paste0("Stuffed: ", stuffed)),
-        span(paste0("No recorded touch: ", max(0, total - block_touches)))
+        span(class = "net-label-touch",
+          paste0("Touched, in play: ", touched_in_play)),
+        span(class = "net-label-stuffed",
+          paste0("Stuffed: ", stuffed)),
+        span(class = "net-label-none",
+          paste0("No recorded touch: ", max(0, total - block_touches)))
       )
     )
   )
@@ -3428,7 +3449,10 @@ ui <- fluidPage(
       .net-bar-track{height:13px;display:flex;background:#263746;border-radius:3px;overflow:hidden;}
       .net-bar-touch{background:#159b70;height:100%;}
       .net-bar-stuffed{background:#df4b40;height:100%;}
-      .net-bar-legend{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:9px;color:#718096;margin-top:5px;}
+      .net-bar-legend{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:10px;margin-top:5px;}
+       .net-label-touch{color:#159b70;font-weight:700;}
+       .net-label-stuffed{color:#df4b40;font-weight:700;}
+       .net-label-none{color:#263746;font-weight:700;}
       .attack-map-legend{display:flex;gap:16px;flex-wrap:wrap;padding:4px 4px 10px;font-size:10px;color:#667789;}
       .legend-kill{color:#263746}.legend-inplay{color:#263746}.legend-touch{color:#159b70}.legend-stuffed{color:#df4b40}
       @media(max-width:600px){.attack-summary-stats{grid-template-columns:repeat(2,minmax(0,1fr));}
