@@ -3303,10 +3303,17 @@ draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COUR
        asp = 1, axes = FALSE, xlab = "", ylab = "")
   rect(0, 0, 3, 3, col = "#f3f7f9", border = "#344653", lwd = 2)
   for (v in 1:2) { segments(v, 0, v, 3, col = "#c7d1d9"); segments(0, v, 3, v, col = "#c7d1d9") }
-  # Good-pass boundary and faint zone labels match the team dashboard map.
-  symbols(1.5, 2.72, circles = 1.25, inches = FALSE, add = TRUE,
-          bg = grDevices::adjustcolor("#BFE8D8", alpha.f = .28),
-          fg = "#54BE98", lty = 2, lwd = 2)
+  # Good-pass area is a receiving-court semicircle whose diameter sits
+  # exactly on the net. It must never extend onto/opposite the net side.
+  # The 7-ft boundary is represented proportionally within this court plot.
+  gp_radius <- 1.25
+  gp_theta <- seq(pi, 2*pi, length.out = 181)
+  gp_x <- 1.5 + gp_radius * cos(gp_theta)
+  gp_y <- 3.0 + gp_radius * sin(gp_theta)
+  polygon(c(0.25, gp_x, 2.75), c(3.0, gp_y, 3.0),
+          col = grDevices::adjustcolor("#BFE8D8", alpha.f = .28),
+          border = NA)
+  lines(gp_x, gp_y, col = "#54BE98", lty = 2, lwd = 2)
   segments(0, 3.12, 3, 3.12, col = "#344653", lwd = 4)
   text(1.5, 3.29, "NET", font = 2, col = "#52616b", cex = 1.05)
   # Reception court follows the official zone diagram:
