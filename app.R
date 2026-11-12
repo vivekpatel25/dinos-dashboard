@@ -3188,29 +3188,54 @@ athlete_event_table <- function(d, columns, empty_text = "No data recorded") {
   )
 }
 
-draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COURT MAP") {
-  par(mar = c(1, 1, 2, 1), xaxs = "i", yaxs = "i", pty = "s")
-  plot(NA, xlim = c(0, 3), ylim = c(0, 3.35), asp = 1, axes = FALSE,
-       xlab = "", ylab = "")
-  rect(0, 0, 3, 3, col = "#f1f3f4", border = "#344653", lwd = 2)
+draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COURT MAP",
+                                  origin_col = NULL, outcome_col = NULL, serving = FALSE) {
+  par(mar = c(2, 1, 3, 1), xaxs = "i", yaxs = "i", pty = "m")
+  plot(NA, xlim = c(-.15, 3.15), ylim = if (serving) c(-.45, 3.4) else c(-.15, 3.4),
+       asp = 1, axes = FALSE, xlab = "", ylab = "")
+  rect(0, 0, 3, 3, col = if (serving) "#eee9e2" else "#f3f7f9", border = "#344653", lwd = 2)
   for (v in 1:2) { segments(v, 0, v, 3, col = "#c7d1d9"); segments(0, v, 3, v, col = "#c7d1d9") }
   segments(0, 3.12, 3, 3.12, col = "#344653", lwd = 4)
-  text(1.5, 3.27, "NET", font = 2, col = "#52616b")
+  text(1.5, 3.29, "NET", font = 2, col = "#52616b", cex = 1.05)
+  zone_xy <- function(z) {
+    z <- suppressWarnings(as.integer(as.character(z)))
+    xmap <- c(`1`=2.5,`2`=.5,`3`=1.5,`4`=2.5,`5`=.5,`6`=1.5,`7`=2.5,`8`=1.5,`9`=.5)
+    ymap <- c(`1`=.5,`2`=2.5,`3`=2.5,`4`=2.5,`5`=.5,`6`=.5,`7`=1.5,`8`=1.5,`9`=1.5)
+    data.frame(x=unname(xmap[as.character(z)]),y=unname(ymap[as.character(z)]))
+  }
   if (is.null(d) || !nrow(d) || !zone_col %in% names(d)) {
     text(1.5, 1.5, "No data recorded", col = "#7b8996"); return(invisible(NULL))
   }
-  z <- suppressWarnings(as.integer(as.character(d[[zone_col]])))
-  valid <- !is.na(z) & z %in% 1:9
+  dest <- zone_xy(d[[zone_col]])
+  valid <- is.finite(dest$x) & is.finite(dest$y)
   if (!any(valid)) { text(1.5, 1.5, "No valid court locations", col = "#7b8996"); return(invisible(NULL)) }
-  layout <- matrix(c(4,3,2,7,8,9,5,6,1), nrow=3, byrow=TRUE)
-  counts <- table(factor(z[valid], levels=1:9))
+  d <- d[valid,,drop=FALSE]; dest <- dest[valid,,drop=FALSE]
+  point_col <- rep("#C8102E",nrow(d))
+  if (!is.null(outcome_col) && outcome_col %in% names(d)) {
+    oc <- tolower(as.character(d[[outcome_col]]))
+    point_col <- ifelse(grepl("ace|error|aced|overpass",oc),"#D9433A",
+                 ifelse(grepl("oos|medium|negative|poor",oc),"#E6A11A","#159B69"))
+  }
+  if (!is.null(origin_col) && origin_col %in% names(d)) {
+    oz <- zone_xy(d[[origin_col]])
+    ok <- is.finite(oz$x) & is.finite(oz$y)
+    if (serving) {
+      raw <- suppressWarnings(as.integer(as.character(d[[origin_col]])))
+      sx <- c(`1`=2.5,`5`=.5,`6`=1.5,`7`=2.5,`9`=.5)
+      oz$x <- unname(sx[as.character(raw)]); oz$y <- rep(-.18,nrow(d)); ok <- is.finite(oz$x)
+    }
+    if (any(ok)) segments(oz$x[ok],oz$y[ok],dest$x[ok],dest$y[ok],col=grDevices::adjustcolor(point_col[ok],alpha.f=.22),lwd=1.2)
+    if (serving) {
+      ox <- sort(unique(oz$x[ok])); if(length(ox)) points(ox,rep(-.18,length(ox)),pch=21,bg="#52616b",col="white",cex=1.25)
+      text(ox,rep(-.34,length(ox)),labels=seq_along(ox),col="#52616b",cex=.65,font=2)
+    }
+  }
+  counts <- table(factor(d[[zone_col]], levels=1:9))
   for (zz in 1:9) {
-    pos <- which(layout == zz, arr.ind=TRUE)
-    x <- pos[1,2] - .5; y <- 3 - pos[1,1] + .5
-    n <- as.integer(counts[as.character(zz)])
+    pos <- zone_xy(zz); n <- as.integer(counts[as.character(zz)])
     if (n > 0) {
-      points(x, y, pch=21, cex=1.1 + min(1.2, log1p(n)/3), bg="#C8102E", col="white")
-      text(x, y, n, col="white", font=2, cex=.85)
+      points(pos$x,pos$y,pch=21,cex=1.05+min(1.1,log1p(n)/3),bg="#C8102E",col="white")
+      text(pos$x,pos$y,n,col="white",font=2,cex=.8)
     }
   }
   invisible(NULL)
@@ -3300,14 +3325,30 @@ ui <- fluidPage(
       .athlete-profile-controls{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:#f1f4f6;border-radius:10px;padding:10px 14px;margin:10px 0 14px;}
       .athlete-profile-controls .form-group{margin:0;}
       .athlete-profile-controls .radio-inline,.athlete-profile-controls .checkbox-inline{margin:4px 10px 4px 0;font-size:12px;font-weight:700;}
-      .athlete-profile-controls input[type=checkbox],.athlete-profile-controls input[type=radio]{accent-color:#C8102E;}
       .athlete-profile-controls .control-label{font-size:10px;font-weight:800;letter-spacing:.7px;color:#526475;}
+      /* Athlete-page controls: dashboard-style switches and selectable pills */
+      .athlete-profile-controls .checkbox input[type=checkbox]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;}
+      .athlete-profile-controls .checkbox label{position:relative;display:inline-flex;align-items:center;padding-left:38px;min-height:22px;font-size:12px;font-weight:700;color:#526475;cursor:pointer;}
+      .athlete-profile-controls .checkbox label:before{content:'';position:absolute;left:0;top:3px;width:30px;height:16px;border-radius:12px;background:#c5ced6;transition:background .15s;}
+      .athlete-profile-controls .checkbox label:after{content:'';position:absolute;left:2px;top:5px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .15s;}
+      .athlete-profile-controls .checkbox label:has(input:checked):before{background:#C8102E;}
+      .athlete-profile-controls .checkbox label:has(input:checked):after{transform:translateX(14px);}
+      .athlete-profile-controls .checkbox-inline{position:relative;display:inline-flex;align-items:center;margin:3px 5px 3px 0!important;padding:7px 12px!important;border-radius:9px;background:#e3e8ed;color:#536577!important;font-size:11px;font-weight:800;cursor:pointer;}
+      .athlete-profile-controls .checkbox-inline input[type=checkbox],.athlete-profile-controls .radio-inline input[type=radio]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;margin:0!important;}
+      .athlete-profile-controls .checkbox-inline:has(input:checked),.athlete-profile-controls .radio-inline:has(input:checked){background:#C8102E!important;color:#fff!important;}
+      .athlete-profile-controls .radio-inline{display:inline-flex;align-items:center;margin:3px 5px 3px 0!important;padding:7px 12px!important;border-radius:9px;background:#e3e8ed;color:#536577!important;font-size:11px;font-weight:800;cursor:pointer;}
+      .athlete-serve-layout,.athlete-pass-layout{display:grid;grid-template-columns:minmax(360px,1.05fr) minmax(360px,1fr);gap:22px;align-items:start;margin-top:14px;}
+      .athlete-serve-court-column,.athlete-pass-court-column{min-width:0;background:#f3f7f9;border:1px solid #cbd7df;border-radius:5px;padding:8px;}
+      .athlete-serve-summary-column,.athlete-pass-summary-column{min-width:0;overflow-x:auto;padding:4px 0;}
+      .athlete-serve-layout .shiny-plot-output,.athlete-pass-layout .shiny-plot-output{width:100%!important;}
+      @media(max-width:1050px){.athlete-serve-layout,.athlete-pass-layout{grid-template-columns:1fr;}}
       .athlete-aggregate-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
       .athlete-aggregate-table th{background:#263746;color:#fff;padding:10px;text-align:center;}
       .athlete-aggregate-table td{padding:9px 10px;border-bottom:1px solid #e3e9ee;text-align:center;}
       .athlete-aggregate-table td:first-child{text-align:left;font-weight:700;}
       .athlete-aggregate-table tr:nth-child(even){background:#f6f8fa;}
-      .athlete-section-summary{background:#fff1f3;border:1px solid #f4cbd2;border-radius:12px;padding:12px 16px;color:#C8102E;font-size:12px;font-weight:800;margin:8px 0;}
+      .athlete-section-summary{background:#f1f4f6;border:1px solid #dce4eb;border-radius:12px;padding:12px 16px;color:#526475;font-size:12px;font-weight:600;margin:8px 0;}
+      .athlete-attack-detail .athlete-aggregate-table td:nth-child(n+5){font-weight:800;color:#263746;}
       .athlete-data-table-wrap{overflow-x:auto;margin-top:12px;}
       .athlete-data-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
       .athlete-data-table th{background:#263746;color:white;padding:9px;text-align:left;}
@@ -4094,7 +4135,7 @@ server <- function(input, output, session) {
                 plotOutput(paste0("athlete_attack_",k), height="300px"))
             })
           )),
-        div(class="athlete-profile-section", h3("ATTACK DETAIL"),
+        div(class="athlete-profile-section athlete-attack-detail", h3("ATTACK DETAIL"),
           uiOutput("athlete_attack_details")),
         div(class="athlete-profile-section", h3("SERVING MAP"),
           div(class="athlete-profile-controls",
@@ -4102,16 +4143,18 @@ server <- function(input, output, session) {
               choices=c("Ace","Positive","Negative"), selected=c("Ace","Positive","Negative"), inline=TRUE),
             selectInput("athlete_serve_start", "SERVE FROM", choices=c("All"), selected="All", width="180px")
           ),
-          plotOutput("athlete_serve_map", height="420px"),
-          uiOutput("athlete_serve_table")),
+          div(class="athlete-serve-layout",
+            div(class="athlete-serve-court-column", plotOutput("athlete_serve_map", height="560px")),
+            div(class="athlete-serve-summary-column", uiOutput("athlete_serve_table")))),
         div(class="athlete-profile-section", h3("PASSING MAPS"),
           div(class="athlete-profile-controls",
             selectInput("athlete_pass_zone", "RECEPTION START ZONE", choices=c("All"), selected="All", width="220px"),
             checkboxGroupInput("athlete_pass_quality", "SHOW PASS TYPES",
               choices=c("Good","OOS","Overpass","Error"), selected=c("Good","OOS","Overpass","Error"), inline=TRUE)
           ),
-          plotOutput("athlete_pass_map", height="420px"),
-          uiOutput("athlete_pass_table")),
+          div(class="athlete-pass-layout",
+            div(class="athlete-pass-court-column", plotOutput("athlete_pass_map", height="560px")),
+            div(class="athlete-pass-summary-column", uiOutput("athlete_pass_table")))),
         div(class="athlete-profile-section", h3("SETTING MAPS"),
           div(class="athlete-profile-controls",
             radioButtons("athlete_setting_phase", "PHASE",
@@ -4671,7 +4714,7 @@ server <- function(input, output, session) {
   output$athlete_serve_map <- renderPlot({
     d<-athlete_serve_filtered()
     if(!nrow(d)){plot.new();text(.5,.5,"No serve data recorded");return()}
-    draw_athlete_zone_map(d,"Landing_Zone","Landing_Subzone","SERVING")
+    draw_athlete_zone_map(d,"Landing_Zone","Landing_Subzone","SERVING",origin_col="Serve_Start_Zone",outcome_col="Serve_Evaluation_Code",serving=TRUE)
   },res=110)
   output$athlete_serve_table <- renderUI({
     d<-athlete_serve_filtered()
@@ -4693,7 +4736,7 @@ server <- function(input, output, session) {
   output$athlete_pass_map <- renderPlot({
     d<-athlete_pass_filtered()
     if(!nrow(d)){plot.new();text(.5,.5,"No reception data recorded");return()}
-    draw_athlete_zone_map(d,"Reception_Start_Zone","Reception_Start_Subzone","RECEPTION")
+    draw_athlete_zone_map(d,"Reception_Start_Zone","Reception_Start_Subzone","RECEPTION",origin_col="Pass_Destination_Zone",outcome_col="Pass_Quality")
   },res=110)
   output$athlete_pass_table <- renderUI({
     d<-athlete_pass_filtered()
