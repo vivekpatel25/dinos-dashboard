@@ -4098,7 +4098,7 @@ server <- function(input, output, session) {
           uiOutput("athlete_attack_details")),
         div(class="athlete-profile-section", h3("SERVING MAP"),
           div(class="athlete-profile-controls",
-            radioButtons("athlete_serve_outcomes", "SHOW OUTCOMES",
+            checkboxGroupInput("athlete_serve_outcomes", "SHOW OUTCOMES",
               choices=c("Ace","Positive","Negative"), selected=c("Ace","Positive","Negative"), inline=TRUE),
             selectInput("athlete_serve_start", "SERVE FROM", choices=c("All"), selected="All", width="180px")
           ),
