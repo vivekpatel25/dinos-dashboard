@@ -3303,31 +3303,89 @@ draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COUR
        asp = 1, axes = FALSE, xlab = "", ylab = "")
   rect(0, 0, 3, 3, col = "#f3f7f9", border = "#344653", lwd = 2)
   for (v in 1:2) { segments(v, 0, v, 3, col = "#c7d1d9"); segments(0, v, 3, v, col = "#c7d1d9") }
+  # Good-pass boundary and faint zone labels match the team dashboard map.
+  symbols(1.5, 2.72, circles = 1.25, inches = FALSE, add = TRUE,
+          bg = grDevices::adjustcolor("#BFE8D8", alpha.f = .28),
+          fg = "#54BE98", lty = 2, lwd = 2)
   segments(0, 3.12, 3, 3.12, col = "#344653", lwd = 4)
   text(1.5, 3.29, "NET", font = 2, col = "#52616b", cex = 1.05)
+  # Reception court follows the official zone diagram:
+  # net/front row 4-3-2, middle row 7-8-9, back row 5-6-1.
   zone_xy <- function(z) {
     z <- suppressWarnings(as.integer(as.character(z)))
-    xmap <- c(`1`=2.5,`2`=.5,`3`=1.5,`4`=2.5,`5`=.5,`6`=1.5,`7`=2.5,`8`=1.5,`9`=.5)
-    ymap <- c(`1`=.5,`2`=2.5,`3`=2.5,`4`=2.5,`5`=.5,`6`=.5,`7`=1.5,`8`=1.5,`9`=1.5)
+    xmap <- c(`1`=2.5, `2`=2.5, `3`=1.5, `4`=.5,
+              `5`=.5, `6`=1.5, `7`=.5, `8`=1.5, `9`=2.5)
+    ymap <- c(`1`=.5, `2`=2.5, `3`=2.5, `4`=2.5,
+              `5`=.5, `6`=.5, `7`=1.5, `8`=1.5, `9`=1.5)
     data.frame(x=unname(xmap[as.character(z)]),y=unname(ymap[as.character(z)]))
+  }
+  for (zz in 1:9) {
+    pos <- zone_xy(zz)
+    text(pos$x, pos$y, labels = zz, col = "#c6d3dc", cex = 2.0, font = 2)
   }
   if (is.null(d) || !nrow(d) || !zone_col %in% names(d)) {
     text(1.5, 1.5, "No data recorded", col = "#7b8996"); return(invisible(NULL))
   }
-  dest <- zone_xy(d[[zone_col]])
+  plot_zone <- d[[zone_col]]
+  plot_subzone <- if (!is.null(subzone_col) && subzone_col %in% names(d)) {
+    as.character(d[[subzone_col]])
+  } else rep("", nrow(d))
+  if (!is.null(origin_col) && origin_col %in% names(d)) {
+    origin_zone <- d[[origin_col]]
+    # For reception errors and overpasses the home dashboard shows the
+    # reception contact only because no reliable setter destination exists.
+    no_destination <- rep(FALSE, nrow(d))
+    if ("Reception_Evaluation_Code" %in% names(d)) {
+      no_destination <- trimws(as.character(d$Reception_Evaluation_Code)) %in% c("=", "/", "-")
+    } else if (!is.null(outcome_col) && outcome_col %in% names(d)) {
+      no_destination <- grepl("error|overpass", tolower(as.character(d[[outcome_col]])))
+    }
+    plot_zone[no_destination] <- origin_zone[no_destination]
+    if ("Reception_Start_Subzone" %in% names(d)) {
+      plot_subzone[no_destination] <- as.character(d$Reception_Start_Subzone[no_destination])
+    }
+  }
+  dest <- zone_xy(plot_zone)
   valid <- is.finite(dest$x) & is.finite(dest$y)
   if (!any(valid)) { text(1.5, 1.5, "No valid court locations", col = "#7b8996"); return(invisible(NULL)) }
   d <- d[valid,,drop=FALSE]; dest <- dest[valid,,drop=FALSE]
+  plot_subzone <- toupper(trimws(plot_subzone[valid]))
   point_col <- rep("#C8102E",nrow(d))
   if (!is.null(outcome_col) && outcome_col %in% names(d)) {
     oc <- tolower(as.character(d[[outcome_col]]))
     point_col <- ifelse(grepl("ace|error|aced|overpass",oc),"#D9433A",
                  ifelse(grepl("oos|medium|negative|poor",oc),"#E6A11A","#159B69"))
   }
+  # A/B/C/D subzones follow the labels in the supplied court diagram:
+  # A bottom-right, B top-right, C top-left, D bottom-left.
+  offsets <- list(A=c(dx=.18,dy=-.18), B=c(dx=.18,dy=.18),
+                  C=c(dx=-.18,dy=.18), D=c(dx=-.18,dy=-.18))
+  for (i in seq_len(nrow(d))) {
+    off <- offsets[[plot_subzone[i]]]
+    if (!is.null(off)) {
+      dest$x[i] <- dest$x[i] + off[["dx"]]
+      dest$y[i] <- dest$y[i] + off[["dy"]]
+    }
+  }
   if (!is.null(origin_col) && origin_col %in% names(d)) {
     oz <- zone_xy(d[[origin_col]])
+    if ("Reception_Start_Subzone" %in% names(d)) {
+      os <- toupper(trimws(as.character(d$Reception_Start_Subzone)))
+      for (i in seq_len(nrow(d))) {
+        off <- offsets[[os[i]]]
+        if (!is.null(off) && is.finite(oz$x[i]) && is.finite(oz$y[i])) {
+          oz$x[i] <- oz$x[i] + off[["dx"]]
+          oz$y[i] <- oz$y[i] + off[["dy"]]
+        }
+      }
+    }
     ok <- is.finite(oz$x) & is.finite(oz$y)
-    if (any(ok)) segments(oz$x[ok],oz$y[ok],dest$x[ok],dest$y[ok],col=grDevices::adjustcolor(point_col[ok],alpha.f=.22),lwd=1.2)
+    # No trajectories for errors/overpasses; show contact markers only.
+    if ("Reception_Evaluation_Code" %in% names(d)) {
+      ok <- ok & !trimws(as.character(d$Reception_Evaluation_Code)) %in% c("=", "/", "-")
+    }
+    if (any(ok)) segments(oz$x[ok],oz$y[ok],dest$x[ok],dest$y[ok],
+      col=grDevices::adjustcolor("#9BAAB5",alpha.f=.34),lwd=1.1)
   }
   points(dest$x,dest$y,pch=21,bg=point_col,col="white",cex=1.05)
   invisible(NULL)
@@ -4265,7 +4323,7 @@ server <- function(input, output, session) {
                   choices=c("Good","OOS","Overpass","Error"), selected=c("Good","OOS","Overpass","Error"), inline=TRUE)
               ),
               div(class="athlete-pass-layout",
-                div(class="athlete-pass-court-column", plotOutput("athlete_pass_map", height="500px")),
+                div(class="athlete-pass-court-column", plotOutput("athlete_pass_map", height="620px")),
                 div(class="athlete-pass-summary-column", uiOutput("athlete_pass_table")))),
             if (athlete_counts[["Setting"]] > 0) div(class="athlete-profile-section", h3("SETTING MAPS"),
               div(class="athlete-profile-controls",
@@ -4887,7 +4945,7 @@ server <- function(input, output, session) {
   output$athlete_pass_map <- renderPlot({
     d<-athlete_pass_filtered()
     if(!nrow(d)){plot.new();text(.5,.5,"No reception data recorded");return()}
-    draw_athlete_zone_map(d,"Reception_Start_Zone","Reception_Start_Subzone","RECEPTION",origin_col="Pass_Destination_Zone",outcome_col="Pass_Quality")
+    draw_athlete_zone_map(d,"Pass_Destination_Zone","Pass_Destination_Subzone","RECEPTION",origin_col="Reception_Start_Zone",outcome_col="Pass_Quality")
   },res=110)
   output$athlete_pass_table <- renderUI({
     d <- athlete_pass_filtered()
