@@ -3267,7 +3267,7 @@ draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COUR
     if (!is.null(origin_col) && origin_col %in% names(d)) {
       raw <- suppressWarnings(as.integer(as.character(d[[origin_col]])))
       # Match the home dashboard server lanes for standard and observed zones.
-      sx <- c(`1`=2.5, `5`=.5, `6`=1.5, `7`=2.5, `9`=.5)
+      sx <- c(`1`=2.5, `5`=.5, `6`=1.5, `7`=.5, `9`=2.5)
       ox <- unname(sx[as.character(raw)])
       ok <- is.finite(ox)
       if (any(ok)) {
@@ -4837,26 +4837,46 @@ server <- function(input, output, session) {
     zones <- sort(unique(na.omit(d$Serve_Start_Zone)))
     pct <- function(x,n) if(n>0) paste0(round(100*x/n),"%") else "—"
     rows <- lapply(zones,function(z){
-      x <- d[d$Serve_Start_Zone==z,,drop=FALSE]; cc <- trimws(as.character(x$Serve_Evaluation_Code)); n <- nrow(x)
+      x <- d[d$Serve_Start_Zone==z,,drop=FALSE]
+      cc <- trimws(as.character(x$Serve_Evaluation_Code))
+      n <- nrow(x)
       vals <- c(Ace=sum(cc=="#",na.rm=TRUE),OOS=sum(cc=="+",na.rm=TRUE),
-                Medium=sum(cc=="!",na.rm=TRUE),Negative=sum(cc=="-",na.rm=TRUE),Error=sum(cc=="=",na.rm=TRUE))
-      cols <- c(Ace="#D9433A",OOS="#159B69",Medium="#79BFA0",Negative="#F0782B",Error="#AAB5C0")
+                Medium=sum(cc=="!",na.rm=TRUE),Negative=sum(cc=="-",na.rm=TRUE),
+                Error=sum(cc=="=",na.rm=TRUE))
+      in_n <- sum(cc %in% c("#","+","!","-","/"),na.rm=TRUE)
+      points_won <- if ("UOFC_Point" %in% names(x)) {
+        sum(suppressWarnings(as.numeric(x$UOFC_Point)) == 1, na.rm=TRUE)
+      } else if ("Point_Won_By" %in% names(x)) {
+        sum(grepl("University of Calgary",x$Point_Won_By,ignore.case=TRUE),na.rm=TRUE)
+      } else NA_integer_
+      cols <- c(Ace="#D9433A",OOS="#159B69",Medium="#79BFA0",
+                Negative="#F0782B",Error="#AAB5C0")
       bar <- div(class="serve-breakdown-bar",lapply(names(vals),function(nm){
         if(vals[[nm]]==0)return(NULL)
-        div(class="serve-breakdown-segment",style=paste0("width:",100*vals[[nm]]/max(1,n),"%;background:",cols[[nm]],";"),title=paste(nm,vals[[nm]]))
+        div(class="serve-breakdown-segment",
+            style=paste0("width:",100*vals[[nm]]/max(1,n),"%;background:",cols[[nm]],";"),
+            title=paste(nm,vals[[nm]]))
       }))
-      tags$tr(tags$td(paste("Zone",z)),tags$td(n),tags$td(bar),
-        lapply(names(vals),function(nm)tags$td(paste0(vals[[nm]]," (",pct(vals[[nm]],n),")"))))
+      tags$tr(
+        tags$td(paste("Zone",z)),tags$td(n),tags$td(bar),
+        lapply(names(vals),function(nm)tags$td(paste0(vals[[nm]]," (",pct(vals[[nm]],n),")"))),
+        tags$td(paste0(in_n," (",pct(in_n,n),")")),
+        tags$td(if(is.na(points_won))"—" else paste0(points_won," (",pct(points_won,n),")"))
+      )
     })
     totals <- c(Ace=sum(code=="#",na.rm=TRUE),OOS=sum(code=="+",na.rm=TRUE),
-                Medium=sum(code=="!",na.rm=TRUE),Negative=sum(code=="-",na.rm=TRUE),Error=sum(code=="=",na.rm=TRUE))
-    total_n <- nrow(d); cols <- c(Ace="#D9433A",OOS="#159B69",Medium="#79BFA0",Negative="#F0782B",Error="#AAB5C0")
+                Medium=sum(code=="!",na.rm=TRUE),Negative=sum(code=="-",na.rm=TRUE),
+                Error=sum(code=="=",na.rm=TRUE))
+    total_n <- nrow(d)
+    cols <- c(Ace="#D9433A",OOS="#159B69",Medium="#79BFA0",
+              Negative="#F0782B",Error="#AAB5C0")
     div(
       div(class="serve-legend",lapply(names(totals),function(nm)div(class="serve-legend-item",
         span(class="serve-stat-dot",style=paste0("background:",cols[[nm]],";")),span(nm)))),
       div(class="serve-server-summary-title","SERVE OUTCOME BY STARTING ZONE"),
       div(class="serve-table-wrap",tags$table(class="serve-server-table serve-start-zone-table",
-        tags$thead(tags$tr(lapply(c("SERVE FROM","N","OUTCOME MIX","ACE","OOS (+)","MEDIUM (!)","NEGATIVE (-)","ERROR (=)"),tags$th))),
+        tags$thead(tags$tr(lapply(c("SERVE FROM","N","OUTCOME MIX","ACE","OOS (+)",
+          "MEDIUM (!)","NEGATIVE (-)","ERROR (=)","IN","POINTS WON"),tags$th))),
         tags$tbody(rows))),
       div(class="serve-outcome-cards",lapply(names(totals),function(nm)div(class="serve-stat-card",
         div(class="serve-stat-top",span(class="serve-stat-dot",style=paste0("background:",cols[[nm]],";")),nm),
