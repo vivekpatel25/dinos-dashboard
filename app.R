@@ -3297,6 +3297,17 @@ ui <- fluidPage(
       .athlete-map-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
       .athlete-map-card{border:1px solid #dce4eb;border-radius:12px;padding:12px;min-width:0;}
       .athlete-map-card h4{font-family:'Barlow Condensed';font-size:18px;font-weight:800;margin:0 0 8px;color:#526475;}
+      .athlete-profile-controls{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:#f1f4f6;border-radius:10px;padding:10px 14px;margin:10px 0 14px;}
+      .athlete-profile-controls .form-group{margin:0;}
+      .athlete-profile-controls .radio-inline,.athlete-profile-controls .checkbox-inline{margin:4px 10px 4px 0;font-size:12px;font-weight:700;}
+      .athlete-profile-controls input[type=checkbox],.athlete-profile-controls input[type=radio]{accent-color:#C8102E;}
+      .athlete-profile-controls .control-label{font-size:10px;font-weight:800;letter-spacing:.7px;color:#526475;}
+      .athlete-aggregate-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
+      .athlete-aggregate-table th{background:#263746;color:#fff;padding:10px;text-align:center;}
+      .athlete-aggregate-table td{padding:9px 10px;border-bottom:1px solid #e3e9ee;text-align:center;}
+      .athlete-aggregate-table td:first-child{text-align:left;font-weight:700;}
+      .athlete-aggregate-table tr:nth-child(even){background:#f6f8fa;}
+      .athlete-section-summary{background:#fff1f3;border:1px solid #f4cbd2;border-radius:12px;padding:12px 16px;color:#C8102E;font-size:12px;font-weight:800;margin:8px 0;}
       .athlete-data-table-wrap{overflow-x:auto;margin-top:12px;}
       .athlete-data-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
       .athlete-data-table th{background:#263746;color:white;padding:9px;text-align:left;}
@@ -4068,13 +4079,46 @@ server <- function(input, output, session) {
         ),
         uiOutput("athlete_profile_status"),
         div(class="athlete-profile-section", h3("ATTACK MAPS"),
+          div(class="athlete-profile-controls",
+            checkboxInput("athlete_attack_paths", "Attack paths", TRUE, width="150px"),
+            radioButtons("athlete_attack_outcome", NULL,
+              choices=c("All"="All","Kills"="Kills","In play"="In play"),
+              selected="All", inline=TRUE)
+          ),
           div(class="athlete-map-grid",
-            lapply(c("right","left","gap_slide","middle","backrow"), function(k) div(class="athlete-map-card", h4(ATTACK_MAP_DEFINITIONS[[k]]$title), plotOutput(paste0("athlete_attack_",k), height="300px")))
-          ), uiOutput("athlete_attack_table")),
-        div(class="athlete-profile-section", h3("ATTACK DETAILS"), uiOutput("athlete_attack_details")),
-        div(class="athlete-profile-section", h3("SERVING MAP"), plotOutput("athlete_serve_map", height="420px"), uiOutput("athlete_serve_table")),
-        div(class="athlete-profile-section", h3("RECEPTION MAP"), plotOutput("athlete_pass_map", height="420px"), uiOutput("athlete_pass_table")),
-        div(class="athlete-profile-section", h3("SETTING MAP"), plotOutput("athlete_setting_map", height="650px"), uiOutput("athlete_setting_table"))
+            lapply(c("right","left","gap_slide","middle","backrow"), function(k) {
+              def <- ATTACK_MAP_DEFINITIONS[[k]]
+              div(class="athlete-map-card", h4(def$title),
+                checkboxGroupInput(paste0("athlete_attack_codes_",k), NULL,
+                  choices=stats::setNames(def$codes, def$codes), selected=def$codes, inline=TRUE),
+                plotOutput(paste0("athlete_attack_",k), height="300px"))
+            })
+          )),
+        div(class="athlete-profile-section", h3("ATTACK DETAIL"),
+          uiOutput("athlete_attack_details")),
+        div(class="athlete-profile-section", h3("SERVING MAP"),
+          div(class="athlete-profile-controls",
+            radioButtons("athlete_serve_outcomes", "SHOW OUTCOMES",
+              choices=c("Ace","Positive","Negative"), selected=c("Ace","Positive","Negative"), inline=TRUE),
+            selectInput("athlete_serve_start", "SERVE FROM", choices=c("All"), selected="All", width="180px")
+          ),
+          plotOutput("athlete_serve_map", height="420px"),
+          uiOutput("athlete_serve_table")),
+        div(class="athlete-profile-section", h3("PASSING MAPS"),
+          div(class="athlete-profile-controls",
+            selectInput("athlete_pass_zone", "RECEPTION START ZONE", choices=c("All"), selected="All", width="220px"),
+            checkboxGroupInput("athlete_pass_quality", "SHOW PASS TYPES",
+              choices=c("Good","OOS","Overpass","Error"), selected=c("Good","OOS","Overpass","Error"), inline=TRUE)
+          ),
+          plotOutput("athlete_pass_map", height="420px"),
+          uiOutput("athlete_pass_table")),
+        div(class="athlete-profile-section", h3("SETTING MAPS"),
+          div(class="athlete-profile-controls",
+            radioButtons("athlete_setting_phase", "PHASE",
+              choices=c("All phases"="All","First Ball","Transition"), selected="All", inline=TRUE)
+          ),
+          plotOutput("athlete_setting_map", height="650px"),
+          uiOutput("athlete_setting_table"))
       ))
     }
 
@@ -4514,58 +4558,193 @@ server <- function(input, output, session) {
     div(class="count-pill", paste0("EVENTS RECORDED · ", total, "  |  ", paste(names(counts), counts, sep=": ", collapse=" · ")))
   })
 
+  # Athlete profile: pooled season / selected-match data and dashboard-style controls.
+  athlete_attack_detail_data <- reactive({
+    req(selected_athlete())
+    ids <- athlete_selected_match_id()
+    d <- load_detail_csvs("PLAYER_ATTACK\\.csv$", ids)
+    if (!nrow(d)) return(d)
+    nm <- if ("Player Name" %in% names(d)) "Player Name" else if ("Player" %in% names(d)) "Player" else NA_character_
+    if (is.na(nm)) return(d[0,,drop=FALSE])
+    d[tolower(trimws(as.character(d[[nm]]))) == tolower(trimws(selected_athlete()$Athlete)),,drop=FALSE]
+  })
+
+  athlete_serve_filtered <- reactive({
+    d <- athlete_serve_data()
+    if (!nrow(d)) return(d)
+    if (!is.null(input$athlete_serve_start) && input$athlete_serve_start != "All") {
+      z <- suppressWarnings(as.integer(sub("^Zone ","",input$athlete_serve_start)))
+      d <- d[as.integer(d$Serve_Start_Zone)==z,,drop=FALSE]
+    }
+    codes <- c("#"="Ace","+"="Positive","!"="Positive","-"="Negative","="="Error","/"="Positive")
+    grp <- unname(codes[as.character(d$Serve_Evaluation_Code)])
+    chosen <- input$athlete_serve_outcomes
+    if (is.null(chosen)) chosen <- c("Ace","Positive","Negative")
+    d <- d[grp %in% chosen,,drop=FALSE]
+    d
+  })
+
+  athlete_pass_filtered <- reactive({
+    d <- athlete_pass_data()
+    if (!nrow(d)) return(d)
+    if (!is.null(input$athlete_pass_zone) && input$athlete_pass_zone != "All") {
+      z <- suppressWarnings(as.integer(sub("^Zone ","",input$athlete_pass_zone)))
+      d <- d[as.integer(d$Reception_Start_Zone)==z,,drop=FALSE]
+    }
+    q <- tolower(as.character(d$Pass_Quality))
+    chosen <- tolower(input$athlete_pass_quality)
+    if (!is.null(chosen) && length(chosen)) {
+      keep <- (grepl("good|positive",q) & "good" %in% chosen) |
+        (grepl("oos|out.of.system",q) & "oos" %in% chosen) |
+        (grepl("overpass",q) & "overpass" %in% chosen) |
+        (grepl("error|aced|poor",q) & "error" %in% chosen)
+      d <- d[keep,,drop=FALSE]
+    }
+    d
+  })
+
+  observeEvent(athlete_serve_data(), {
+    d <- athlete_serve_data()
+    z <- if (nrow(d)) sort(unique(na.omit(as.integer(d$Serve_Start_Zone)))) else integer(0)
+    updateSelectInput(session,"athlete_serve_start",choices=c("All",paste("Zone",z)),selected="All")
+  }, ignoreInit=FALSE)
+  observeEvent(athlete_pass_data(), {
+    d <- athlete_pass_data()
+    z <- if (nrow(d)) sort(unique(na.omit(as.integer(d$Reception_Start_Zone)))) else integer(0)
+    updateSelectInput(session,"athlete_pass_zone",choices=c("All",paste("Zone",z)),selected="All")
+  }, ignoreInit=FALSE)
+
+  output$athlete_profile_status <- renderUI({
+    req(selected_athlete())
+    counts <- c(Attack=nrow(athlete_attack_data()), Serve=nrow(athlete_serve_data()),
+                Reception=nrow(athlete_pass_data()), Setting=nrow(athlete_setting_data()))
+    if (sum(counts)==0) return(div(class="athlete-empty-card","No data recorded for this athlete in the selected period."))
+    div(class="count-pill",paste0("EVENTS RECORDED · ",sum(counts),"  |  ",paste(names(counts),counts,sep=": ",collapse=" · ")))
+  })
+
   attack_keys_athlete <- c("right","left","gap_slide","middle","backrow")
-  lapply(attack_keys_athlete, function(key) local({
+  lapply(attack_keys_athlete,function(key) local({
     k <- key
     output[[paste0("athlete_attack_",k)]] <- renderPlot({
-      d <- athlete_attack_data(); def <- ATTACK_MAP_DEFINITIONS[[k]]
-      if (k == "backrow") d <- d[toupper(d$Attack_Code)=="V7" | grepl("pipe",tolower(d$Attack_Type)),,drop=FALSE]
-      else d <- d[d$Attack_Code %in% def$codes,,drop=FALSE]
-      draw_attack_map(d, def$title, TRUE)
-    }, res=100)
+      d <- athlete_attack_data()
+      if (!nrow(d)) { plot.new(); text(.5,.5,"No data recorded"); return() }
+      def <- ATTACK_MAP_DEFINITIONS[[k]]
+      selected_codes <- input[[paste0("athlete_attack_codes_",k)]]
+      if (is.null(selected_codes)) selected_codes <- def$codes
+      if (k=="backrow") {
+        keep <- (toupper(d$Attack_Code)=="V7" | grepl("pipe",tolower(d$Attack_Type))) &
+          (toupper(d$Attack_Code) %in% selected_codes | ("PIPE" %in% selected_codes & grepl("pipe",tolower(d$Attack_Type))))
+      } else keep <- d$Attack_Code %in% intersect(def$codes,selected_codes)
+      d <- d[keep,,drop=FALSE]
+      cls <- if(nrow(d)) attack_map_outcome_class(d) else character(0)
+      if(identical(input$athlete_attack_outcome,"Kills")) d<-d[cls=="Kill",,drop=FALSE]
+      if(identical(input$athlete_attack_outcome,"In play")) d<-d[cls=="In Play",,drop=FALSE]
+      draw_attack_map(d,def$title,show_paths=isTRUE(input$athlete_attack_paths))
+    },res=100)
   }))
 
-  output$athlete_attack_table <- renderUI({
-    d <- athlete_attack_data()
-    athlete_event_table(d, c("Match_ID","Point_ID","Attack_Type","Attack_Code","Evaluation","Attack_Outcome","Attack_Phase","Start_Zone","End_Zone","End_Subzone"), "No attack data recorded")
-  })
   output$athlete_attack_details <- renderUI({
-    d <- athlete_attack_data()
+    d <- athlete_attack_detail_data()
     if (!nrow(d)) return(div(class="athlete-empty-card","No attack data recorded."))
-    outcome <- tolower(as.character(d$Attack_Outcome)); kills <- sum(outcome=="kill",na.rm=TRUE); errors <- sum(outcome=="error",na.rm=TRUE)
-    div(class="count-pill", paste0("ATTEMPTS ",nrow(d)," · KILLS ",kills," · ERRORS ",errors," · EFFICIENCY ",sprintf("%.3f",(kills-errors)/nrow(d))),
-      athlete_event_table(d,c("Match_ID","Attack_Type","ATTACK_CODE","Evaluation","Attack_Outcome","Attack_Phase")))
+    count_cols <- c("ATT","K","E","FB Attempts","FB Kills","FB Errors","Transition Attempts","Transition Kills","Transition Errors")
+    for(nm in count_cols) if(!nm %in% names(d)) d[[nm]]<-0
+    for(nm in count_cols) d[[nm]]<-suppressWarnings(as.numeric(d[[nm]]))
+    grp <- if("Attack Type" %in% names(d)) "Attack Type" else "Player"
+    agg <- stats::aggregate(d[,count_cols,drop=FALSE],by=list(Attack_Type=d[[grp]]),FUN=function(x)sum(x,na.rm=TRUE))
+    eff <- function(k,e,a) ifelse(a>0,(k-e)/a,NA_real_)
+    agg$`Total Eff.`<-eff(agg$K,agg$E,agg$ATT)
+    agg$`First-Ball Eff.`<-eff(agg$`FB Kills`,agg$`FB Errors`,agg$`FB Attempts`)
+    agg$`Transition Eff.`<-eff(agg$`Transition Kills`,agg$`Transition Errors`,agg$`Transition Attempts`)
+    agg<-agg[order(-agg$ATT),,drop=FALSE]
+    fmt<-function(x)ifelse(is.na(x),"—",sprintf("%.3f",x))
+    div(class="athlete-section-summary",paste0("ATTEMPTS ",sum(agg$ATT)," · KILLS ",sum(agg$K)," · ERRORS ",sum(agg$E)," · EFFICIENCY ",fmt(eff(sum(agg$K),sum(agg$E),sum(agg$ATT)))),
+      div(class="athlete-data-table-wrap",tags$table(class="athlete-aggregate-table",
+        tags$thead(tags$tr(lapply(c("ATTACK TYPE","ATT","K","E","TOTAL EFF.","FIRST-BALL EFF.","TRANSITION EFF."),tags$th))),
+        tags$tbody(lapply(seq_len(nrow(agg)),function(i)tags$tr(
+          tags$td(as.character(agg$Attack_Type[i])),tags$td(agg$ATT[i]),tags$td(agg$K[i]),tags$td(agg$E[i]),
+          tags$td(fmt(agg$`Total Eff.`[i])),tags$td(fmt(agg$`First-Ball Eff.`[i])),tags$td(fmt(agg$`Transition Eff.`[i]))
+        )))
+      ))
+    )
   })
 
   output$athlete_serve_map <- renderPlot({
-    d <- athlete_serve_data(); draw_athlete_zone_map(d,"Landing_Zone","Landing_Subzone","SERVING")
-  }, res=110)
+    d<-athlete_serve_filtered()
+    if(!nrow(d)){plot.new();text(.5,.5,"No serve data recorded");return()}
+    draw_athlete_zone_map(d,"Landing_Zone","Landing_Subzone","SERVING")
+  },res=110)
   output$athlete_serve_table <- renderUI({
-    athlete_event_table(athlete_serve_data(),c("Match_ID","Set_Number","Point_ID","Serve_Start_Zone","Landing_Zone","Landing_Subzone","Serve_Evaluation","Serve_Outcome"),"No serve data recorded")
+    d<-athlete_serve_filtered()
+    if(!nrow(d))return(div(class="athlete-empty-card","No serve data recorded for this selection."))
+    d$Serve_Start_Zone<-suppressWarnings(as.integer(d$Serve_Start_Zone))
+    code<-as.character(d$Serve_Evaluation_Code)
+    zones<-sort(unique(na.omit(d$Serve_Start_Zone)))
+    counts<-lapply(zones,function(z){
+      x<-d[d$Serve_Start_Zone==z,,drop=FALSE]
+      data.frame(Zone=paste("Zone",z),N=nrow(x),Ace=sum(code[d$Serve_Start_Zone==z]=="#",na.rm=TRUE),
+        OOS=sum(code[d$Serve_Start_Zone==z]=="+",na.rm=TRUE),Medium=sum(code[d$Serve_Start_Zone==z]=="!",na.rm=TRUE),
+        Negative=sum(code[d$Serve_Start_Zone==z]=="-",na.rm=TRUE),Error=sum(code[d$Serve_Start_Zone==z]=="=",na.rm=TRUE))
+    })
+    agg<-do.call(rbind,counts)
+    tags$table(class="athlete-aggregate-table",tags$thead(tags$tr(lapply(names(agg),tags$th))),
+      tags$tbody(lapply(seq_len(nrow(agg)),function(i)tags$tr(lapply(agg[i,],function(v)tags$td(as.character(v)))))))
   })
+
   output$athlete_pass_map <- renderPlot({
-    d <- athlete_pass_data(); draw_athlete_zone_map(d,"Reception_Start_Zone","Reception_Start_Subzone","RECEPTION")
-  }, res=110)
+    d<-athlete_pass_filtered()
+    if(!nrow(d)){plot.new();text(.5,.5,"No reception data recorded");return()}
+    draw_athlete_zone_map(d,"Reception_Start_Zone","Reception_Start_Subzone","RECEPTION")
+  },res=110)
   output$athlete_pass_table <- renderUI({
-    athlete_event_table(athlete_pass_data(),c("Match_ID","Set_Number","Point_ID","Reception_Start_Zone","Reception_Start_Subzone","Reception_Evaluation","Pass_Quality","Pass_Category","Attack_Kills","Attack_Errors"),"No reception data recorded")
+    d<-athlete_pass_filtered()
+    if(!nrow(d))return(div(class="athlete-empty-card","No reception data recorded for this selection."))
+    d$Reception_Start_Zone<-suppressWarnings(as.integer(d$Reception_Start_Zone))
+    zones<-sort(unique(na.omit(d$Reception_Start_Zone)))
+    agg<-do.call(rbind,lapply(zones,function(z){
+      x<-d[d$Reception_Start_Zone==z,,drop=FALSE]
+      data.frame(Zone=paste("Zone",z),Attempts=nrow(x),
+        Good=sum(x$Is_GP,na.rm=TRUE),OOS=sum(x$Is_OOS,na.rm=TRUE),Aced=sum(x$Is_ACED,na.rm=TRUE),
+        Poor=sum(x$Is_POOR,na.rm=TRUE),Sideout=sum(x$Point_Won_By=="University of Calgary",na.rm=TRUE))
+    }))
+    tags$table(class="athlete-aggregate-table",tags$thead(tags$tr(lapply(names(agg),tags$th))),
+      tags$tbody(lapply(seq_len(nrow(agg)),function(i)tags$tr(lapply(agg[i,],function(v)tags$td(as.character(v)))))))
   })
+
   output$athlete_setting_map <- renderPlot({
-    d <- athlete_setting_data()
+    d<-athlete_setting_data()
+    if(!nrow(d)){plot.new();text(.5,.5,"No setting data recorded");return()}
+    phase<-input$athlete_setting_phase
+    if(!is.null(phase)&&phase!="All") d<-d[grepl(phase,d$Setting_Phase,ignore.case=TRUE),,drop=FALSE]
     par(mar=c(1,1,2,1),xaxs="i",yaxs="i",pty="s")
     plot(NA,xlim=c(0,6),ylim=c(0,6.4),asp=1,axes=FALSE,xlab="",ylab="")
-    text(3,6.25,"NET",font=2,col="#52616b"); segments(0,6.08,6,6.08,col="#344653",lwd=4)
-    bands <- c("#F1F3F4","#EEE9E4","#E9DDD3")
-    for(x in 0:5) for(y in 0:5) rect(x,y,x+1,y+1,col=bands[floor((5-y)/2)+1],border="#c7d1d9")
-    if(!nrow(d)){text(3,3,"No setting data recorded",col="#7b8996");return(invisible(NULL))}
-    valid <- !is.na(d$Setting_Destination_Zone)&d$Setting_Destination_Zone%in%1:9&d$Setting_Destination_Subzone%in%c("A","B","C","D")
-    d<-d[valid,,drop=FALSE]; if(!nrow(d)){text(3,3,"No valid setting destinations",col="#7b8996");return(invisible(NULL))}
-    key<-paste(d$Setting_Destination_Zone,d$Setting_Destination_Subzone,sep="_"); groups<-split(seq_len(nrow(d)),key)
-    n<-vapply(groups,length,integer(1)); k<-vapply(groups,function(ix)sum(d$Linked_Attack[ix]&d$Attack_Kill[ix],na.rm=TRUE),integer(1)); e<-vapply(groups,function(ix)sum(d$Linked_Attack[ix]&d$Attack_Error[ix],na.rm=TRUE),integer(1)); linked<-vapply(groups,function(ix)sum(d$Linked_Attack[ix],na.rm=TRUE),integer(1)); unk<-vapply(groups,function(ix)sum(d$Linked_Attack[ix]&d$Attack_Unknown_Outcome[ix],na.rm=TRUE),integer(1)); known<-pmax(0,linked-unk)
-    zones<-as.integer(sub("_.*$","",names(groups))); subs<-sub("^[^_]*_","",names(groups)); xy<-setting_zone_cell(zones,subs)
-    for(i in seq_along(n)){if(is.na(xy$x[i])||is.na(xy$y[i]))next; eff<-if(known[i]>0)(k[i]-e[i])/known[i] else NA_real_; text(xy$x[i],xy$y[i]+.15,ifelse(is.na(eff),"—",sprintf("%.2f",eff)),font=2,cex=1.15,col="#263746"); text(xy$x[i],xy$y[i]-.12,paste0("K",k[i]," E",e[i]),cex=.62,col="#71808c"); text(xy$x[i],xy$y[i]-.34,paste0("n=",n[i]),cex=.65,col="#8996a1")}
+    text(3,6.25,"NET",font=2,col="#52616b");segments(0,6.08,6,6.08,col="#344653",lwd=4)
+    bands<-c("#F1F3F4","#EEE9E4","#E9DDD3")
+    for(x in 0:5)for(y in 0:5)rect(x,y,x+1,y+1,col=bands[floor((5-y)/2)+1],border="#c7d1d9")
+    valid<-!is.na(d$Setting_Destination_Zone)&d$Setting_Destination_Zone%in%1:9&d$Setting_Destination_Subzone%in%c("A","B","C","D")
+    d<-d[valid,,drop=FALSE]
+    if(!nrow(d)){text(3,3,"No valid setting locations");return()}
+    key<-paste(d$Setting_Destination_Zone,d$Setting_Destination_Subzone,sep="_");ix<-split(seq_len(nrow(d)),key)
+    n<-vapply(ix,length,integer(1));k<-vapply(ix,function(j)sum(d$Linked_Attack[j]&d$Attack_Kill[j],na.rm=TRUE),integer(1))
+    e<-vapply(ix,function(j)sum(d$Linked_Attack[j]&d$Attack_Error[j],na.rm=TRUE),integer(1))
+    l<-vapply(ix,function(j)sum(d$Linked_Attack[j],na.rm=TRUE),integer(1));u<-vapply(ix,function(j)sum(d$Linked_Attack[j]&d$Attack_Unknown_Outcome[j],na.rm=TRUE),integer(1))
+    eff<-ifelse(l-u>0,(k-e)/(l-u),NA_real_)
+    keys<-names(ix);xy<-setting_zone_cell(as.integer(sub("_.*","",keys)),sub("^[^_]*_","",keys))
+    for(i in seq_along(n)){if(is.na(xy$x[i]))next;text(xy$x[i],xy$y[i]+.15,ifelse(is.na(eff[i]),"—",sprintf("%.2f",eff[i])),font=2,cex=1.1);text(xy$x[i],xy$y[i]-.1,paste0("K ",k[i]," E ",e[i]),cex=.6);text(xy$x[i],xy$y[i]-.32,paste0("n=",n[i]),cex=.65)}
   },res=110)
   output$athlete_setting_table <- renderUI({
-    athlete_event_table(athlete_setting_data(),c("Match_ID","Set_Number","Point_ID","Setting_Destination_Zone","Setting_Destination_Subzone","Setting_Type","Setting_Phase","Linked_Attack","Attack_Outcome","Attack_Kill","Attack_Error"),"No setting data recorded")
+    d<-athlete_setting_data()
+    phase<-input$athlete_setting_phase
+    if(!is.null(phase)&&phase!="All")d<-d[grepl(phase,d$Setting_Phase,ignore.case=TRUE),,drop=FALSE]
+    if(!nrow(d))return(div(class="athlete-empty-card","No setting data recorded for this selection."))
+    key<-paste(d$Setting_Destination_Zone,d$Setting_Destination_Subzone,sep="-")
+    agg<-do.call(rbind,lapply(split(seq_len(nrow(d)),key),function(ix){
+      x<-d[ix,,drop=FALSE];linked<-sum(x$Linked_Attack,na.rm=TRUE);unk<-sum(x$Linked_Attack&x$Attack_Unknown_Outcome,na.rm=TRUE)
+      k<-sum(x$Linked_Attack&x$Attack_Kill,na.rm=TRUE);e<-sum(x$Linked_Attack&x$Attack_Error,na.rm=TRUE);known<-linked-unk
+      data.frame(Destination=key[ix[1]],Sets=nrow(x),Linked_Attacks=linked,Kills=k,Errors=e,Efficiency=if(known>0)(k-e)/known else NA_real_)
+    }))
+    agg<-agg[order(-agg$Sets),,drop=FALSE]
+    tags$table(class="athlete-aggregate-table",tags$thead(tags$tr(lapply(names(agg),tags$th))),
+      tags$tbody(lapply(seq_len(nrow(agg)),function(i)tags$tr(lapply(agg[i,],function(v)tags$td(if(is.numeric(v)&&!is.na(v))ifelse(grepl("Efficiency",names(agg)[which(v==agg[i,][1])]),sprintf("%.3f",v),as.character(v)) else as.character(v)))))))
   })
 
   # Match report navigation.
