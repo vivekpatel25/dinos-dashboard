@@ -2313,12 +2313,6 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
             class = "pass-trajectory-layer",
             viewBox = "0 0 100 100",
             preserveAspectRatio = "none",
-            tags$circle(
-              cx = "58", cy = "24", r = "24",
-              fill = "#BFE8D8", `fill-opacity` = "0.38",
-              stroke = "#54BE98", `stroke-width` = "0.45",
-              `stroke-dasharray` = "1.4 1.1"
-            ),
             line_nodes
           ),
           marker_nodes,
@@ -2328,9 +2322,6 @@ passing_map_ui <- function(ids, pass_from = "All", passer_name = "All",
       ),
       div(
         class = "pass-summary-column",
-        div(class = "pass-boundary-key",
-            span(class = "pass-boundary-swatch"),
-            span("Good-pass boundary (7 ft from net)")),
         div(class = "pass-summary-title", "PASS OUTCOMES BY RECEPTION START ZONE"),
         div(
           class = "pass-summary-table-wrap",
@@ -3303,19 +3294,6 @@ draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COUR
        asp = 1, axes = FALSE, xlab = "", ylab = "")
   rect(0, 0, 3, 3, col = "#f3f7f9", border = "#344653", lwd = 2)
   for (v in 1:2) { segments(v, 0, v, 3, col = "#c7d1d9"); segments(0, v, 3, v, col = "#c7d1d9") }
-  # Good-pass boundary: 7 ft from the net, scaled to the 29.5-ft
-  # court width (3 plotting units). The target is the receiving-side
-  # semicircle with its diameter exactly on the net; it does not cross
-  # the net or extend beyond the 7-ft radius.
-  gp_radius <- 7 / (29.5 / 3)
-  gp_theta <- seq(pi, 2*pi, length.out = 181)
-  gp_x <- 1.5 + gp_radius * cos(gp_theta)
-  gp_y <- 3.0 + gp_radius * sin(gp_theta)
-  polygon(c(1.5 - gp_radius, gp_x, 1.5 + gp_radius),
-          c(3.0, gp_y, 3.0),
-          col = grDevices::adjustcolor("#BFE8D8", alpha.f = .28),
-          border = NA)
-  lines(gp_x, gp_y, col = "#54BE98", lty = 2, lwd = 2)
   segments(0, 3.12, 3, 3.12, col = "#344653", lwd = 4)
   text(1.5, 3.29, "NET", font = 2, col = "#52616b", cex = 1.05)
   # Reception court follows the official zone diagram:
@@ -4979,8 +4957,7 @@ server <- function(input, output, session) {
         tags$td(paste0(over," (",pct(over,n),")")),tags$td(paste0(err," (",pct(err,n),")")),
         tags$td(if(is.na(so))"—" else as.character(so)))
     })
-    div(div(class="pass-boundary-key",span(class="pass-boundary-swatch"),"Pass outcome distribution by reception start zone"),
-      div(class="pass-summary-title","PASS OUTCOMES BY RECEPTION START ZONE"),
+    div(div(class="pass-summary-title","PASS OUTCOMES BY RECEPTION START ZONE"),
       div(class="pass-summary-table-wrap",tags$table(class="pass-summary-table",
         tags$thead(tags$tr(lapply(c("ZONE","ATT.","OUTCOME MIX","GOOD","OOS","OVERPASS","ERROR","SO"),tags$th))),
         tags$tbody(rows)))
