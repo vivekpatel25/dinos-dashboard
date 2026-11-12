@@ -843,16 +843,19 @@ rotation_table_ui <- function(ids) {
     if (nm %in% c("Digs", "Dig_to_Kill_n", "Dig_to_Kill_pct", "Dig_Errors")) return("DEFENSE")
     "OTHER"
   }
+  # Build one merged header cell for each consecutive metric group.
+  # Using rle() guarantees repeated group labels are represented by a single
+  # <th colspan="..."> rather than one header cell per metric.
   group_labels <- vapply(c("ROTATION", metric_cols), groups, character(1))
-  group_cells <- list(); i <- 1L
-  while (i <= length(group_labels)) {
-    j <- i
-    while (j < length(group_labels) && identical(group_labels[j + 1L], group_labels[i])) j <- j + 1L
-    group_cells[[length(group_cells) + 1L]] <- tags$th(
-      colspan = j - i + 1L, class = "rotation-group-head", group_labels[i]
+  group_runs <- rle(group_labels)
+  group_cells <- lapply(seq_along(group_runs$values), function(i) {
+    tags$th(
+      group_runs$values[i],
+      colspan = group_runs$lengths[i],
+      class = "rotation-group-head"
     )
-    i <- j + 1L
-  }
+  })
+  group_row <- tags$tr(group_cells)
   head_row <- tags$tr(lapply(names(display), function(nm) tags$th(nm)))
 
   # Heatmap ranks each metric across R1-R6. Error/negative metrics are reversed.
@@ -891,7 +894,7 @@ rotation_table_ui <- function(ids) {
     div(class = "detail-section-title", "CALGARY ROTATION DETAILS"),
     div(class = "rotation-table-wrap",
       tags$table(class = "rotation-table rotation-table-full",
-        tags$thead(do.call(tags$tr, group_cells), head_row), tags$tbody(rows)
+        tags$thead(group_row, head_row), tags$tbody(rows)
       )
     )
   )
