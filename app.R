@@ -4131,6 +4131,7 @@ server <- function(input, output, session) {
             ]
           ),
           block_detail_ui(mid, input$block_attack_type_filter),
+          setting_map_ui(),
           serving_map_ui(
             mid,
             input$serve_from_filter,
@@ -4149,8 +4150,7 @@ server <- function(input, output, session) {
         ),
             if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
           )
-          ,attack_map_ui(),
-          setting_map_ui()
+          ,attack_map_ui()
         )
       )
     }
@@ -4307,6 +4307,7 @@ server <- function(input, output, session) {
         metric_data = match_data
       ),
       block_detail_ui(selected_ids, input$block_attack_type_filter),
+      setting_map_ui(),
       serving_map_ui(
         selected_ids,
         input$serve_from_filter,
@@ -4325,8 +4326,7 @@ server <- function(input, output, session) {
         ),
         if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
       )
-      ,attack_map_ui(),
-      setting_map_ui()
+      ,attack_map_ui()
     )
   })
 
