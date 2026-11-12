@@ -3190,10 +3190,118 @@ athlete_event_table <- function(d, columns, empty_text = "No data recorded") {
 
 draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COURT MAP",
                                   origin_col = NULL, outcome_col = NULL, serving = FALSE) {
+  if (isTRUE(serving)) {
+    # Match the home dashboard serving court: receiving half is shown above
+    # the net, with the serving team positioned below it.
+    par(mar = c(2.8, 1, 3, 1), xaxs = "i", yaxs = "i", pty = "m")
+    plot(NA, xlim = c(-.12, 3.12), ylim = c(-.62, 3.42),
+         asp = 1, axes = FALSE, xlab = "", ylab = "")
+    rect(0, 0, 3, 3, col = "#eee9e2", border = "#344653", lwd = 2)
+    for (v in 1:2) {
+      segments(v, 0, v, 3, col = "#c7d1d9", lwd = 1)
+      segments(0, v, 3, v, col = "#c7d1d9", lwd = 1)
+    }
+
+    # Court is oriented from the serving team's perspective.
+    zone_xy <- function(z) {
+      z <- suppressWarnings(as.integer(as.character(z)))
+      xmap <- c(`1`=.5, `6`=1.5, `5`=2.5,
+                `9`=.5, `8`=1.5, `7`=2.5,
+                `2`=.5, `3`=1.5, `4`=2.5)
+      ymap <- c(`1`=2.5, `6`=2.5, `5`=2.5,
+                `9`=1.5, `8`=1.5, `7`=1.5,
+                `2`=.5, `3`=.5, `4`=.5)
+      data.frame(x=unname(xmap[as.character(z)]),
+                 y=unname(ymap[as.character(z)]))
+    }
+
+    # Faded zone numbers mirror the full-court home dashboard map.
+    for (zz in 1:9) {
+      pos <- zone_xy(zz)
+      text(pos$x, pos$y, labels=zz, col="#c6d3dc", cex=2.0, font=2)
+    }
+
+    if (is.null(d) || !nrow(d) || !zone_col %in% names(d)) {
+      segments(0, 0, 3, 0, col="#344653", lwd=3)
+      text(1.5, 1.5, "No data recorded", col="#7b8996")
+      return(invisible(NULL))
+    }
+
+    dest <- zone_xy(d[[zone_col]])
+    valid <- is.finite(dest$x) & is.finite(dest$y)
+    if (!any(valid)) {
+      segments(0, 0, 3, 0, col="#344653", lwd=3)
+      text(1.5, 1.5, "No valid court locations", col="#7b8996")
+      return(invisible(NULL))
+    }
+    d <- d[valid,,drop=FALSE]
+    dest <- dest[valid,,drop=FALSE]
+
+    # Use subzone coordinates when available, following the home dashboard
+    # A/B/C/D rotation; otherwise plot at the centre of the numbered zone.
+    if (!is.null(subzone_col) && subzone_col %in% names(d)) {
+      sub <- toupper(trimws(as.character(d[[subzone_col]])))
+      offsets <- list(A=c(dx=-.18,dy=-.18), B=c(dx=-.18,dy=.18),
+                      C=c(dx=.18,dy=.18), D=c(dx=.18,dy=-.18))
+      for (i in seq_len(nrow(d))) {
+        off <- offsets[[sub[i]]]
+        if (!is.null(off)) {
+          dest$x[i] <- dest$x[i] + off[["dx"]]
+          dest$y[i] <- dest$y[i] + off[["dy"]]
+        }
+      }
+    }
+
+    # Deterministic jitter makes repeated athlete serves individually visible.
+    if (!is.null(outcome_col) && outcome_col %in% names(d)) {
+      oc <- trimws(as.character(d[[outcome_col]]))
+      point_col <- ifelse(oc=="#", "#D9433A",
+                   ifelse(oc=="+", "#159B69",
+                   ifelse(oc=="!", "#79BFA0",
+                   ifelse(oc=="-", "#F0782B",
+                   ifelse(oc=="=", "#AAB5C0", "#79BFA0")))))
+    } else {
+      point_col <- rep("#C8102E", nrow(d))
+    }
+
+    if (!is.null(origin_col) && origin_col %in% names(d)) {
+      raw <- suppressWarnings(as.integer(as.character(d[[origin_col]])))
+      # Match the home dashboard server lanes for standard and observed zones.
+      sx <- c(`1`=2.5, `5`=.5, `6`=1.5, `7`=2.5, `9`=.5)
+      ox <- unname(sx[as.character(raw)])
+      ok <- is.finite(ox)
+      if (any(ok)) {
+        jx <- ((seq_len(nrow(d))[ok] * 7) %% 7 - 3) * .012
+        segments(ox[ok], rep(-.12, sum(ok)),
+                 dest$x[ok], dest$y[ok],
+                 col=grDevices::adjustcolor("#9eabb4", alpha.f=.34), lwd=1.1)
+        points(ox[ok], rep(-.12, sum(ok)), pch=21, bg="#52616b",
+               col="white", cex=1.05)
+        origin_levels <- sort(unique(raw[ok]))
+        for (z in origin_levels) {
+          x <- unname(sx[as.character(z)])
+          text(x, -.34, paste0("Z", z), col="#52616b", cex=.72, font=2)
+        }
+      }
+    }
+
+    # Outcome-coloured landing points, one marker per recorded serve.
+    jx <- ((seq_len(nrow(d)) * 7) %% 9 - 4) * .018
+    jy <- ((seq_len(nrow(d)) * 11) %% 9 - 4) * .018
+    points(dest$x + jx, dest$y + jy, pch=21, bg=point_col,
+           col="white", cex=1.05)
+    segments(0, 0, 3, 0, col="#263746", lwd=3)
+    segments(0, -.02, 3, -.02, col="#263746", lwd=3)
+    text(1.5, -.20, "NET", font=2, col="#52616b", cex=1.05)
+    text(1.5, -.55, "SERVING TEAM", font=2, col="#52616b", cex=.72)
+    return(invisible(NULL))
+  }
+
+  # Reception map retains the original athlete court orientation.
   par(mar = c(2, 1, 3, 1), xaxs = "i", yaxs = "i", pty = "m")
-  plot(NA, xlim = c(-.15, 3.15), ylim = if (serving) c(-.45, 3.4) else c(-.15, 3.4),
+  plot(NA, xlim = c(-.15, 3.15), ylim = c(-.15, 3.4),
        asp = 1, axes = FALSE, xlab = "", ylab = "")
-  rect(0, 0, 3, 3, col = if (serving) "#eee9e2" else "#f3f7f9", border = "#344653", lwd = 2)
+  rect(0, 0, 3, 3, col = "#f3f7f9", border = "#344653", lwd = 2)
   for (v in 1:2) { segments(v, 0, v, 3, col = "#c7d1d9"); segments(0, v, 3, v, col = "#c7d1d9") }
   segments(0, 3.12, 3, 3.12, col = "#344653", lwd = 4)
   text(1.5, 3.29, "NET", font = 2, col = "#52616b", cex = 1.05)
@@ -3219,25 +3327,9 @@ draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COUR
   if (!is.null(origin_col) && origin_col %in% names(d)) {
     oz <- zone_xy(d[[origin_col]])
     ok <- is.finite(oz$x) & is.finite(oz$y)
-    if (serving) {
-      raw <- suppressWarnings(as.integer(as.character(d[[origin_col]])))
-      sx <- c(`1`=2.5,`5`=.5,`6`=1.5,`7`=2.5,`9`=.5)
-      oz$x <- unname(sx[as.character(raw)]); oz$y <- rep(-.18,nrow(d)); ok <- is.finite(oz$x)
-    }
     if (any(ok)) segments(oz$x[ok],oz$y[ok],dest$x[ok],dest$y[ok],col=grDevices::adjustcolor(point_col[ok],alpha.f=.22),lwd=1.2)
-    if (serving) {
-      ox <- sort(unique(oz$x[ok])); if(length(ox)) points(ox,rep(-.18,length(ox)),pch=21,bg="#52616b",col="white",cex=1.25)
-      text(ox,rep(-.34,length(ox)),labels=seq_along(ox),col="#52616b",cex=.65,font=2)
-    }
   }
-  counts <- table(factor(d[[zone_col]], levels=1:9))
-  for (zz in 1:9) {
-    pos <- zone_xy(zz); n <- as.integer(counts[as.character(zz)])
-    if (n > 0) {
-      points(pos$x,pos$y,pch=21,cex=1.05+min(1.1,log1p(n)/3),bg="#C8102E",col="white")
-      text(pos$x,pos$y,n,col="white",font=2,cex=.8)
-    }
-  }
+  points(dest$x,dest$y,pch=21,bg=point_col,col="white",cex=1.05)
   invisible(NULL)
 }
 
