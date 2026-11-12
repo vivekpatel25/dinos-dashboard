@@ -3333,11 +3333,20 @@ ui <- fluidPage(
       .athlete-profile-controls .checkbox label:after{content:'';position:absolute;left:2px;top:5px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .15s;}
       .athlete-profile-controls .checkbox label:has(input:checked):before{background:#C8102E;}
       .athlete-profile-controls .checkbox label:has(input:checked):after{transform:translateX(14px);}
-      .athlete-profile-controls .checkbox-inline{position:relative;display:inline-flex;align-items:center;margin:3px 5px 3px 0!important;padding:7px 12px!important;border-radius:9px;background:#e3e8ed;color:#536577!important;font-size:11px;font-weight:800;cursor:pointer;}
-      .athlete-profile-controls .checkbox-inline input[type=checkbox],.athlete-profile-controls .radio-inline input[type=radio]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;margin:0!important;}
-      .athlete-profile-controls .checkbox-inline:has(input:checked),.athlete-profile-controls .radio-inline:has(input:checked){background:#C8102E!important;color:#fff!important;}
+      .athlete-profile-controls .checkbox-inline,.athlete-map-card .checkbox-inline{position:relative;display:inline-flex;align-items:center;margin:3px 12px 3px 0!important;padding:2px 0 2px 36px!important;min-height:22px;border-radius:0;background:transparent;color:#536577!important;font-size:11px;font-weight:800;cursor:pointer;}
+      .athlete-profile-controls .checkbox-inline input[type=checkbox],.athlete-profile-controls .radio-inline input[type=radio],.athlete-map-card .checkbox-inline input[type=checkbox]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;margin:0!important;left:0!important;}
+      .athlete-profile-controls .checkbox-inline:before,.athlete-map-card .checkbox-inline:before{content:'';position:absolute;left:0;top:3px;width:29px;height:15px;border-radius:12px;background:#c5ced6;transition:background .15s;}
+      .athlete-profile-controls .checkbox-inline:after,.athlete-map-card .checkbox-inline:after{content:'';position:absolute;left:2px;top:5px;width:11px;height:11px;border-radius:50%;background:#fff;transition:transform .15s;}
+      .athlete-profile-controls .checkbox-inline:has(input:checked):before,.athlete-map-card .checkbox-inline:has(input:checked):before{background:#C8102E;}
+      .athlete-profile-controls .checkbox-inline:has(input:checked):after,.athlete-map-card .checkbox-inline:has(input:checked):after{transform:translateX(14px);}
+      .athlete-profile-controls .radio-inline input[type=radio]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;margin:0!important;}
+      .athlete-profile-controls .radio-inline{display:inline-flex;align-items:center;margin:3px 5px 3px 0!important;padding:7px 12px!important;border-radius:9px;background:#e3e8ed;color:#536577!important;font-size:11px;font-weight:800;cursor:pointer;}
+      .athlete-profile-controls .radio-inline:has(input:checked){background:#C8102E!important;color:#fff!important;}
       .athlete-profile-controls .radio-inline{display:inline-flex;align-items:center;margin:3px 5px 3px 0!important;padding:7px 12px!important;border-radius:9px;background:#e3e8ed;color:#536577!important;font-size:11px;font-weight:800;cursor:pointer;}
       .athlete-serve-layout,.athlete-pass-layout{display:grid;grid-template-columns:minmax(360px,1.05fr) minmax(360px,1fr);gap:22px;align-items:start;margin-top:14px;}
+      .athlete-serve-layout .serve-legend,.athlete-pass-layout .pass-boundary-key{margin-bottom:10px;}
+      .athlete-serve-layout .serve-server-summary-title,.athlete-pass-layout .pass-summary-title{font-family:'Barlow Condensed';font-size:14px;font-weight:800;letter-spacing:1px;color:#5b6d7c;margin:13px 0 7px;}
+      .athlete-no-data-note{margin-top:18px;font-weight:700;}
       .athlete-serve-court-column,.athlete-pass-court-column{min-width:0;background:#f3f7f9;border:1px solid #cbd7df;border-radius:5px;padding:8px;}
       .athlete-serve-summary-column,.athlete-pass-summary-column{min-width:0;overflow-x:auto;padding:4px 0;}
       .athlete-serve-layout .shiny-plot-output,.athlete-pass-layout .shiny-plot-output{width:100%!important;}
@@ -4118,50 +4127,62 @@ server <- function(input, output, session) {
           div(div(class="eyebrow","ATHLETE PROFILE"), h2(class="athlete-profile-name", paste0("#", a$Number, " · ", a$Athlete)), p(a$Role)),
           div(class="athlete-match-select", selectInput("athlete_match_filter", "MATCH", choices=match_choices, selected="SEASON", width="100%"))
         ),
-        uiOutput("athlete_profile_status"),
-        div(class="athlete-profile-section", h3("ATTACK MAPS"),
-          div(class="athlete-profile-controls",
-            checkboxInput("athlete_attack_paths", "Attack paths", TRUE, width="150px"),
-            radioButtons("athlete_attack_outcome", NULL,
-              choices=c("All"="All","Kills"="Kills","In play"="In play"),
-              selected="All", inline=TRUE)
-          ),
-          div(class="athlete-map-grid",
-            lapply(c("right","left","gap_slide","middle","backrow"), function(k) {
-              def <- ATTACK_MAP_DEFINITIONS[[k]]
-              div(class="athlete-map-card", h4(def$title),
-                checkboxGroupInput(paste0("athlete_attack_codes_",k), NULL,
-                  choices=stats::setNames(def$codes, def$codes), selected=def$codes, inline=TRUE),
-                plotOutput(paste0("athlete_attack_",k), height="300px"))
-            })
-          )),
-        div(class="athlete-profile-section athlete-attack-detail", h3("ATTACK DETAIL"),
-          uiOutput("athlete_attack_details")),
-        div(class="athlete-profile-section", h3("SERVING MAP"),
-          div(class="athlete-profile-controls",
-            checkboxGroupInput("athlete_serve_outcomes", "SHOW OUTCOMES",
-              choices=c("Ace","Positive","Negative"), selected=c("Ace","Positive","Negative"), inline=TRUE),
-            selectInput("athlete_serve_start", "SERVE FROM", choices=c("All"), selected="All", width="180px")
-          ),
-          div(class="athlete-serve-layout",
-            div(class="athlete-serve-court-column", plotOutput("athlete_serve_map", height="560px")),
-            div(class="athlete-serve-summary-column", uiOutput("athlete_serve_table")))),
-        div(class="athlete-profile-section", h3("PASSING MAPS"),
-          div(class="athlete-profile-controls",
-            selectInput("athlete_pass_zone", "RECEPTION START ZONE", choices=c("All"), selected="All", width="220px"),
-            checkboxGroupInput("athlete_pass_quality", "SHOW PASS TYPES",
-              choices=c("Good","OOS","Overpass","Error"), selected=c("Good","OOS","Overpass","Error"), inline=TRUE)
-          ),
-          div(class="athlete-pass-layout",
-            div(class="athlete-pass-court-column", plotOutput("athlete_pass_map", height="560px")),
-            div(class="athlete-pass-summary-column", uiOutput("athlete_pass_table")))),
-        div(class="athlete-profile-section", h3("SETTING MAPS"),
-          div(class="athlete-profile-controls",
-            radioButtons("athlete_setting_phase", "PHASE",
-              choices=c("All phases"="All","First Ball","Transition"), selected="All", inline=TRUE)
-          ),
-          plotOutput("athlete_setting_map", height="650px"),
-          uiOutput("athlete_setting_table"))
+        {
+          athlete_counts <- c(
+            Attack = nrow(athlete_attack_data()),
+            Serve = nrow(athlete_serve_data()),
+            Reception = nrow(athlete_pass_data()),
+            Setting = nrow(athlete_setting_data())
+          )
+          if (sum(athlete_counts) == 0) {
+            div(class="athlete-empty-card athlete-no-data-note", "No data recorded.")
+          } else tagList(
+            if (athlete_counts[["Attack"]] > 0) tagList(
+              div(class="athlete-profile-section", h3("ATTACK MAPS"),
+                div(class="athlete-profile-controls",
+                  checkboxInput("athlete_attack_paths", "Attack paths", TRUE, width="150px"),
+                  radioButtons("athlete_attack_outcome", NULL,
+                    choices=c("All"="All","Kills"="Kills","In play"="In play"),
+                    selected="All", inline=TRUE)
+                ),
+                div(class="athlete-map-grid",
+                  lapply(c("right","left","gap_slide","middle","backrow"), function(k) {
+                    def <- ATTACK_MAP_DEFINITIONS[[k]]
+                    div(class="athlete-map-card", h4(def$title),
+                      checkboxGroupInput(paste0("athlete_attack_codes_",k), NULL,
+                        choices=stats::setNames(def$codes, def$codes), selected=def$codes, inline=TRUE),
+                      plotOutput(paste0("athlete_attack_",k), height="300px"))
+                  })
+                )),
+              div(class="athlete-profile-section athlete-attack-detail", h3("ATTACK DETAIL"),
+                uiOutput("athlete_attack_details"))
+            ),
+            if (athlete_counts[["Serve"]] > 0) div(class="athlete-profile-section", h3("SERVING MAP"),
+              div(class="athlete-profile-controls",
+                checkboxGroupInput("athlete_serve_outcomes", "SHOW OUTCOMES",
+                  choices=c("Ace","Positive","Negative"), selected=c("Ace","Positive","Negative"), inline=TRUE),
+                selectInput("athlete_serve_start", "SERVE FROM", choices=c("All"), selected="All", width="180px")
+              ),
+              div(class="athlete-serve-layout",
+                div(class="athlete-serve-court-column", plotOutput("athlete_serve_map", height="500px")),
+                div(class="athlete-serve-summary-column", uiOutput("athlete_serve_table")))),
+            if (athlete_counts[["Reception"]] > 0) div(class="athlete-profile-section", h3("PASSING MAPS"),
+              div(class="athlete-profile-controls",
+                selectInput("athlete_pass_zone", "RECEPTION START ZONE", choices=c("All"), selected="All", width="220px"),
+                checkboxGroupInput("athlete_pass_quality", "SHOW PASS TYPES",
+                  choices=c("Good","OOS","Overpass","Error"), selected=c("Good","OOS","Overpass","Error"), inline=TRUE)
+              ),
+              div(class="athlete-pass-layout",
+                div(class="athlete-pass-court-column", plotOutput("athlete_pass_map", height="500px")),
+                div(class="athlete-pass-summary-column", uiOutput("athlete_pass_table")))),
+            if (athlete_counts[["Setting"]] > 0) div(class="athlete-profile-section", h3("SETTING MAPS"),
+              div(class="athlete-profile-controls",
+                radioButtons("athlete_setting_phase", "PHASE",
+                  choices=c("All phases"="All","First Ball","Transition"), selected="All", inline=TRUE)
+              ),
+              plotOutput("athlete_setting_map", height="650px"))
+          )
+        }
       ))
     }
 
@@ -4717,20 +4738,38 @@ server <- function(input, output, session) {
     draw_athlete_zone_map(d,"Landing_Zone","Landing_Subzone","SERVING",origin_col="Serve_Start_Zone",outcome_col="Serve_Evaluation_Code",serving=TRUE)
   },res=110)
   output$athlete_serve_table <- renderUI({
-    d<-athlete_serve_filtered()
-    if(!nrow(d))return(div(class="athlete-empty-card","No serve data recorded for this selection."))
-    d$Serve_Start_Zone<-suppressWarnings(as.integer(d$Serve_Start_Zone))
-    code<-as.character(d$Serve_Evaluation_Code)
-    zones<-sort(unique(na.omit(d$Serve_Start_Zone)))
-    counts<-lapply(zones,function(z){
-      x<-d[d$Serve_Start_Zone==z,,drop=FALSE]
-      data.frame(Zone=paste("Zone",z),N=nrow(x),Ace=sum(code[d$Serve_Start_Zone==z]=="#",na.rm=TRUE),
-        OOS=sum(code[d$Serve_Start_Zone==z]=="+",na.rm=TRUE),Medium=sum(code[d$Serve_Start_Zone==z]=="!",na.rm=TRUE),
-        Negative=sum(code[d$Serve_Start_Zone==z]=="-",na.rm=TRUE),Error=sum(code[d$Serve_Start_Zone==z]=="=",na.rm=TRUE))
+    d <- athlete_serve_filtered()
+    if (!nrow(d)) return(div(class="athlete-empty-card","No serves match the selected filters."))
+    d$Serve_Start_Zone <- suppressWarnings(as.integer(d$Serve_Start_Zone))
+    code <- trimws(as.character(d$Serve_Evaluation_Code))
+    zones <- sort(unique(na.omit(d$Serve_Start_Zone)))
+    pct <- function(x,n) if(n>0) paste0(round(100*x/n),"%") else "—"
+    rows <- lapply(zones,function(z){
+      x <- d[d$Serve_Start_Zone==z,,drop=FALSE]; cc <- trimws(as.character(x$Serve_Evaluation_Code)); n <- nrow(x)
+      vals <- c(Ace=sum(cc=="#",na.rm=TRUE),OOS=sum(cc=="+",na.rm=TRUE),
+                Medium=sum(cc=="!",na.rm=TRUE),Negative=sum(cc=="-",na.rm=TRUE),Error=sum(cc=="=",na.rm=TRUE))
+      cols <- c(Ace="#D9433A",OOS="#159B69",Medium="#79BFA0",Negative="#F0782B",Error="#AAB5C0")
+      bar <- div(class="serve-breakdown-bar",lapply(names(vals),function(nm){
+        if(vals[[nm]]==0)return(NULL)
+        div(class="serve-breakdown-segment",style=paste0("width:",100*vals[[nm]]/max(1,n),"%;background:",cols[[nm]],";"),title=paste(nm,vals[[nm]]))
+      }))
+      tags$tr(tags$td(paste("Zone",z)),tags$td(n),tags$td(bar),
+        lapply(names(vals),function(nm)tags$td(paste0(vals[[nm]]," (",pct(vals[[nm]],n),")"))))
     })
-    agg<-do.call(rbind,counts)
-    tags$table(class="athlete-aggregate-table",tags$thead(tags$tr(lapply(names(agg),tags$th))),
-      tags$tbody(lapply(seq_len(nrow(agg)),function(i)tags$tr(lapply(agg[i,],function(v)tags$td(as.character(v)))))))
+    totals <- c(Ace=sum(code=="#",na.rm=TRUE),OOS=sum(code=="+",na.rm=TRUE),
+                Medium=sum(code=="!",na.rm=TRUE),Negative=sum(code=="-",na.rm=TRUE),Error=sum(code=="=",na.rm=TRUE))
+    total_n <- nrow(d); cols <- c(Ace="#D9433A",OOS="#159B69",Medium="#79BFA0",Negative="#F0782B",Error="#AAB5C0")
+    div(
+      div(class="serve-legend",lapply(names(totals),function(nm)div(class="serve-legend-item",
+        span(class="serve-stat-dot",style=paste0("background:",cols[[nm]],";")),span(nm)))),
+      div(class="serve-server-summary-title","SERVE OUTCOME BY STARTING ZONE"),
+      div(class="serve-table-wrap",tags$table(class="serve-server-table serve-start-zone-table",
+        tags$thead(tags$tr(lapply(c("SERVE FROM","N","OUTCOME MIX","ACE","OOS (+)","MEDIUM (!)","NEGATIVE (-)","ERROR (=)"),tags$th))),
+        tags$tbody(rows))),
+      div(class="serve-outcome-cards",lapply(names(totals),function(nm)div(class="serve-stat-card",
+        div(class="serve-stat-top",span(class="serve-stat-dot",style=paste0("background:",cols[[nm]],";")),nm),
+        strong(as.character(totals[[nm]])),tags$small(pct(totals[[nm]],total_n)))))
+    )
   })
 
   output$athlete_pass_map <- renderPlot({
@@ -4739,18 +4778,34 @@ server <- function(input, output, session) {
     draw_athlete_zone_map(d,"Reception_Start_Zone","Reception_Start_Subzone","RECEPTION",origin_col="Pass_Destination_Zone",outcome_col="Pass_Quality")
   },res=110)
   output$athlete_pass_table <- renderUI({
-    d<-athlete_pass_filtered()
-    if(!nrow(d))return(div(class="athlete-empty-card","No reception data recorded for this selection."))
-    d$Reception_Start_Zone<-suppressWarnings(as.integer(d$Reception_Start_Zone))
-    zones<-sort(unique(na.omit(d$Reception_Start_Zone)))
-    agg<-do.call(rbind,lapply(zones,function(z){
-      x<-d[d$Reception_Start_Zone==z,,drop=FALSE]
-      data.frame(Zone=paste("Zone",z),Attempts=nrow(x),
-        Good=sum(x$Is_GP,na.rm=TRUE),OOS=sum(x$Is_OOS,na.rm=TRUE),Aced=sum(x$Is_ACED,na.rm=TRUE),
-        Poor=sum(x$Is_POOR,na.rm=TRUE),Sideout=sum(x$Point_Won_By=="University of Calgary",na.rm=TRUE))
-    }))
-    tags$table(class="athlete-aggregate-table",tags$thead(tags$tr(lapply(names(agg),tags$th))),
-      tags$tbody(lapply(seq_len(nrow(agg)),function(i)tags$tr(lapply(agg[i,],function(v)tags$td(as.character(v)))))))
+    d <- athlete_pass_filtered()
+    if (!nrow(d)) return(div(class="athlete-empty-card","No receptions match the selected filters."))
+    d$Reception_Start_Zone <- suppressWarnings(as.integer(d$Reception_Start_Zone))
+    zones <- sort(unique(na.omit(d$Reception_Start_Zone)))
+    pct <- function(x,n) if(n>0) paste0(round(100*x/n),"%") else "—"
+    rows <- lapply(zones,function(z){
+      x <- d[d$Reception_Start_Zone==z,,drop=FALSE]; n <- nrow(x)
+      good <- sum(x$Is_GP,na.rm=TRUE); oos <- sum(x$Is_OOS,na.rm=TRUE)
+      over <- sum(grepl("overpass",tolower(x$Pass_Quality)),na.rm=TRUE)
+      err <- sum(x$Is_ACED,na.rm=TRUE)+sum(grepl("error",tolower(x$Pass_Quality)),na.rm=TRUE)
+      vals <- c(Good=good,OOS=oos,Overpass=over,Error=err)
+      cols <- c(Good="#159B69",OOS="#E6A11A",Overpass="#F0782B",Error="#D9433A")
+      bar <- div(class="pass-outcome-bar",lapply(names(vals),function(nm){
+        if(vals[[nm]]==0)return(NULL)
+        div(class="pass-outcome-segment",style=paste0("width:",100*vals[[nm]]/max(1,n),"%;background:",cols[[nm]],";"))
+      }))
+      so <- if("Point_Won_By"%in%names(x))sum(grepl("University of Calgary",x$Point_Won_By,ignore.case=TRUE),na.rm=TRUE) else NA_integer_
+      tags$tr(tags$td(paste("Zone",z)),tags$td(n),tags$td(bar),
+        tags$td(paste0(good," (",pct(good,n),")")),tags$td(paste0(oos," (",pct(oos,n),")")),
+        tags$td(paste0(over," (",pct(over,n),")")),tags$td(paste0(err," (",pct(err,n),")")),
+        tags$td(if(is.na(so))"—" else as.character(so)))
+    })
+    div(div(class="pass-boundary-key",span(class="pass-boundary-swatch"),"Pass outcome distribution by reception start zone"),
+      div(class="pass-summary-title","PASS OUTCOMES BY RECEPTION START ZONE"),
+      div(class="pass-summary-table-wrap",tags$table(class="pass-summary-table",
+        tags$thead(tags$tr(lapply(c("ZONE","ATT.","OUTCOME MIX","GOOD","OOS","OVERPASS","ERROR","SO"),tags$th))),
+        tags$tbody(rows)))
+    )
   })
 
   output$athlete_setting_map <- renderPlot({
