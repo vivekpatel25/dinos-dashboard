@@ -59,18 +59,26 @@ load_transition_attack_data <- function(ids = NULL) {
   parts <- lapply(files, function(f) {
     d <- read_csv_safe(f)
     if (is.null(d) || !nrow(d)) return(NULL)
-    if (!all(c("match_id", "linked_set_end_zone") %in% names(d))) return(NULL)
+    if (!all(c("match_id", "attack_player_name", "attack_evaluation_code") %in% names(d))) return(NULL)
 
-    # Classify from the actual exported link flags; the export does not
-    # contain a transition_trigger_type column.
-    has_dig <- if ("has_prior_dig_before_set" %in% names(d)) {
-      as.logical(d$has_prior_dig_before_set)
-    } else rep(FALSE, nrow(d))
-    has_block <- if ("has_prior_block_before_set" %in% names(d)) {
-      as.logical(d$has_prior_block_before_set)
-    } else rep(FALSE, nrow(d))
-    d$transition_trigger_type <- ifelse(has_dig & has_block, "DIG + BLOCK",
-      ifelse(has_dig, "DIG", ifelse(has_block, "BLOCK", "OTHER")))
+    # Preserve the exporter classifications. In particular, FREEBALL must
+    # remain distinct from DIG and must not be re-labelled as OTHER.
+    if (!"transition_trigger_type" %in% names(d)) {
+      has_dig <- if ("has_prior_dig_before_set" %in% names(d)) {
+        as.logical(d$has_prior_dig_before_set)
+      } else rep(FALSE, nrow(d))
+      has_block <- if ("has_prior_block_before_set" %in% names(d)) {
+        as.logical(d$has_prior_block_before_set)
+      } else rep(FALSE, nrow(d))
+      d$transition_trigger_type <- ifelse(has_dig, "DIG",
+        ifelse(has_block, "BLOCK", "OTHER"))
+    }
+    if (!"attack_phase_class" %in% names(d)) {
+      d$attack_phase_class <- ifelse(
+        d$transition_trigger_type %in% c("DIG", "FREEBALL", "BLOCK", "DIG + BLOCK"),
+        "TRANSITION", "FIRST_BALL"
+      )
+    }
     d$source_path <- f
     d
   })
@@ -82,17 +90,77 @@ load_transition_attack_data <- function(ids = NULL) {
 
   if (!is.null(ids) && length(ids)) {
     ids <- as.character(ids)
-    # Exact match first; fallback to match date contained in the export ID.
     keep <- out$match_id %in% ids
     if (!any(keep)) {
       id_dates <- gsub("[^0-9]", "", ids)
+      valid_dates <- id_dates[nchar(id_dates) >= 8]
       out_dates <- gsub("[^0-9]", "", out$match_id)
-      keep <- vapply(out_dates, function(x) any(nchar(id_dates) >= 8 &
-        substr(x, 1, 8) == substr(id_dates[nchar(id_dates) >= 8], 1, 8)), logical(1))
+      if (length(valid_dates)) {
+        keep <- vapply(out_dates, function(x) {
+          any(substr(x, 1, 8) == substr(valid_dates, 1, 8))
+        }, logical(1))
+      }
     }
     out <- out[keep, , drop = FALSE]
   }
   out
+}
+
+load_opponent_kill_data <- function(ids = NULL) {
+  attack_files <- find_transition_attack_files()
+  if (!length(attack_files)) return(data.frame())
+  kill_files <- file.path(dirname(attack_files), "OPPONENT_KILL_EVENTS.csv")
+  kill_files <- unique(kill_files[file.exists(kill_files)])
+  if (!length(kill_files)) return(data.frame())
+
+  parts <- lapply(kill_files, read_csv_safe)
+  parts <- Filter(function(x) !is.null(x) && nrow(x), parts)
+  if (!length(parts)) return(data.frame())
+  out <- do.call(rbind, parts)
+  out$match_id <- as.character(out$match_id)
+
+  if (!is.null(ids) && length(ids)) {
+    ids <- as.character(ids)
+    keep <- out$match_id %in% ids
+    if (!any(keep)) {
+      id_dates <- gsub("[^0-9]", "", ids)
+      valid_dates <- id_dates[nchar(id_dates) >= 8]
+      out_dates <- gsub("[^0-9]", "", out$match_id)
+      if (length(valid_dates)) {
+        keep <- vapply(out_dates, function(x) {
+          any(substr(x, 1, 8) == substr(valid_dates, 1, 8))
+        }, logical(1))
+      }
+    }
+    out <- out[keep, , drop = FALSE]
+  }
+  out
+}
+
+transition_is_true <- function(x) {
+  if (is.logical(x)) return(!is.na(x) & x)
+  tolower(trimws(as.character(x))) %in% c("true", "t", "1", "yes")
+}
+
+transition_outcome_counts <- function(d) {
+  code <- as.character(d$attack_evaluation_code)
+  attempts <- nrow(d)
+  kills <- sum(code == "#", na.rm = TRUE)
+  direct_errors <- sum(code == "=", na.rm = TRUE)
+  blocked <- sum(code == "/", na.rm = TRUE)
+  data.frame(
+    attempts = attempts,
+    kills = kills,
+    direct_errors = direct_errors,
+    blocked_by_opponent = blocked,
+    blocked_for_reattack = sum(code == "!", na.rm = TRUE),
+    poor_easily_dug = sum(code == "-", na.rm = TRUE),
+    positive = sum(code == "+", na.rm = TRUE),
+    attack_efficiency = if (attempts > 0) (kills - direct_errors - blocked) / attempts else NA_real_,
+    rally_wins = sum(transition_is_true(d$uofc_rally_won), na.rm = TRUE),
+    rally_conversion = if (attempts > 0) sum(transition_is_true(d$uofc_rally_won), na.rm = TRUE) / attempts else NA_real_,
+    stringsAsFactors = FALSE
+  )
 }
 
 transition_zone_xy <- function(zone, subzone = NA_character_) {
@@ -125,22 +193,31 @@ transition_map_ui <- function() {
     class = "detail-section transition-map-section",
     div(class = "detail-section-title", "TRANSITION · DIG PASS TO SET MAP"),
     div(class = "setting-map-note",
-        "Dig-pass destination (zone/subzone) connected to the linked set destination. Line thickness shows route frequency."),
+        "Gold = dig-pass destination; red = set destination; lines connect linked DIG sequences. Subzone labels follow the court reference."),
     plotOutput("transition_dig_set_map", height = "650px"),
+    uiOutput("transition_map_legend_note"),
     uiOutput("transition_summary"),
-    div(class = "detail-section-title", "DIG QUALITY & SET SELECTION"),
-    tableOutput("transition_quality_table"),
-    div(class = "detail-section-title", "DEFENDING VS BLOCKING TRANSITION CONTEXT"),
-    tableOutput("transition_trigger_table"),
-    div(class = "detail-section-title", "SETTER & SET TYPE"),
-    tableOutput("transition_setter_table"),
-    div(class = "detail-section-title", "ATTACKER TRANSITION OUTCOMES"),
+
+    div(class = "detail-section-title", "1 · TRANSITION ATTACKS — BLOCKING UNIT VS DEFENSIVE UNIT"),
+    tableOutput("transition_role_summary_table"),
+    div(class = "setting-map-note",
+        "All linked transition attacks, classified by the attacker's front/back-row role during the rally. Actual recorded blockers are identified separately."),
     tableOutput("transition_attacker_table"),
-    div(class = "detail-section-title", "SET DESTINATION OUTCOMES"),
-    tableOutput("transition_destination_table")
+    div(class = "detail-section-title", "ACTUAL BLOCKERS — RECORDED BLOCK TOUCHES"),
+    tableOutput("transition_actual_blockers_table"),
+
+    div(class = "detail-section-title", "2 · ATTACKER PERFORMANCE BY PRECEDING DIG QUALITY"),
+    div(class = "setting-map-note",
+        "DIG-linked attacks only. Freeball transitions are kept separate because they do not have a preceding dig quality."),
+    tableOutput("transition_quality_table"),
+
+    div(class = "detail-section-title", "3 · OPPONENT ATTACK KILLS — COURT LOCATION"),
+    div(class = "setting-map-note",
+        "Each marker is an opponent kill. Only recorded end-zone/subzone locations are plotted; missing subzones are reported separately."),
+    plotOutput("opponent_kill_location_map", height = "650px"),
+    tableOutput("opponent_kill_location_table")
   )
 }
-
 
 # ----------------------------- SEASON BENCHMARKS -----------------------------
 
@@ -5416,42 +5493,46 @@ server <- function(input, output, session) {
 
   })
 
-  output$transition_dig_set_map <- renderPlot({
-    ids <- current_attack_match_ids()
-    d <- load_transition_attack_data(ids)
+  transition_all_data <- reactive({
+    d <- load_transition_attack_data(current_attack_match_ids())
+    if (!nrow(d)) return(d)
+    d <- d[toupper(as.character(d$attack_phase_class)) == "TRANSITION", , drop = FALSE]
+    d
+  })
 
-    par(mar = c(1, 1, 3, 1), xaxs = "i", yaxs = "i", pty = "s")
-    plot(NA, xlim = c(0, 6), ylim = c(0, 6.55), asp = 1,
+  transition_dig_data <- reactive({
+    d <- transition_all_data()
+    if (!nrow(d)) return(d)
+    d[toupper(as.character(d$transition_trigger_type)) == "DIG", , drop = FALSE]
+  })
+
+  output$transition_dig_set_map <- renderPlot({
+    d <- transition_dig_data()
+    par(mar = c(2, 2, 3, 2), xaxs = "i", yaxs = "i", pty = "s")
+    plot(NA, xlim = c(0, 6), ylim = c(0, 6.65), asp = 1,
          axes = FALSE, xlab = "", ylab = "")
-    text(3, 6.35, "DIG PASS → SET DESTINATION", cex = 1.0,
+    text(3, 6.43, "DIG PASS → SET DESTINATION", cex = 1.0,
          font = 2, col = "#344653")
 
     if (!nrow(d)) {
-      text(3, 3, "No transition attack data for this match selection",
+      text(3, 3, "No linked DIG transition attacks for this selection",
            col = "#7b8996", cex = 0.9)
       return(invisible(NULL))
     }
 
-    d <- d[grepl("DIG", d$transition_trigger_type), , drop = FALSE]
-    if (!nrow(d)) {
-      text(3, 3, "No linked dig-pass sequences in this selection",
-           col = "#7b8996", cex = 0.9)
-      return(invisible(NULL))
-    }
-
-    # Use the dig ball destination (end zone/subzone), not the digger's
-    # starting position, as the origin of the pass-to-set route.
-    dig_sub <- if ("prior_dig_dig_end_subzone" %in% names(d)) d$prior_dig_dig_end_subzone else NA
-    set_sub <- if ("linked_set_end_subzone" %in% names(d)) d$linked_set_end_subzone else NA
+    dig_sub <- if ("prior_dig_dig_end_subzone" %in% names(d)) d$prior_dig_dig_end_subzone else rep(NA, nrow(d))
+    set_sub <- if ("linked_set_end_subzone" %in% names(d)) d$linked_set_end_subzone else rep(NA, nrow(d))
     origin <- transition_zone_xy(d$prior_dig_dig_end_zone, dig_sub)
     target <- transition_zone_xy(d$linked_set_end_zone, set_sub)
-    valid <- is.finite(origin$x) & is.finite(origin$y) &
+    valid <- !is.na(dig_sub) & nzchar(trimws(as.character(dig_sub))) &
+      !is.na(set_sub) & nzchar(trimws(as.character(set_sub))) &
+      is.finite(origin$x) & is.finite(origin$y) &
       is.finite(target$x) & is.finite(target$y)
+    missing_routes <- sum(!valid)
     d <- d[valid, , drop = FALSE]
     origin <- origin[valid, , drop = FALSE]
     target <- target[valid, , drop = FALSE]
 
-    # Court grid: 3 x 3 numbered zones, each split into C/B over D/A.
     zone_layout <- matrix(c(4, 3, 2, 7, 8, 9, 5, 6, 1), nrow = 3, byrow = TRUE)
     for (r in 1:3) for (c in 1:3) {
       x0 <- (c - 1) * 2
@@ -5477,7 +5558,7 @@ server <- function(input, output, session) {
       for (i in seq_along(route_groups)) {
         ix <- route_groups[[i]][1]
         segments(origin$x[ix], origin$y[ix], target$x[ix], target$y[ix],
-          col = grDevices::adjustcolor("#C8102E", alpha.f = 0.48),
+          col = grDevices::adjustcolor("#C8102E", alpha.f = 0.55),
           lwd = 1 + 4 * route_counts[i] / max_count)
       }
       points(origin$x, origin$y, pch = 21, bg = "#E6A11A",
@@ -5485,112 +5566,208 @@ server <- function(input, output, session) {
       points(target$x, target$y, pch = 21, bg = "#C8102E",
              col = "#FFFFFF", cex = 1.25, lwd = 1.2)
     }
-    legend("bottom", inset = -0.10, horiz = TRUE, xpd = NA, bty = "n",
-      legend = c("Dig pass destination", "Set destination", "Route frequency"),
+    legend("bottom", inset = -0.11, horiz = TRUE, xpd = NA, bty = "n",
+      legend = c("Dig pass destination", "Set destination", "More frequent route"),
       pch = c(21, 21, NA), lty = c(NA, NA, 1),
       pt.bg = c("#E6A11A", "#C8102E", NA),
       col = c("#FFFFFF", "#FFFFFF", "#C8102E"),
       lwd = c(NA, NA, 3), cex = 0.8)
-    mtext(paste0("DIG-TO-SET ROUTES · ", nrow(origin), " LINKED ATTACKS"),
+    mtext(paste0("DIG-TO-SET ROUTES · ", nrow(origin),
+                 " MAPPED / ", nrow(d), " VALID LINKED ATTACKS"),
           side = 3, line = 0.2, cex = 0.9, font = 2, col = "#344653")
   }, res = 110)
 
-  transition_summary_data <- reactive({
-    d <- load_transition_attack_data(current_attack_match_ids())
-    if (!nrow(d)) return(d)
-    d[grepl("DIG", d$transition_trigger_type), , drop = FALSE]
+  output$transition_map_legend_note <- renderUI({
+    d <- transition_dig_data()
+    if (!nrow(d)) return(div(class = "setting-map-note", "No DIG-linked attacks in this selection."))
+    dig_sub <- if ("prior_dig_dig_end_subzone" %in% names(d)) d$prior_dig_dig_end_subzone else rep(NA, nrow(d))
+    set_sub <- if ("linked_set_end_subzone" %in% names(d)) d$linked_set_end_subzone else rep(NA, nrow(d))
+    origin <- transition_zone_xy(d$prior_dig_dig_end_zone, dig_sub)
+    target <- transition_zone_xy(d$linked_set_end_zone, set_sub)
+    mapped <- sum(!is.na(dig_sub) & nzchar(trimws(as.character(dig_sub))) &
+      !is.na(set_sub) & nzchar(trimws(as.character(set_sub))) &
+      is.finite(origin$x) & is.finite(origin$y) &
+      is.finite(target$x) & is.finite(target$y))
+    div(class = "setting-map-note",
+      paste0(mapped, " of ", nrow(d), " DIG-linked attacks have both a recorded dig-pass subzone and set destination subzone; ",
+             nrow(d) - mapped, " cannot be plotted at subzone level."))
   })
 
-  output$transition_trigger_table <- renderTable({
-    d <- load_transition_attack_data(current_attack_match_ids())
-    if (!nrow(d)) return(data.frame())
-    trigger <- as.character(d$transition_trigger_type)
-    trigger[is.na(trigger)] <- "OTHER"
-    z <- aggregate(data.frame(attacks = 1,
-      kills = as.integer(d$attack_result_class == "Kill"),
-      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
-      rally_wins = as.integer(as.logical(d$uofc_rally_won))),
-      list(transition_context = trigger), sum, na.rm = TRUE)
-    z$attack_efficiency <- (z$kills - z$errors) / z$attacks
-    z$rally_conversion <- z$rally_wins / z$attacks
-    z[order(-z$attacks), , drop = FALSE]
-  }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
-
   output$transition_summary <- renderUI({
-    d <- transition_summary_data()
-    if (!nrow(d)) return(div("No linked dig-transition attacks for this selection."))
+    d <- transition_all_data()
+    if (!nrow(d)) return(div("No linked transition attacks for this selection."))
     n <- nrow(d)
-    kills <- sum(d$attack_result_class == "Kill", na.rm = TRUE)
-    errs <- sum(d$attack_result_class == "Error_or_blocked", na.rm = TRUE)
-    attempts <- sum(!is.na(d$attack_result_class) & d$attack_result_class != "", na.rm = TRUE)
-    wins <- sum(as.logical(d$uofc_rally_won), na.rm = TRUE)
-    eff <- if (attempts > 0) (kills - errs) / attempts else NA_real_
-    conv <- if (n > 0) wins / n else NA_real_
+    kills <- sum(as.character(d$attack_evaluation_code) == "#", na.rm = TRUE)
+    direct_errors <- sum(as.character(d$attack_evaluation_code) == "=", na.rm = TRUE)
+    blocked <- sum(as.character(d$attack_evaluation_code) == "/", na.rm = TRUE)
+    eff <- (kills - direct_errors - blocked) / n
+    wins <- sum(transition_is_true(d$uofc_rally_won), na.rm = TRUE)
     div(class = "transition-kpi-grid",
-      div(class = "transition-kpi", strong("Linked dig attacks"), h3(n)),
+      div(class = "transition-kpi", strong("Transition attacks"), h3(n)),
       div(class = "transition-kpi", strong("Kills"), h3(kills)),
-      div(class = "transition-kpi", strong("Attack efficiency"), h3(ifelse(is.finite(eff), sprintf("%.1f%%", 100 * eff), "—"))),
-      div(class = "transition-kpi", strong("Rally-point conversion"), h3(sprintf("%.1f%%", 100 * conv)))
+      div(class = "transition-kpi", strong("Direct errors"), h3(direct_errors)),
+      div(class = "transition-kpi", strong("Blocked"), h3(blocked)),
+      div(class = "transition-kpi", strong("Attack efficiency"), h3(sprintf("%.1f%%", 100 * eff))),
+      div(class = "transition-kpi", strong("Rally-point conversion"), h3(sprintf("%.1f%%", 100 * wins / n)))
     )
   })
 
-  output$transition_quality_table <- renderTable({
-    d <- transition_summary_data()
+  output$transition_role_summary_table <- renderTable({
+    d <- transition_all_data()
     if (!nrow(d)) return(data.frame())
-    q <- if ("prior_dig_dig_evaluation" %in% names(d)) as.character(d$prior_dig_dig_evaluation) else rep("Unknown", nrow(d))
-    q[is.na(q) | !nzchar(q)] <- "Unknown"
-    result <- aggregate(cbind(attacks = rep(1, nrow(d)),
-      kills = as.integer(d$attack_result_class == "Kill"),
-      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
-      rally_wins = as.integer(as.logical(d$uofc_rally_won))), list(dig_quality = q), sum, na.rm = TRUE)
-    result$attack_efficiency <- ifelse(result$attacks > 0, (result$kills - result$errors) / result$attacks, NA)
-    result$rally_conversion <- result$rally_wins / result$attacks
-    result
-  }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
-
-  output$transition_setter_table <- renderTable({
-    d <- transition_summary_data()
-    if (!nrow(d)) return(data.frame())
-    setter <- as.character(d$linked_set_player_name)
-    setter[is.na(setter) | !nzchar(setter)] <- "Unknown"
-    stype <- as.character(d$linked_set_type)
-    stype[is.na(stype) | !nzchar(stype)] <- "Unknown"
-    aggregate(data.frame(attacks = 1,
-      kills = as.integer(d$attack_result_class == "Kill"),
-      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
-      rally_wins = as.integer(as.logical(d$uofc_rally_won))),
-      list(setter = setter, set_type = stype), sum, na.rm = TRUE)
+    role <- as.character(d$attacker_front_back_status)
+    role[is.na(role) | !nzchar(role)] <- "Unclassified"
+    role <- ifelse(role == "Front Row", "Blocking unit (front row)",
+      ifelse(role == "Back Row", "Defensive unit (back row)", "Unclassified"))
+    groups <- split(seq_len(nrow(d)), role)
+    out <- do.call(rbind, lapply(groups, function(ix) {
+      z <- transition_outcome_counts(d[ix, , drop = FALSE])
+      data.frame(attacker_role = role[ix[1]], z, check.names = FALSE)
+    }))
+    out <- out[order(-out$attempts), , drop = FALSE]
+    rownames(out) <- NULL
+    out
   }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
 
   output$transition_attacker_table <- renderTable({
-    d <- transition_summary_data()
+    d <- transition_all_data()
     if (!nrow(d)) return(data.frame())
+    role <- as.character(d$attacker_front_back_status)
+    role[is.na(role) | !nzchar(role)] <- "Unclassified"
+    role <- ifelse(role == "Front Row", "Blocking unit (front row)",
+      ifelse(role == "Back Row", "Defensive unit (back row)", "Unclassified"))
+    trigger <- as.character(d$transition_trigger_type)
+    trigger[is.na(trigger) | !nzchar(trigger)] <- "Unknown"
     player <- as.character(d$attack_player_name)
     player[is.na(player) | !nzchar(player)] <- "Unknown"
-    z <- aggregate(data.frame(attempts = 1,
-      kills = as.integer(d$attack_result_class == "Kill"),
-      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
-      rally_wins = as.integer(as.logical(d$uofc_rally_won))),
-      list(attacker = player), sum, na.rm = TRUE)
-    z$attack_efficiency <- (z$kills - z$errors) / z$attempts
-    z$rally_conversion <- z$rally_wins / z$attempts
-    z[order(-z$attempts), , drop = FALSE]
+    code <- as.character(d$attack_evaluation_code)
+    key <- interaction(role, player, trigger, drop = TRUE, lex.order = TRUE)
+    groups <- split(seq_len(nrow(d)), key)
+    out <- do.call(rbind, lapply(groups, function(ix) {
+      z <- transition_outcome_counts(d[ix, , drop = FALSE])
+      data.frame(
+        attacker_role = role[ix[1]],
+        transition_type = trigger[ix[1]],
+        attacker = player[ix[1]],
+        actual_block_touch_as_attacker = sum(
+          !is.na(d$prior_block_block_player_name[ix]) &
+          d$prior_block_block_player_name[ix] == player[ix], na.rm = TRUE
+        ),
+        z, check.names = FALSE
+      )
+    }))
+    out <- out[order(out$attacker_role, -out$attempts, out$attacker), , drop = FALSE]
+    rownames(out) <- NULL
+    out
   }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
 
-  output$transition_destination_table <- renderTable({
-    d <- transition_summary_data()
-    if (!nrow(d)) return(data.frame())
-    zone <- paste0(d$linked_set_end_zone, "-", d$linked_set_end_subzone)
-    zone[is.na(d$linked_set_end_zone)] <- "Unknown"
-    z <- aggregate(data.frame(attacks = 1,
-      kills = as.integer(d$attack_result_class == "Kill"),
-      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
-      rally_wins = as.integer(as.logical(d$uofc_rally_won))),
-      list(set_destination = zone), sum, na.rm = TRUE)
-    z$attack_efficiency <- (z$kills - z$errors) / z$attacks
-    z$rally_conversion <- z$rally_wins / z$attacks
-    z[order(-z$attacks), , drop = FALSE]
+  output$transition_actual_blockers_table <- renderTable({
+    d <- transition_all_data()
+    if (!nrow(d) || !"prior_block_block_player_name" %in% names(d)) return(data.frame())
+    keep <- !is.na(d$prior_block_block_player_name) & nzchar(d$prior_block_block_player_name)
+    b <- d[keep, , drop = FALSE]
+    if (!nrow(b)) return(data.frame())
+    player <- as.character(b$prior_block_block_player_name)
+    key <- interaction(player, drop = TRUE)
+    groups <- split(seq_len(nrow(b)), key)
+    out <- do.call(rbind, lapply(groups, function(ix) {
+      z <- transition_outcome_counts(b[ix, , drop = FALSE])
+      data.frame(
+        actual_blocker = player[ix[1]],
+        transition_attacks_following_recorded_block = nrow(b[ix, , drop = FALSE]),
+        kills = z$kills,
+        direct_errors = z$direct_errors,
+        blocked_by_opponent = z$blocked_by_opponent,
+        rally_wins = z$rally_wins
+      )
+    }))
+    out <- out[order(-out$transition_attacks_following_recorded_block, out$actual_blocker), , drop = FALSE]
+    rownames(out) <- NULL
+    out
   }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
+
+  output$transition_quality_table <- renderTable({
+    d <- transition_dig_data()
+    if (!nrow(d)) return(data.frame())
+    quality <- as.character(d$prior_dig_dig_evaluation)
+    if ("prior_dig_dig_evaluation_code" %in% names(d)) {
+      quality[is.na(quality) | !nzchar(quality)] <- as.character(d$prior_dig_dig_evaluation_code[is.na(quality) | !nzchar(quality)])
+    }
+    quality[is.na(quality) | !nzchar(quality)] <- "Uncoded dig"
+    player <- as.character(d$attack_player_name)
+    player[is.na(player) | !nzchar(player)] <- "Unknown"
+    groups <- split(seq_len(nrow(d)), interaction(player, quality, drop = TRUE, lex.order = TRUE))
+    out <- do.call(rbind, lapply(groups, function(ix) {
+      z <- transition_outcome_counts(d[ix, , drop = FALSE])
+      data.frame(attacker = player[ix[1]], preceding_dig_quality = quality[ix[1]], z, check.names = FALSE)
+    }))
+    out <- out[order(out$attacker, -out$attempts), , drop = FALSE]
+    rownames(out) <- NULL
+    out
+  }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
+
+  output$opponent_kill_location_map <- renderPlot({
+    d <- load_opponent_kill_data(current_attack_match_ids())
+    par(mar = c(2, 2, 3, 2), xaxs = "i", yaxs = "i", pty = "s")
+    plot(NA, xlim = c(0, 6), ylim = c(0, 6.45), asp = 1,
+         axes = FALSE, xlab = "", ylab = "")
+    text(3, 6.23, "OPPONENT KILLS · END ZONE / SUBZONE", cex = 1.0,
+         font = 2, col = "#344653")
+    if (!nrow(d)) {
+      text(3, 3, "No opponent kill events for this selection", col = "#7b8996")
+      return(invisible(NULL))
+    }
+
+    zone <- suppressWarnings(as.integer(as.character(d$end_zone)))
+    sub <- toupper(trimws(as.character(d$end_subzone)))
+    xy <- transition_zone_xy(zone, sub)
+    valid <- !is.na(sub) & nzchar(trimws(sub)) &
+      is.finite(xy$x) & is.finite(xy$y)
+    zone_layout <- matrix(c(4, 3, 2, 7, 8, 9, 5, 6, 1), nrow = 3, byrow = TRUE)
+    for (r in 1:3) for (c in 1:3) {
+      x0 <- (c - 1) * 2
+      y0 <- 6 - r * 2
+      fill <- if (r == 1) "#F5C27A" else if (r == 2) "#F4D9B9" else "#EEC9A8"
+      rect(x0, y0, x0 + 2, y0 + 2, col = fill, border = "#FFFFFF", lwd = 1.4)
+      text(x0 + 1, y0 + 1, zone_layout[r, c], cex = 2.0,
+           font = 2, col = grDevices::adjustcolor("#8A5A20", alpha.f = 0.55))
+      text(x0 + 0.5, y0 + 1.5, "C", cex = 0.8, font = 2, col = "#A8793E")
+      text(x0 + 1.5, y0 + 1.5, "B", cex = 0.8, font = 2, col = "#A8793E")
+      text(x0 + 0.5, y0 + 0.5, "D", cex = 0.8, font = 2, col = "#A8793E")
+      text(x0 + 1.5, y0 + 0.5, "A", cex = 0.8, font = 2, col = "#A8793E")
+    }
+    abline(v = c(2, 4), h = c(2, 4), col = "#FFFFFF", lwd = 2, lty = 2)
+    rect(0, 0, 6, 6, border = "#FFFFFF", lwd = 2)
+    if (any(valid)) {
+      set.seed(1)
+      jx <- runif(sum(valid), -0.08, 0.08)
+      jy <- runif(sum(valid), -0.08, 0.08)
+      points(xy$x[valid] + jx, xy$y[valid] + jy,
+        pch = 21, bg = "#C8102E", col = "#FFFFFF", cex = 1.15, lwd = 1.1)
+    }
+    legend("bottom", inset = -0.10, horiz = TRUE, xpd = NA, bty = "n",
+      legend = c("Opponent kill (each dot = 1 kill)", "Missing end subzone: not plotted"),
+      pch = c(21, NA), lty = c(NA, NA),
+      pt.bg = c("#C8102E", NA), col = c("#FFFFFF", "#344653"), cex = 0.78)
+    mtext(paste0("OPPONENT KILLS · ", sum(valid), " MAPPED / ", nrow(d),
+                 " TOTAL · ", sum(!valid), " MISSING SUBZONE"),
+          side = 3, line = 0.2, cex = 0.88, font = 2, col = "#344653")
+  }, res = 110)
+
+  output$opponent_kill_location_table <- renderTable({
+    d <- load_opponent_kill_data(current_attack_match_ids())
+    if (!nrow(d)) return(data.frame())
+    zone <- as.character(d$end_zone)
+    sub <- toupper(trimws(as.character(d$end_subzone)))
+    zone[is.na(zone) | !nzchar(zone)] <- "Unknown"
+    sub[is.na(sub) | !nzchar(sub)] <- "Missing"
+    tab <- as.data.frame(table(end_zone = zone, end_subzone = sub), stringsAsFactors = FALSE)
+    tab <- tab[tab$Freq > 0, , drop = FALSE]
+    names(tab)[names(tab) == "Freq"] <- "kills"
+    tab <- tab[order(-tab$kills, tab$end_zone, tab$end_subzone), , drop = FALSE]
+    rownames(tab) <- NULL
+    tab
+  }, striped = TRUE, bordered = FALSE, spacing = "s")
 
 
 }
