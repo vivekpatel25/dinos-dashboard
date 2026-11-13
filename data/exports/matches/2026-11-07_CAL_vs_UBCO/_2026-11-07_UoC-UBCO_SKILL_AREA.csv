@@ -1,0 +1,32 @@
+match_id,match_date,team,team_role,export_type,section,evaluation_code,outcome,event_count,denominator,percentage,opponent,metric_name,numerator,metric_value,metric_formula,benchmark_side
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Attack,!,In play,6,108,5.555555555555555,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Attack,#,Kills,47,108,43.51851851851852,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Attack,+,In play,9,108,8.333333333333334,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Attack,-,In play,21,108,19.444444444444443,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Attack,/,Blocked,15,108,13.88888888888889,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Attack,=,Errors,10,108,9.25925925925926,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Reception,!,Medium,15,62,24.193548387096776,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Reception,#,Good pass,2,62,3.225806451612903,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Reception,+,Good pass,11,62,17.741935483870968,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Reception,-,Out-of-system,21,62,33.87096774193548,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Reception,/,Overpass,8,62,12.903225806451612,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Reception,=,Aced,5,62,8.064516129032258,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Block,!,Fulfilled,12,39,30.76923076923077,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Block,#,Stuff,9,39,23.076923076923077,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Block,+,Positive,4,39,10.256410256410257,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Block,-,Negative,2,39,5.128205128205129,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Block,=,Errors,12,39,30.76923076923077,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Serve,!,Medium,14,93,15.053763440860216,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Serve,#,Aces,7,93,7.526881720430108,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Serve,+,OOS Pass,18,93,19.35483870967742,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Serve,-,Good Pass,30,93,32.25806451612903,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Serve,/,Overpass,7,93,7.526881720430108,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Serve,=,Serve Error,17,93,18.27956989247312,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Dig,+,In play,40,55,72.72727272727273,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Dig,-,In play,1,55,1.8181818181818181,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Dig,/,In play,5,55,9.090909090909092,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,skill_outcome,Dig,=,Dig errors,9,55,16.363636363636363,University of British Colombia Okanagan,,,,,
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,benchmark,Serve,,,,93,,University of British Colombia Okanagan,Disruption %,25,26.881720430107528,(Own aces + opponent '-' receptions while this team serves) / own total serves * 100,UofC value
+_2026_11_07_uoc_ubco,2026-11-07,University of Calgary,UofC,benchmark,Defense,,,,46,,University of British Colombia Okanagan,Conversion %,19,41.30434782608695,"Successful dig -> set -> kill sequences / playable digs (+, -, /) * 100",UofC value
+_2026_11_07_uoc_ubco,2026-11-07,University of British Colombia Okanagan,Opponent,benchmark,Serve,,,,81,,University of Calgary,Disruption %,26,32.098765432098766,(Own aces + opponent '-' receptions while this team serves) / own total serves * 100,Opponent value
+_2026_11_07_uoc_ubco,2026-11-07,University of British Colombia Okanagan,Opponent,benchmark,Defense,,,,41,,University of Calgary,Conversion %,4,9.75609756097561,"Successful dig -> set -> kill sequences / playable digs (+, -, /) * 100",Opponent value
