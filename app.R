@@ -234,6 +234,7 @@ transition_map_ui <- function() {
     div(class = "detail-section-title", "2 · OPPONENT ATTACK KILLS — COURT LOCATION"),
     div(class = "setting-map-note",
         "Each marker represents one opponent kill at its recorded end zone/subzone. Missing subzones are counted separately."),
+    uiOutput("opponent_start_zone_controls"),
     uiOutput("opponent_kill_location_map")
   )
 }
@@ -4242,6 +4243,21 @@ ui <- fluidPage(
         font-weight:800;color:#263746;}
       @media(max-width:900px){.transition-map-layout{grid-template-columns:1fr;}
         .transition-kpi-grid{grid-template-columns:repeat(2,minmax(120px,1fr));}}
+      .opponent-kill-half-court{overflow:hidden;}
+      .opponent-half-trajectory{position:absolute;inset:0;width:100%;height:100%;
+        z-index:4;pointer-events:none;overflow:visible;}
+      .opponent-kill-net{position:absolute;left:0;right:0;top:0;height:5px;
+        background:#263746;color:#fff;z-index:5;text-align:center;
+        font-family:'Barlow Condensed';font-size:9px;font-weight:800;
+        letter-spacing:1px;line-height:5px;pointer-events:none;}
+      #opponent_start_zone_filter{margin:10px 0 12px;}
+      #opponent_start_zone_filter .checkbox-inline{display:inline-flex;align-items:center;
+        margin:3px 7px 3px 0;padding:7px 14px;border:1px solid #cbd7df;
+        border-radius:18px;background:#f3f7f9;color:#33495b;font-weight:700;
+        cursor:pointer;}
+      #opponent_start_zone_filter .checkbox-inline:has(input:checked){
+        background:#C8102E;border-color:#C8102E;color:#fff;}
+      #opponent_start_zone_filter input{accent-color:#C8102E;margin-right:6px;}
       .opponent-full-court{position:relative;width:100%;aspect-ratio:1/2;overflow:hidden;
         background:#f3f7f9;border:1px solid #cbd7df;border-radius:4px;
         box-shadow:0 2px 8px rgba(38,55,70,.08);}
@@ -5781,78 +5797,76 @@ server <- function(input, output, session) {
   }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
 
 
+  output$opponent_start_zone_controls <- renderUI({
+    d <- load_opponent_kill_data(current_attack_match_ids())
+    if (!nrow(d)) return(NULL)
+    zones <- sort(unique(as.character(d$start_zone[!is.na(d$start_zone) & nzchar(as.character(d$start_zone))])))
+    if (!length(zones)) return(div(class = "detail-empty", "No opponent attack starting zones recorded."))
+    checkboxGroupInput(
+      inputId = "opponent_start_zone_filter",
+      label = "OPPONENT ATTACK START ZONES",
+      choices = stats::setNames(zones, paste("Zone", zones)),
+      selected = zones,
+      inline = TRUE
+    )
+  })
+
   output$opponent_kill_location_map <- renderUI({
     d <- load_opponent_kill_data(current_attack_match_ids())
     if (!nrow(d)) return(div(class = "detail-empty", "No opponent kill events for this match selection."))
 
     start_zone <- as.character(d$start_zone)
+    selected_zones <- input$opponent_start_zone_filter
+    if (is.null(selected_zones) || !length(selected_zones)) {
+      selected_zones <- sort(unique(start_zone[!is.na(start_zone) & nzchar(start_zone)]))
+    }
+    keep <- !is.na(start_zone) & nzchar(start_zone) & start_zone %in% selected_zones
+    d <- d[keep, , drop = FALSE]
+    if (!nrow(d)) return(div(class = "detail-empty", "No opponent kills for the selected starting zones."))
+
     end_zone <- as.character(d$end_zone)
     end_sub <- toupper(trimws(as.character(d$end_subzone)))
-
-    # Opponent starts are plotted at the centre of their recorded starting zone.
-    # Kill destinations use the recorded UofC end zone/subzone; missing subzones
-    # are placed at the centre of that numbered zone, not assigned a guessed subzone.
-    start_local <- transition_zone_xy(start_zone, rep("CENTER", nrow(d)))
     end_local <- transition_zone_xy(end_zone, end_sub)
-
-    valid <- !is.na(start_zone) & nzchar(start_zone) &
-      !is.na(end_zone) & nzchar(end_zone) &
-      is.finite(start_local$x) & is.finite(start_local$y) &
+    valid <- !is.na(end_zone) & nzchar(end_zone) &
       is.finite(end_local$x) & is.finite(end_local$y)
-
     d <- d[valid, , drop = FALSE]
-    start_local <- start_local[valid, , drop = FALSE]
     end_local <- end_local[valid, , drop = FALSE]
     end_sub <- end_sub[valid]
+    if (!nrow(d)) return(div(class = "detail-empty", "No valid opponent kill destinations for this selection."))
 
-    # Convert the two half-court coordinates into one full-court coordinate system.
-    start_x <- start_local$x
-    start_y <- 50 - start_local$y * 0.5
-    end_x <- end_local$x
-    end_y <- 50 + end_local$y * 0.5
-
-    # Zone labels across the full court: opponent back-to-front, then UofC front-to-back.
-    full_rows <- list(
-      c("5", "6", "1"), c("7", "8", "9"), c("4", "3", "2"),
-      c("4", "3", "2"), c("7", "8", "9"), c("5", "6", "1")
-    )
-    cell_nodes <- list()
-    for (r in seq_along(full_rows)) {
-      for (c in seq_along(full_rows[[r]])) {
-        zone_label <- full_rows[[r]][c]
-        is_uofc <- r >= 4
-        sub_nodes <- if (is_uofc) list(
-          span(class = "opp-sub c", "C"),
-          span(class = "opp-sub b", "B"),
-          span(class = "opp-sub d", "D"),
-          span(class = "opp-sub a", "A")
-        ) else list()
-        cell_nodes[[length(cell_nodes) + 1]] <- div(
-          class = if (is_uofc) "opp-full-zone opp-uofc-zone" else "opp-full-zone opp-opponent-zone",
-          style = paste0(
-            "left:", (c - 1) * 100 / 3, "%;",
-            "top:", (r - 1) * 100 / 6, "%;"
-          ),
-          tags$strong(zone_label),
-          sub_nodes
-        )
-      }
+    # Opponent attacks originate at the net edge. Starting zones are represented
+    # by their court lane, without displaying an opponent half-court.
+    zone_col <- function(z) {
+      if (z %in% c("4", "7", "5")) return(1)
+      if (z %in% c("3", "8", "6")) return(2)
+      if (z %in% c("2", "9", "1")) return(3)
+      NA_real_
     }
+    start_x <- vapply(as.character(d$start_zone), function(z) {
+      col <- zone_col(z)
+      if (!is.finite(col)) return(NA_real_)
+      (col - 0.5) * 100 / 3
+    }, numeric(1))
+    # Slightly separate multiple attacks from the same starting lane.
+    lane_groups <- split(seq_along(start_x), start_x)
+    for (ix in lane_groups) {
+      if (length(ix) > 1) start_x[ix] <- start_x[ix] + seq(-2.2, 2.2, length.out = length(ix))
+    }
+    start_y <- rep(2.5, nrow(d))
+    end_x <- end_local$x
+    end_y <- end_local$y
 
-    # Separate repeated paths slightly using low-opacity lines; each kill remains visible.
     line_nodes <- lapply(seq_len(nrow(d)), function(i) {
       tags$line(
-        x1 = start_x[i], y1 = start_y[i],
-        x2 = end_x[i], y2 = end_y[i],
-        stroke = "#C8102E", `stroke-width` = 0.42,
-        `stroke-opacity` = 0.48, `stroke-linecap` = "round"
+        x1 = start_x[i], y1 = start_y[i], x2 = end_x[i], y2 = end_y[i],
+        stroke = "#C8102E", `stroke-width` = 0.48,
+        `stroke-opacity` = 0.52, `stroke-linecap` = "round"
       )
     })
-
     start_nodes <- lapply(seq_len(nrow(d)), function(i) {
       tags$circle(
         cx = start_x[i], cy = start_y[i], r = 1.05,
-        fill = "#E6A11A", stroke = "#FFFFFF", `stroke-width` = 0.28,
+        fill = "#E6A11A", stroke = "#FFFFFF", `stroke-width` = 0.3,
         tags$title(paste0("Opponent attack start · Zone ", d$start_zone[i],
                           " · ", d$attacker[i]))
       )
@@ -5860,7 +5874,7 @@ server <- function(input, output, session) {
     end_nodes <- lapply(seq_len(nrow(d)), function(i) {
       tags$circle(
         cx = end_x[i], cy = end_y[i], r = 1.05,
-        fill = "#C8102E", stroke = "#FFFFFF", `stroke-width` = 0.28,
+        fill = "#C8102E", stroke = "#FFFFFF", `stroke-width` = 0.3,
         tags$title(paste0("Opponent kill · Zone ", d$end_zone[i], "-",
                           ifelse(is.na(end_sub[i]) | !nzchar(end_sub[i]), "Centre", end_sub[i]),
                           " · ", d$attacker[i]))
@@ -5868,20 +5882,19 @@ server <- function(input, output, session) {
     })
 
     court <- div(
-      class = "opponent-full-court",
-      cell_nodes,
+      class = "pass-court opponent-kill-half-court",
+      transition_court_cells(),
+      tags$div(class = "opponent-kill-net", "NET"),
       tags$svg(
-        class = "opponent-full-trajectory",
-        viewBox = "0 0 100 100",
-        preserveAspectRatio = "none",
+        class = "opponent-half-trajectory",
+        viewBox = "0 0 100 100", preserveAspectRatio = "none",
         line_nodes, start_nodes, end_nodes
-      ),
-      div(class = "opponent-full-net", "NET")
+      )
     )
 
     legend <- div(class = "transition-map-legend",
       span(span(class = "transition-legend-dot", style = "background:#E6A11A;"),
-           "Opponent attack start (zone centre)"),
+           "Opponent attack start (net / selected zone)"),
       span(span(class = "transition-legend-dot", style = "background:#C8102E;"),
            "Opponent kill destination"),
       span(span(class = "transition-route-line"), "Attack direction")
@@ -5890,9 +5903,11 @@ server <- function(input, output, session) {
     div(
       div(class = "transition-map-layout",
         div(class = "pass-court-column", court, legend,
-            div(class = "pass-court-caption", "OPPONENT COURT → NET → UOFC COURT")),
+            div(class = "pass-court-caption", paste0(
+              "OPPONENT START ZONES → UOFC COURT · ", nrow(d), " KILLS SHOWN"
+            ))),
         div(class = "pass-summary-column",
-          div(class = "pass-summary-title", "OPPONENT KILLS BY UOFC COURT LOCATION"),
+          div(class = "pass-summary-title", "OPPONENT KILLS BY COURT LOCATION"),
           tableOutput("opponent_kill_location_table")
         )
       )
@@ -5901,6 +5916,11 @@ server <- function(input, output, session) {
 
   output$opponent_kill_location_table <- renderTable({
     d <- load_opponent_kill_data(current_attack_match_ids())
+    if (!nrow(d)) return(data.frame())
+    selected_zones <- input$opponent_start_zone_filter
+    if (!is.null(selected_zones) && length(selected_zones)) {
+      d <- d[as.character(d$start_zone) %in% selected_zones, , drop = FALSE]
+    }
     if (!nrow(d)) return(data.frame())
     zone <- as.character(d$end_zone)
     sub <- toupper(trimws(as.character(d$end_subzone)))
