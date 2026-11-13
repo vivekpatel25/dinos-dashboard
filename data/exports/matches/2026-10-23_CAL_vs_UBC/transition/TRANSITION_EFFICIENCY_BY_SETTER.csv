@@ -1,0 +1,13 @@
+match_id,transition_trigger_type,linked_set_player_name,attack_attempts,rallies,kills,attack_errors_or_blocked,positive_attacks,attack_efficiency,uofc_rally_wins,rally_point_conversion,attack_record_rally_win_rate,phase_discrepancies
+_2026_10_23_uoc_ubc,RECEPTION_FIRST_BALL,Anya Fehr,52,50,14,9,6,0.09615384615384616,29,0.58,0.5576923076923077,2
+_2026_10_23_uoc_ubc,DIG,Anya Fehr,25,21,7,4,2,0.12,11,0.5238095238095238,0.56,0
+_2026_10_23_uoc_ubc,FREEBALL,Anya Fehr,13,12,9,0,2,0.6923076923076923,11,0.9166666666666666,0.9230769230769231,0
+_2026_10_23_uoc_ubc,RECEPTION_FIRST_BALL,Cate McLaughlin,12,12,5,3,1,0.16666666666666666,6,0.5,0.5,0
+_2026_10_23_uoc_ubc,DIG,Cate McLaughlin,6,4,0,1,1,-0.16666666666666666,0,0,0,0
+_2026_10_23_uoc_ubc,DIG,Evvia Belireau,5,5,0,3,0,-0.6,0,0,0,0
+_2026_10_23_uoc_ubc,DIG,Christine Abu,3,3,0,0,0,0,1,0.3333333333333333,0.3333333333333333,0
+_2026_10_23_uoc_ubc,DIG,Julia Tuckwood,2,2,0,0,0,0,1,0.5,0.5,0
+_2026_10_23_uoc_ubc,FREEBALL,Cate McLaughlin,2,1,0,0,0,0,0,0,0,0
+_2026_10_23_uoc_ubc,RECEPTION_FIRST_BALL,Evvia Belireau,2,2,0,1,0,-0.5,1,0.5,0.5,0
+_2026_10_23_uoc_ubc,FREEBALL,Evvia Belireau,1,1,0,0,0,0,0,0,0,0
+_2026_10_23_uoc_ubc,FREEBALL,Kalyssa Komori,1,1,0,1,0,-1,0,0,0,0
