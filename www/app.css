@@ -547,3 +547,16 @@ body {
     text-align: right;
     margin-top: 4px;
 }
+
+
+/* KEY METRICS — benchmark pills and collision-free labels */
+.metric-benchmark-toolbar .shiny-options-group,
+.metric-benchmark-toolbar .checkbox-group { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0; }
+.metric-benchmark-toolbar .checkbox { position:relative; margin:0; padding:0; }
+.metric-benchmark-toolbar .checkbox label { display:inline-flex; align-items:center; margin:0; padding:5px 11px; border:1px solid #dce4ea; border-radius:16px; background:#fff; color:#647586; font-size:10px; font-weight:700; white-space:nowrap; cursor:pointer; transition:background .15s ease,border-color .15s ease,color .15s ease; }
+.metric-benchmark-toolbar .checkbox input[type=checkbox] { position:absolute; width:1px; height:1px; margin:0; opacity:0; pointer-events:none; }
+.metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:checked) { background:#eef2f5; border-color:#aebdca; color:#263746; }
+.metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:focus-visible) { outline:2px solid #82909d; outline-offset:2px; }
+.metric-track-wrap { position:relative; padding-bottom:3px; }
+.metric-track { position:relative; overflow:visible; }
+.season-benchmark-label, .opponent-label { position:absolute; transform:translate(-50%,-100%); white-space:nowrap; }
