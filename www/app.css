@@ -552,11 +552,25 @@ body {
 /* KEY METRICS — benchmark pills and collision-free labels */
 .metric-benchmark-toolbar .shiny-options-group,
 .metric-benchmark-toolbar .checkbox-group { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0; }
-.metric-benchmark-toolbar .checkbox { position:relative; margin:0; padding:0; }
-.metric-benchmark-toolbar .checkbox label { display:inline-flex; align-items:center; margin:0; padding:5px 11px; border:1px solid #dce4ea; border-radius:16px; background:#fff; color:#647586; font-size:10px; font-weight:700; white-space:nowrap; cursor:pointer; transition:background .15s ease,border-color .15s ease,color .15s ease; }
-.metric-benchmark-toolbar .checkbox input[type=checkbox] { position:absolute; width:1px; height:1px; margin:0; opacity:0; pointer-events:none; }
-.metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:checked) { background:#eef2f5; border-color:#aebdca; color:#263746; }
-.metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:focus-visible) { outline:2px solid #82909d; outline-offset:2px; }
+.metric-benchmark-toolbar .shiny-options-group > div,
+.metric-benchmark-toolbar .checkbox,
+.metric-benchmark-toolbar .form-check { position:relative; margin:0; padding:0; }
+.metric-benchmark-toolbar .shiny-options-group label,
+.metric-benchmark-toolbar .checkbox label,
+.metric-benchmark-toolbar .form-check-label {
+  display:inline-flex; align-items:center; margin:0; padding:5px 11px;
+  border:1px solid #dce4ea; border-radius:16px; background:#fff;
+  color:#647586; font-size:10px; font-weight:700; white-space:nowrap; cursor:pointer;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.metric-benchmark-toolbar input[type="checkbox"] {
+  position:absolute !important; appearance:none !important; -webkit-appearance:none !important;
+  display:none !important; width:0 !important; height:0 !important; margin:0 !important; opacity:0 !important;
+}
+.metric-benchmark-toolbar label:has(input[type="checkbox"]:checked) {
+  background:#eef2f5; border-color:#aebdca; color:#263746;
+}
+.metric-benchmark-toolbar label:has(input[type="checkbox"]:focus-visible) { outline:2px solid #82909d; outline-offset:2px; }
 .metric-track-wrap { position:relative; padding-bottom:3px; }
 .metric-track { position:relative; overflow:visible; }
 .season-benchmark-label, .opponent-label { position:absolute; transform:translate(-50%,-100%); white-space:nowrap; }
