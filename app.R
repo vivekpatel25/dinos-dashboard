@@ -2711,14 +2711,33 @@ if (nrow(all_metrics) || nrow(match_summaries)) {
       sn <- paste0(nm, ".summary")
       if (sn %in% names(match_index)) {
         if (!nm %in% names(match_index)) match_index[[nm]] <- NA
-        missing <- is.na(match_index[[nm]]) | !nzchar(as.character(match_index[[nm]]))
-        match_index[[nm]][missing] <- match_index[[sn]][missing]
+        summary_value <- match_index[[sn]]
+        has_summary <- !is.na(summary_value) & nzchar(as.character(summary_value))
+        match_index[[nm]][has_summary] <- summary_value[has_summary]
         match_index[[sn]] <- NULL
       }
     }
     match_index <- match_index[order(as.Date(match_index$match_date), decreasing = TRUE), , drop = FALSE]
     match_index <- match_index[!duplicated(as.character(match_index$match_id)), , drop = FALSE]
     rownames(match_index) <- NULL
+  }
+
+  # Always display the set score from Calgary's perspective.
+  if (all(c("match_result", "match_set_score") %in% names(match_index))) {
+    for (i in seq_len(nrow(match_index))) {
+      result_i <- toupper(trimws(as.character(match_index$match_result[i])))
+      score_i <- trimws(as.character(match_index$match_set_score[i]))
+      if (is.na(score_i) || !nzchar(score_i)) next
+      score_parts <- strsplit(score_i, "-", fixed = TRUE)[[1]]
+      if (length(score_parts) != 2) next
+      score_nums <- suppressWarnings(as.numeric(trimws(score_parts)))
+      if (anyNA(score_nums)) next
+      if (result_i %in% c("W", "WIN") && score_nums[1] < score_nums[2]) {
+        match_index$match_set_score[i] <- paste0(score_nums[2], "-", score_nums[1])
+      } else if (result_i %in% c("L", "LOSS") && score_nums[1] > score_nums[2]) {
+        match_index$match_set_score[i] <- paste0(score_nums[2], "-", score_nums[1])
+      }
+    }
   }
 
 } else {
@@ -3684,6 +3703,8 @@ ui <- fluidPage(
       .header-latest .latest-date{font-family:'Barlow Condensed';font-size:18px;color:var(--navy);}
       .header-latest .latest-result{display:block;margin-top:4px;color:var(--dinos-red);
         font-size:12px;letter-spacing:.7px;}
+      .header-latest .latest-result-win{color:#198754;}
+      .header-latest .latest-result-loss{color:#c8102e;}
 
       .page-heading{display:flex;align-items:end;justify-content:space-between;margin:18px 4px 16px;}
       .eyebrow{color:var(--dinos-red);font-weight:800;font-size:11px;letter-spacing:2px;}
@@ -4571,6 +4592,16 @@ server <- function(input, output, session) {
       "RESULT NOT AVAILABLE"
     }
 
+    latest_result_class <- if (!is.na(result_value) &&
+                               toupper(trimws(result_value)) %in% c("W", "WIN")) {
+      "latest-result latest-result-win"
+    } else if (!is.na(result_value) &&
+               toupper(trimws(result_value)) %in% c("L", "LOSS")) {
+      "latest-result latest-result-loss"
+    } else {
+      "latest-result"
+    }
+
     div(
       class = "top-header",
 
@@ -4625,7 +4656,7 @@ server <- function(input, output, session) {
         strong("LATEST MATCH"),
         div(class = "latest-date", latest_date),
         div(latest_opp),
-        tags$strong(latest_result, class = "latest-result")
+        tags$strong(latest_result, class = latest_result_class)
       )
     )
   })
