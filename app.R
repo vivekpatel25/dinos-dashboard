@@ -3793,24 +3793,32 @@ ui <- fluidPage(
       .metric-benchmark-toolbar-label{font-size:9px;letter-spacing:1px;font-weight:800;
         color:#82909d;white-space:nowrap;}
       .metric-benchmark-toolbar .shiny-options-group,
-      .metric-benchmark-toolbar .checkbox-group{display:flex;gap:6px;flex-wrap:wrap;margin:0;}
-      /* Shiny may render checkboxGroupInput options as checkbox-inline (Bootstrap)
-         or checkbox. Style both so the benchmark controls remain clickable pills. */
+      .metric-benchmark-toolbar .checkbox-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0;}
+      /* Bootstrap 3 renders .checkbox-inline as the label itself; Bootstrap 5
+         renders a .form-check wrapper with a separate .form-check-label. */
       .metric-benchmark-toolbar .checkbox,
-      .metric-benchmark-toolbar .checkbox-inline{position:relative;margin:0;padding:0;}
+      .metric-benchmark-toolbar .checkbox-inline,
+      .metric-benchmark-toolbar .form-check{position:relative;display:inline-flex !important;
+        align-items:center;margin:0 !important;padding:0 !important;}
       .metric-benchmark-toolbar .checkbox label,
-      .metric-benchmark-toolbar .checkbox-inline label{display:inline-flex;align-items:center;
-        border:1px solid #dce4ea;border-radius:16px;padding:5px 11px;background:#fff;
-        color:#647586;font-size:10px;font-weight:700;cursor:pointer;margin:0;white-space:nowrap;
+      .metric-benchmark-toolbar .checkbox-inline,
+      .metric-benchmark-toolbar .form-check-label{display:inline-flex !important;align-items:center;
+        border:1px solid #dce3e9 !important;border-radius:9px !important;padding:7px 13px !important;
+        background:#e5eaf0 !important;color:#526475 !important;font-size:11px !important;
+        font-weight:800 !important;line-height:1.2;cursor:pointer;margin:0 !important;white-space:nowrap;
         transition:background .15s ease,border-color .15s ease,color .15s ease;}
       .metric-benchmark-toolbar .checkbox input[type=checkbox],
-      .metric-benchmark-toolbar .checkbox-inline input[type=checkbox]{position:absolute !important;opacity:0 !important;
-        width:1px !important;height:1px !important;margin:0 !important;pointer-events:none !important;}
+      .metric-benchmark-toolbar .checkbox-inline input[type=checkbox],
+      .metric-benchmark-toolbar .form-check input[type=checkbox]{position:absolute !important;
+        opacity:0 !important;width:1px !important;height:1px !important;margin:0 !important;
+        pointer-events:none !important;}
       .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:checked),
-      .metric-benchmark-toolbar .checkbox-inline label:has(input[type=checkbox]:checked){
-        background:#fff0e8;border-color:#efb58f;color:#8f4b24;}
+      .metric-benchmark-toolbar .checkbox-inline:has(input[type=checkbox]:checked),
+      .metric-benchmark-toolbar .form-check:has(input[type=checkbox]:checked) .form-check-label{
+        background:#C8102E !important;border-color:#C8102E !important;color:#fff !important;}
       .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:focus-visible),
-      .metric-benchmark-toolbar .checkbox-inline label:has(input[type=checkbox]:focus-visible){
+      .metric-benchmark-toolbar .checkbox-inline:has(input[type=checkbox]:focus-visible),
+      .metric-benchmark-toolbar .form-check-label:has(+ input[type=checkbox]:focus-visible){
         outline:2px solid #82909d;outline-offset:2px;}
       .metric-track-wrap{position:relative;padding-bottom:3px;}
       .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
