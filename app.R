@@ -35,6 +35,93 @@ read_csv_safe <- function(path) {
   )
 }
 
+
+# ----------------------------- TRANSITION ANALYSIS DATA -----------------------------
+
+TRANSITION_ROOT <- "data/exports/transition_analysis"
+
+find_transition_attack_files <- function() {
+  if (!dir.exists(TRANSITION_ROOT)) return(character(0))
+  list.files(
+    TRANSITION_ROOT,
+    pattern = "^TRANSITION_ATTACKS\\.csv$",
+    recursive = TRUE,
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+}
+
+load_transition_attack_data <- function(ids = NULL) {
+  files <- find_transition_attack_files()
+  if (!length(files)) return(data.frame())
+
+  parts <- lapply(files, function(f) {
+    d <- read_csv_safe(f)
+    if (is.null(d) || !nrow(d)) return(NULL)
+
+    required <- c(
+      "match_id", "transition_trigger_type",
+      "prior_dig_dig_start_zone", "linked_set_end_zone"
+    )
+    if (!all(required %in% names(d))) return(NULL)
+
+    d$source_path <- f
+    d
+  })
+
+  parts <- Filter(Negate(is.null), parts)
+  if (!length(parts)) return(data.frame())
+
+  out <- do.call(rbind, parts)
+  out$match_id <- as.character(out$match_id)
+
+  if (!is.null(ids) && length(ids)) {
+    out <- out[out$match_id %in% as.character(ids), , drop = FALSE]
+  }
+
+  out
+}
+
+transition_zone_xy <- function(zone, subzone = NA_character_) {
+  zone <- suppressWarnings(as.integer(as.character(zone)))
+  subzone <- toupper(trimws(as.character(subzone)))
+  layout <- matrix(c(4, 3, 2, 7, 8, 9, 5, 6, 1), nrow = 3, byrow = TRUE)
+  x <- y <- rep(NA_real_, length(zone))
+
+  for (i in seq_along(zone)) {
+    pos <- which(layout == zone[i], arr.ind = TRUE)
+    if (!nrow(pos)) next
+    x[i] <- (pos[1, 2] - 0.5) * 2
+    y[i] <- 6 - (pos[1, 1] - 0.5) * 2
+
+    # The transition export currently records dig start zone and coordinates,
+    # but not a dedicated dig start subzone. Keep the origin at zone centre.
+    # Set destinations use the recorded end subzone when it is available.
+    sub_pos <- switch(subzone[i],
+      "C" = c(1, 1), "B" = c(1, 2),
+      "D" = c(2, 1), "A" = c(2, 2),
+      NULL
+    )
+    if (!is.null(sub_pos)) {
+      x[i] <- (pos[1, 2] - 1) * 2 + sub_pos[2] - 0.5
+      y[i] <- 6 - ((pos[1, 1] - 1) * 2 + sub_pos[1] - 0.5)
+    }
+  }
+  data.frame(x = x, y = y)
+}
+
+transition_map_ui <- function() {
+  div(
+    class = "detail-section transition-map-section",
+    div(class = "detail-section-title", "TRANSITION · DIG TO SET MAP"),
+    div(
+      class = "setting-map-note",
+      "Lines connect the recorded dig start zone to the linked set destination. Line thickness represents route frequency."
+    ),
+    plotOutput("transition_dig_set_map", height = "560px")
+  )
+}
+
 # ----------------------------- SEASON BENCHMARKS -----------------------------
 
 TICK_MARK_PATH <- "data/reference/tick_mark.csv"
@@ -3588,23 +3675,18 @@ ui <- fluidPage(
         justify-content:flex-end;margin:0 0 8px;padding:0 2px;}
       .metric-benchmark-toolbar-label{font-size:9px;letter-spacing:1px;font-weight:800;
         color:#82909d;white-space:nowrap;}
-      /* Benchmark checkbox inputs remain unchanged; labels are the clickable pills. */
       .metric-benchmark-toolbar .shiny-options-group,
-      .metric-benchmark-toolbar .checkbox-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0;}
-      .metric-benchmark-toolbar .shiny-options-group > div,
-      .metric-benchmark-toolbar .checkbox,
-      .metric-benchmark-toolbar .form-check{position:relative;margin:0;padding:0;}
-      .metric-benchmark-toolbar .checkbox label,
-      .metric-benchmark-toolbar .form-check-label,
-      .metric-benchmark-toolbar .shiny-options-group label{display:inline-flex;align-items:center;
+      .metric-benchmark-toolbar .checkbox-group{display:flex;gap:6px;flex-wrap:wrap;margin:0;}
+      .metric-benchmark-toolbar .checkbox{position:relative;margin:0;padding:0;}
+      .metric-benchmark-toolbar .checkbox label{display:inline-flex;align-items:center;
         border:1px solid #dce4ea;border-radius:16px;padding:5px 11px;background:#fff;
         color:#647586;font-size:10px;font-weight:700;cursor:pointer;margin:0;white-space:nowrap;
         transition:background .15s ease,border-color .15s ease,color .15s ease;}
-      .metric-benchmark-toolbar input[type=checkbox]{position:absolute!important;opacity:0!important;
-        width:1px!important;height:1px!important;margin:0!important;}
-      .metric-benchmark-toolbar label:has(input[type=checkbox]:checked){
+      .metric-benchmark-toolbar .checkbox input[type=checkbox]{position:absolute;opacity:0;
+        width:1px;height:1px;margin:0;pointer-events:none;}
+      .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:checked){
         background:#eef2f5;border-color:#aebdca;color:#263746;}
-      .metric-benchmark-toolbar label:has(input[type=checkbox]:focus-visible){
+      .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:focus-visible){
         outline:2px solid #82909d;outline-offset:2px;}
       .metric-track-wrap{position:relative;padding-bottom:3px;}
       .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
@@ -4777,7 +4859,8 @@ server <- function(input, output, session) {
         ),
         if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
       )
-      ,attack_map_ui()
+      ,attack_map_ui(),
+      transition_map_ui()
     )
   })
 
@@ -5310,7 +5393,89 @@ server <- function(input, output, session) {
         attack_map_summary_ui(d)
       })
     })
+
   })
+
+  output$transition_dig_set_map <- renderPlot({
+    ids <- current_attack_match_ids()
+    d <- load_transition_attack_data(ids)
+
+    par(mar = c(1, 1, 2.5, 1), xaxs = "i", yaxs = "i", pty = "s")
+    plot(NA, xlim = c(0, 6), ylim = c(0, 6.35), asp = 1,
+         axes = FALSE, xlab = "", ylab = "")
+    text(3, 6.2, "NET", cex = 0.9, font = 2, col = "#52616b")
+    segments(0, 6.05, 6, 6.05, col = "#344653", lwd = 4)
+
+    band_cols <- c("#F1F3F4", "#EEE9E4", "#E9DDD3")
+    for (x in 0:5) for (y in 0:5) {
+      band <- floor((5 - y) / 2) + 1
+      rect(x, y, x + 1, y + 1, col = band_cols[band],
+           border = "#C7D1D9", lwd = 0.8)
+    }
+    rect(0, 0, 6, 6, border = "#AEBBC5", lwd = 1.1)
+
+    if (!nrow(d)) {
+      text(3, 3, "No transition attack CSVs found for this selection",
+           col = "#7b8996", cex = 0.9)
+      return(invisible(NULL))
+    }
+
+    trigger <- toupper(trimws(as.character(d$transition_trigger_type)))
+    d <- d[trigger == "DIG", , drop = FALSE]
+    if (!nrow(d)) {
+      text(3, 3, "No linked dig-to-set transition sequences",
+           col = "#7b8996", cex = 0.9)
+      return(invisible(NULL))
+    }
+
+    start <- transition_zone_xy(d$prior_dig_dig_start_zone)
+    end_subzone <- if ("linked_set_end_subzone" %in% names(d)) {
+      d$linked_set_end_subzone
+    } else rep(NA_character_, nrow(d))
+    end <- transition_zone_xy(d$linked_set_end_zone, end_subzone)
+
+    valid <- is.finite(start$x) & is.finite(start$y) &
+      is.finite(end$x) & is.finite(end$y)
+    start <- start[valid, , drop = FALSE]
+    end <- end[valid, , drop = FALSE]
+
+    if (!nrow(start)) {
+      text(3, 3, "No valid dig start zones and set destinations",
+           col = "#7b8996", cex = 0.9)
+      return(invisible(NULL))
+    }
+
+    route_key <- paste(round(start$x, 2), round(start$y, 2),
+                       round(end$x, 2), round(end$y, 2), sep = "_")
+    route_groups <- split(seq_len(nrow(start)), route_key)
+    route_counts <- vapply(route_groups, length, integer(1))
+    max_count <- max(route_counts)
+
+    for (i in seq_along(route_groups)) {
+      ix <- route_groups[[i]][1]
+      count <- route_counts[i]
+      segments(start$x[ix], start$y[ix], end$x[ix], end$y[ix],
+               col = grDevices::adjustcolor("#C8102E", alpha.f = 0.42),
+               lwd = 1 + 4 * count / max_count)
+    }
+
+    points(start$x, start$y, pch = 21, bg = "#E6A11A",
+           col = "#ffffff", cex = 1.0)
+    points(end$x, end$y, pch = 21, bg = "#C8102E",
+           col = "#ffffff", cex = 1.0)
+    text(start$x, start$y, labels = "D", cex = 0.55, col = "#263746")
+    text(end$x, end$y, labels = "S", cex = 0.55, col = "#ffffff")
+
+    mtext(paste0("DIG-TO-SET ROUTES · ", nrow(start), " LINKED ATTACK SEQUENCES"),
+          side = 3, line = 0.5, cex = 0.9, font = 2, col = "#344653")
+    legend("bottom", inset = 0.02, horiz = TRUE, bty = "n",
+           legend = c("Dig origin", "Set destination", "Route frequency"),
+           pch = c(21, 21, NA), lty = c(NA, NA, 1),
+           pt.bg = c("#E6A11A", "#C8102E", NA),
+           col = c("#ffffff", "#ffffff", "#C8102E"),
+           lwd = c(NA, NA, 3), cex = 0.75)
+    invisible(NULL)
+  }, res = 110)
 
 }
 
