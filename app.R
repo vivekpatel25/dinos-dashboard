@@ -4251,13 +4251,26 @@ ui <- fluidPage(
         font-family:'Barlow Condensed';font-size:9px;font-weight:800;
         letter-spacing:1px;line-height:5px;pointer-events:none;}
       #opponent_start_zone_filter{margin:10px 0 12px;}
+      #opponent_start_zone_filter{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
       #opponent_start_zone_filter .checkbox-inline{display:inline-flex;align-items:center;
-        margin:3px 7px 3px 0;padding:7px 14px;border:1px solid #cbd7df;
-        border-radius:18px;background:#f3f7f9;color:#33495b;font-weight:700;
-        cursor:pointer;}
+        margin:0;padding:8px 15px;border:1px solid #cbd7df;
+        border-radius:20px;background:#edf2f5;color:#33495b;font-weight:800;
+        cursor:pointer;transition:all .15s ease;}
+      #opponent_start_zone_filter .checkbox-inline input[type=checkbox]{
+        position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;
+        margin:0!important;pointer-events:none!important;}
       #opponent_start_zone_filter .checkbox-inline:has(input:checked){
-        background:#C8102E;border-color:#C8102E;color:#fff;}
-      #opponent_start_zone_filter input{accent-color:#C8102E;margin-right:6px;}
+        background:#C8102E;border-color:#C8102E;color:#fff;box-shadow:0 2px 5px rgba(200,16,46,.18);}
+      #opponent_start_zone_filter .checkbox-inline:before{content:'';display:inline-block;
+        width:8px;height:8px;border:1.5px solid currentColor;border-radius:50%;
+        margin-right:8px;opacity:.7;}
+      #opponent_start_zone_filter .checkbox-inline:has(input:checked):before{
+        background:#fff;border-color:#fff;box-shadow:inset 0 0 0 2px #C8102E;}
+      .opponent-kill-court-shell{position:relative;width:100%;padding-top:3.5%;}
+      .opponent-kill-court-shell .pass-court{width:100%;}
+      .opponent-kill-court-shell .opponent-half-trajectory{position:absolute;left:0;top:0;
+        width:100%;height:100%;z-index:6;overflow:visible;pointer-events:none;}
+      .opponent-kill-half-court{overflow:hidden;}
       .opponent-full-court{position:relative;width:100%;aspect-ratio:1/2;overflow:hidden;
         background:#f3f7f9;border:1px solid #cbd7df;border-radius:4px;
         box-shadow:0 2px 8px rgba(38,55,70,.08);}
@@ -5834,41 +5847,34 @@ server <- function(input, output, session) {
     end_sub <- end_sub[valid]
     if (!nrow(d)) return(div(class = "detail-empty", "No valid opponent kill destinations for this selection."))
 
-    # Opponent attacks originate at the net edge. Starting zones are represented
-    # by their court lane, without displaying an opponent half-court.
-    zone_col <- function(z) {
-      if (z %in% c("4", "7", "5")) return(1)
-      if (z %in% c("3", "8", "6")) return(2)
-      if (z %in% c("2", "9", "1")) return(3)
+    # Opponent start points sit beyond the net, never inside the UCalgary court.
+    # One source marker per selected starting zone; routes fan out from that point.
+    start_x_for_zone <- function(z) {
+      if (z %in% c("4", "7", "5")) return(16.667)
+      if (z %in% c("3", "6")) return(46.5)
+      if (z == "8") return(53.5)
+      if (z %in% c("2", "9", "1")) return(83.333)
       NA_real_
     }
-    start_x <- vapply(as.character(d$start_zone), function(z) {
-      col <- zone_col(z)
-      if (!is.finite(col)) return(NA_real_)
-      (col - 0.5) * 100 / 3
-    }, numeric(1))
-    # Slightly separate multiple attacks from the same starting lane.
-    lane_groups <- split(seq_along(start_x), start_x)
-    for (ix in lane_groups) {
-      if (length(ix) > 1) start_x[ix] <- start_x[ix] + seq(-2.2, 2.2, length.out = length(ix))
-    }
-    start_y <- rep(2.5, nrow(d))
+    start_x <- vapply(as.character(d$start_zone), start_x_for_zone, numeric(1))
+    start_y <- rep(1.1, nrow(d))
     end_x <- end_local$x
-    end_y <- end_local$y
+    # The court begins below the small opponent-side/net-origin strip.
+    end_y <- 3.5 + end_local$y
 
     line_nodes <- lapply(seq_len(nrow(d)), function(i) {
       tags$line(
         x1 = start_x[i], y1 = start_y[i], x2 = end_x[i], y2 = end_y[i],
-        stroke = "#C8102E", `stroke-width` = 0.48,
-        `stroke-opacity` = 0.52, `stroke-linecap` = "round"
+        stroke = "#C8102E", `stroke-width` = 0.42,
+        `stroke-opacity` = 0.48, `stroke-linecap` = "round"
       )
     })
-    start_nodes <- lapply(seq_len(nrow(d)), function(i) {
+    unique_starts <- unique(as.character(d$start_zone))
+    start_nodes <- lapply(unique_starts, function(z) {
       tags$circle(
-        cx = start_x[i], cy = start_y[i], r = 1.05,
+        cx = start_x_for_zone(z), cy = 1.1, r = 0.9,
         fill = "#E6A11A", stroke = "#FFFFFF", `stroke-width` = 0.3,
-        tags$title(paste0("Opponent attack start · Zone ", d$start_zone[i],
-                          " · ", d$attacker[i]))
+        tags$title(paste0("Opponent attack start · Zone ", z))
       )
     })
     end_nodes <- lapply(seq_len(nrow(d)), function(i) {
@@ -5882,19 +5888,22 @@ server <- function(input, output, session) {
     })
 
     court <- div(
-      class = "pass-court opponent-kill-half-court",
-      transition_court_cells(),
-      tags$div(class = "opponent-kill-net", "NET"),
+      class = "opponent-kill-court-shell",
+      div(
+        class = "pass-court opponent-kill-half-court",
+        transition_court_cells(),
+        tags$div(class = "opponent-kill-net", "NET")
+      ),
       tags$svg(
         class = "opponent-half-trajectory",
-        viewBox = "0 0 100 100", preserveAspectRatio = "none",
+        viewBox = "0 0 100 103.5", preserveAspectRatio = "none",
         line_nodes, start_nodes, end_nodes
       )
     )
 
     legend <- div(class = "transition-map-legend",
       span(span(class = "transition-legend-dot", style = "background:#E6A11A;"),
-           "Opponent attack start (net / selected zone)"),
+           "Opponent attack start (opponent side of net)"),
       span(span(class = "transition-legend-dot", style = "background:#C8102E;"),
            "Opponent kill destination"),
       span(span(class = "transition-route-line"), "Attack direction")
