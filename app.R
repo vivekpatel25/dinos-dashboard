@@ -324,9 +324,9 @@ skill_outcomes <- function(d, section) {
       ifelse(code == "+", "OOS Pass",
       ifelse(code == "-", "Good Pass",
       ifelse(code == "!", "Medium",
-      ifelse(code == "=", "Serve Error", NA)))))
+      ifelse(code == "=", "Serve Error", NA))))))
     ),
-
+  
     dig = ifelse(
       code %in% c("+", "-", "/"), "In play",
       ifelse(code == "=", "Dig Error", NA)
