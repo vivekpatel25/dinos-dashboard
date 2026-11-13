@@ -4242,6 +4242,41 @@ ui <- fluidPage(
         font-weight:800;color:#263746;}
       @media(max-width:900px){.transition-map-layout{grid-template-columns:1fr;}
         .transition-kpi-grid{grid-template-columns:repeat(2,minmax(120px,1fr));}}
+      .opponent-full-court{position:relative;width:100%;aspect-ratio:1/2;overflow:hidden;
+        background:#f3f7f9;border:1px solid #cbd7df;border-radius:4px;
+        box-shadow:0 2px 8px rgba(38,55,70,.08);}
+      .opp-full-zone{position:absolute;width:33.3333%;height:16.6667%;
+        display:flex;align-items:center;justify-content:center;border:1px solid #fff;
+        box-sizing:border-box;pointer-events:none;}
+      .opp-opponent-zone{background:#edf2f5;}
+      .opp-uofc-zone{background:#f5e5d5;}
+      .opp-full-zone strong{font-family:'Barlow Condensed';font-size:clamp(18px,2.3vw,30px);
+        color:#c5d3dc;font-weight:800;opacity:.9;}
+      .opp-sub{position:absolute;font-family:'Barlow Condensed';font-size:clamp(8px,.9vw,12px);
+        font-weight:800;color:#a8793e;opacity:.8;}
+      .opp-sub.c{left:20%;top:16%;}.opp-sub.b{right:20%;top:16%;}
+      .opp-sub.d{left:20%;bottom:16%;}.opp-sub.a{right:20%;bottom:16%;}
+      .opponent-full-trajectory{position:absolute;inset:0;width:100%;height:100%;
+        z-index:3;overflow:visible;pointer-events:none;}
+      .opponent-full-net{position:absolute;left:0;right:0;top:50%;height:5px;
+        transform:translateY(-50%);background:#263746;color:#fff;
+        font-family:'Barlow Condensed';font-size:9px;font-weight:800;
+        letter-spacing:1px;text-align:left;padding-left:7px;line-height:5px;z-index:4;}
+      .transition-map-section #transition_attacker_table,
+      .transition-map-section #transition_actual_blockers_table,
+      .transition-map-section #opponent_kill_location_table{
+        display:block;width:100%;max-width:100%;overflow-x:auto;}
+      .transition-map-section #transition_attacker_table table,
+      .transition-map-section #transition_actual_blockers_table table,
+      .transition-map-section #opponent_kill_location_table table{
+        width:100%!important;max-width:100%;table-layout:auto;margin-bottom:0;}
+      .transition-map-section #transition_attacker_table th,
+      .transition-map-section #transition_attacker_table td,
+      .transition-map-section #transition_actual_blockers_table th,
+      .transition-map-section #transition_actual_blockers_table td,
+      .transition-map-section #opponent_kill_location_table th,
+      .transition-map-section #opponent_kill_location_table td{
+        padding:7px 11px;white-space:nowrap;}
       .transition-map-legend{display:flex;gap:18px;flex-wrap:wrap;align-items:center;
         margin:10px 0 4px;font-size:12px;color:#536577;}
       .transition-map-legend span{display:inline-flex;align-items:center;gap:7px;}
@@ -5686,7 +5721,7 @@ server <- function(input, output, session) {
       div(class = "transition-kpi", strong("Kills"), h3(kills)),
       div(class = "transition-kpi", strong("Direct errors"), h3(direct_errors)),
       div(class = "transition-kpi", strong("Blocked"), h3(blocked)),
-      div(class = "transition-kpi", strong("Attack efficiency"), h3(sprintf("%.1f%%", 100 * eff))),
+      div(class = "transition-kpi", strong("Attack efficiency"), h3(sprintf("%.3f", eff))),
       div(class = "transition-kpi", strong("Rally-point conversion"), h3(sprintf("%.1f%%", 100 * wins / n)))
     )
   })
@@ -5750,44 +5785,114 @@ server <- function(input, output, session) {
     d <- load_opponent_kill_data(current_attack_match_ids())
     if (!nrow(d)) return(div(class = "detail-empty", "No opponent kill events for this match selection."))
 
-    zone <- as.character(d$end_zone)
-    sub <- toupper(trimws(as.character(d$end_subzone)))
-    xy <- transition_zone_xy(zone, sub)
-    valid <- !is.na(zone) & nzchar(zone) & is.finite(xy$x) & is.finite(xy$y)
+    start_zone <- as.character(d$start_zone)
+    end_zone <- as.character(d$end_zone)
+    end_sub <- toupper(trimws(as.character(d$end_subzone)))
 
-    marker_nodes <- lapply(which(valid), function(i) {
-      # Small deterministic offsets make repeated kills in the same subzone countable.
-      same <- which(valid & zone == zone[i] & sub == sub[i])
-      rank <- match(i, same)
-      offsets <- matrix(c(0,0, 1.2,0, -1.2,0, 0,1.2, 0,-1.2,
-                          1.0,1.0, -1.0,1.0, 1.0,-1.0, -1.0,-1.0),
-                        ncol = 2, byrow = TRUE)
-      off <- offsets[(rank - 1) %% nrow(offsets) + 1, ]
+    # Opponent starts are plotted at the centre of their recorded starting zone.
+    # Kill destinations use the recorded UofC end zone/subzone; missing subzones
+    # are placed at the centre of that numbered zone, not assigned a guessed subzone.
+    start_local <- transition_zone_xy(start_zone, rep("CENTER", nrow(d)))
+    end_local <- transition_zone_xy(end_zone, end_sub)
+
+    valid <- !is.na(start_zone) & nzchar(start_zone) &
+      !is.na(end_zone) & nzchar(end_zone) &
+      is.finite(start_local$x) & is.finite(start_local$y) &
+      is.finite(end_local$x) & is.finite(end_local$y)
+
+    d <- d[valid, , drop = FALSE]
+    start_local <- start_local[valid, , drop = FALSE]
+    end_local <- end_local[valid, , drop = FALSE]
+    end_sub <- end_sub[valid]
+
+    # Convert the two half-court coordinates into one full-court coordinate system.
+    start_x <- start_local$x
+    start_y <- 50 - start_local$y * 0.5
+    end_x <- end_local$x
+    end_y <- 50 + end_local$y * 0.5
+
+    # Zone labels across the full court: opponent back-to-front, then UofC front-to-back.
+    full_rows <- list(
+      c("5", "6", "1"), c("7", "8", "9"), c("4", "3", "2"),
+      c("4", "3", "2"), c("7", "8", "9"), c("5", "6", "1")
+    )
+    cell_nodes <- list()
+    for (r in seq_along(full_rows)) {
+      for (c in seq_along(full_rows[[r]])) {
+        zone_label <- full_rows[[r]][c]
+        is_uofc <- r >= 4
+        sub_nodes <- if (is_uofc) list(
+          span(class = "opp-sub c", "C"),
+          span(class = "opp-sub b", "B"),
+          span(class = "opp-sub d", "D"),
+          span(class = "opp-sub a", "A")
+        ) else list()
+        cell_nodes[[length(cell_nodes) + 1]] <- div(
+          class = if (is_uofc) "opp-full-zone opp-uofc-zone" else "opp-full-zone opp-opponent-zone",
+          style = paste0(
+            "left:", (c - 1) * 100 / 3, "%;",
+            "top:", (r - 1) * 100 / 6, "%;"
+          ),
+          tags$strong(zone_label),
+          sub_nodes
+        )
+      }
+    }
+
+    # Separate repeated paths slightly using low-opacity lines; each kill remains visible.
+    line_nodes <- lapply(seq_len(nrow(d)), function(i) {
+      tags$line(
+        x1 = start_x[i], y1 = start_y[i],
+        x2 = end_x[i], y2 = end_y[i],
+        stroke = "#C8102E", `stroke-width` = 0.42,
+        `stroke-opacity` = 0.48, `stroke-linecap` = "round"
+      )
+    })
+
+    start_nodes <- lapply(seq_len(nrow(d)), function(i) {
       tags$circle(
-        cx = xy$x[i] + off[1], cy = xy$y[i] + off[2], r = 1.05,
+        cx = start_x[i], cy = start_y[i], r = 1.05,
+        fill = "#E6A11A", stroke = "#FFFFFF", `stroke-width` = 0.28,
+        tags$title(paste0("Opponent attack start · Zone ", d$start_zone[i],
+                          " · ", d$attacker[i]))
+      )
+    })
+    end_nodes <- lapply(seq_len(nrow(d)), function(i) {
+      tags$circle(
+        cx = end_x[i], cy = end_y[i], r = 1.05,
         fill = "#C8102E", stroke = "#FFFFFF", `stroke-width` = 0.28,
-        tags$title(paste0("Opponent kill · Zone ", zone[i], "-", sub[i]))
+        tags$title(paste0("Opponent kill · Zone ", d$end_zone[i], "-",
+                          ifelse(is.na(end_sub[i]) | !nzchar(end_sub[i]), "Centre", end_sub[i]),
+                          " · ", d$attacker[i]))
       )
     })
 
     court <- div(
-      class = "pass-court",
-      transition_court_cells(),
-      tags$svg(class = "pass-trajectory-layer", viewBox = "0 0 100 100",
-               preserveAspectRatio = "none", marker_nodes),
-      div(class = "pass-court-net", "NET")
+      class = "opponent-full-court",
+      cell_nodes,
+      tags$svg(
+        class = "opponent-full-trajectory",
+        viewBox = "0 0 100 100",
+        preserveAspectRatio = "none",
+        line_nodes, start_nodes, end_nodes
+      ),
+      div(class = "opponent-full-net", "NET")
     )
+
     legend <- div(class = "transition-map-legend",
+      span(span(class = "transition-legend-dot", style = "background:#E6A11A;"),
+           "Opponent attack start (zone centre)"),
       span(span(class = "transition-legend-dot", style = "background:#C8102E;"),
-           paste0("Opponent kill · ", sum(valid), " mapped")),
-      span(paste0(sum(!valid), " missing/invalid court location"))
+           "Opponent kill destination"),
+      span(span(class = "transition-route-line"), "Attack direction")
     )
+
     div(
       div(class = "transition-map-layout",
         div(class = "pass-court-column", court, legend,
-            div(class = "pass-court-caption", "UOC COURT · FRONT ROW AT NET")),
+            div(class = "pass-court-caption", "OPPONENT COURT → NET → UOFC COURT")),
         div(class = "pass-summary-column",
-          div(class = "pass-summary-title", "OPPONENT KILLS BY COURT LOCATION"),
+          div(class = "pass-summary-title", "OPPONENT KILLS BY UOFC COURT LOCATION"),
           tableOutput("opponent_kill_location_table")
         )
       )
