@@ -1,0 +1,16 @@
+match_id,transition_trigger_type,linked_set_player_name,attack_attempts,rallies,kills,attack_errors_or_blocked,positive_attacks,attack_efficiency,uofc_rally_wins,rally_point_conversion,attack_record_rally_win_rate,phase_discrepancies
+_2026_11_07_uoc_ubco,RECEPTION_FIRST_BALL,Anya Fehr,34,32,11,8,4,0.08823529411764706,20,0.625,0.6470588235294118,2
+_2026_11_07_uoc_ubco,DIG,Anya Fehr,29,25,15,8,1,0.2413793103448276,16,0.64,0.6551724137931034,0
+_2026_11_07_uoc_ubco,FREEBALL,Anya Fehr,15,14,10,2,1,0.5333333333333333,10,0.7142857142857143,0.7333333333333333,0
+_2026_11_07_uoc_ubco,RECEPTION_FIRST_BALL,Evvia Belireau,8,8,3,2,1,0.125,5,0.625,0.625,0
+_2026_11_07_uoc_ubco,DIG,Madden Hansen,3,2,0,1,0,-0.3333333333333333,0,0,0,0
+_2026_11_07_uoc_ubco,DIG,Narelle Arnold,3,3,1,0,0,0.3333333333333333,1,0.3333333333333333,0.3333333333333333,0
+_2026_11_07_uoc_ubco,NO_LINKED_SET,,3,3,2,1,0,0.3333333333333333,2,0.6666666666666666,0.6666666666666666,0
+_2026_11_07_uoc_ubco,RECEPTION_FIRST_BALL,Madden Hansen,3,3,1,1,0,0,1,0.3333333333333333,0.3333333333333333,0
+_2026_11_07_uoc_ubco,DIG,Christine Abu,2,2,1,0,0,0.5,2,1,1,0
+_2026_11_07_uoc_ubco,DIG,Sona Sajeev,2,1,1,0,1,0.5,1,1,1,0
+_2026_11_07_uoc_ubco,DIG,Evvia Belireau,1,1,0,0,1,0,1,1,1,0
+_2026_11_07_uoc_ubco,DIG,Julia Tuckwood,1,1,1,0,0,1,1,1,1,0
+_2026_11_07_uoc_ubco,FREEBALL,Narelle Arnold,1,1,0,1,0,-1,0,0,0,0
+_2026_11_07_uoc_ubco,RECEPTION_FIRST_BALL,Leni Blanke,1,1,0,0,0,0,1,1,1,0
+_2026_11_07_uoc_ubco,RECEPTION_FIRST_BALL,Miranda Baines,1,1,0,1,0,-1,0,0,0,0
