@@ -1,0 +1,26 @@
+match_id,transition_trigger_type,attack_player_name,attack_player_number,roster_role,attacker_front_back_status,attack_attempts,rallies,kills,attack_errors_or_blocked,positive_attacks,attack_efficiency,uofc_rally_wins,rally_point_conversion,attack_record_rally_win_rate,phase_discrepancies
+_2026_10_24_uoc_ubc,DIG,Leni Blanke,1,outside,Front Row,10,8,4,2,1,0.2,6,0.75,0.8,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Narelle Arnold,6,middle,Front Row,9,9,4,2,0,0.2222222222222222,7,0.7777777777777778,0.7777777777777778,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Christine Abu,2,middle,Front Row,7,7,1,0,0,0.14285714285714285,2,0.2857142857142857,0.2857142857142857,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Julia Tuckwood,15,outside,Front Row,7,7,3,1,1,0.2857142857142857,5,0.7142857142857143,0.7142857142857143,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Leni Blanke,1,outside,Front Row,7,7,4,0,0,0.5714285714285714,6,0.8571428571428571,0.8571428571428571,0
+_2026_10_24_uoc_ubc,DIG,Jasmine Chretien,14,middle,Front Row,6,6,0,2,0,-0.3333333333333333,1,0.16666666666666666,0.16666666666666666,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Jasmine Chretien,14,middle,Front Row,6,6,3,1,0,0.3333333333333333,4,0.6666666666666666,0.6666666666666666,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Kalyssa Komori,11,outside,Front Row,4,4,1,1,1,0,1,0.25,0.25,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Reese Evjen,21,outside,Front Row,4,4,1,0,0,0.25,2,0.5,0.5,0
+_2026_10_24_uoc_ubc,DIG,Julia Tuckwood,15,outside,Front Row,3,3,1,2,0,-0.3333333333333333,1,0.3333333333333333,0.3333333333333333,0
+_2026_10_24_uoc_ubc,DIG,Reese Evjen,21,outside,Front Row,3,3,0,1,0,-0.3333333333333333,1,0.3333333333333333,0.3333333333333333,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Anya Fehr,12,setter,Front Row,3,3,1,1,1,0,2,0.6666666666666666,0.6666666666666666,0
+_2026_10_24_uoc_ubc,DIG,Kalyssa Komori,11,outside,Front Row,2,2,0,2,0,-1,0,0,0,0
+_2026_10_24_uoc_ubc,FREEBALL,Leni Blanke,1,outside,Front Row,2,2,2,0,0,1,2,1,1,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Sona Sajeev,8,opposite,Front Row,2,2,1,1,0,0,1,0.5,0.5,0
+_2026_10_24_uoc_ubc,DIG,Anya Fehr,12,setter,Front Row,1,1,1,0,0,1,1,1,1,0
+_2026_10_24_uoc_ubc,DIG,Christine Abu,2,middle,Front Row,1,1,1,0,0,1,1,1,1,0
+_2026_10_24_uoc_ubc,DIG,Narelle Arnold,6,middle,Front Row,1,1,0,0,0,0,1,1,1,0
+_2026_10_24_uoc_ubc,DIG,Reese Evjen,21,outside,Back Row,1,1,0,0,1,0,1,1,1,0
+_2026_10_24_uoc_ubc,DIG,Sona Sajeev,8,opposite,Front Row,1,1,0,0,0,0,1,1,1,0
+_2026_10_24_uoc_ubc,FREEBALL,Anya Fehr,12,setter,Front Row,1,1,1,0,0,1,1,1,1,0
+_2026_10_24_uoc_ubc,FREEBALL,Jasmine Chretien,14,middle,Front Row,1,1,1,0,0,1,1,1,1,0
+_2026_10_24_uoc_ubc,FREEBALL,Narelle Arnold,6,middle,Front Row,1,1,1,0,0,1,1,1,1,0
+_2026_10_24_uoc_ubc,FREEBALL,Reese Evjen,21,outside,Front Row,1,1,0,0,0,0,1,1,1,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Kalyssa Komori,11,outside,Back Row,1,1,0,0,0,0,0,0,0,0

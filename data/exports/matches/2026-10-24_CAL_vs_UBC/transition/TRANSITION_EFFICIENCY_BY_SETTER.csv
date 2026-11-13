@@ -1,0 +1,15 @@
+match_id,transition_trigger_type,linked_set_player_name,attack_attempts,rallies,kills,attack_errors_or_blocked,positive_attacks,attack_efficiency,uofc_rally_wins,rally_point_conversion,attack_record_rally_win_rate,phase_discrepancies
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Anya Fehr,36,36,15,6,1,0.25,23,0.6388888888888888,0.6388888888888888,0
+_2026_10_24_uoc_ubc,DIG,Anya Fehr,17,14,6,4,2,0.11764705882352941,9,0.6428571428571429,0.6470588235294118,0
+_2026_10_24_uoc_ubc,DIG,Evvia Belireau,7,6,0,3,0,-0.42857142857142855,3,0.5,0.42857142857142855,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Cate McLaughlin,7,7,3,1,1,0.2857142857142857,4,0.5714285714285714,0.5714285714285714,0
+_2026_10_24_uoc_ubc,FREEBALL,Anya Fehr,4,4,4,0,0,1,4,1,1,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Evvia Belireau,4,4,1,0,0,0.25,3,0.75,0.75,0
+_2026_10_24_uoc_ubc,DIG,Cate McLaughlin,2,2,1,1,0,0,1,0.5,0.5,0
+_2026_10_24_uoc_ubc,FREEBALL,Sona Sajeev,2,1,1,0,0,0.5,1,1,1,0
+_2026_10_24_uoc_ubc,DIG,Princess Dacanay,1,1,0,1,0,-1,0,0,0,0
+_2026_10_24_uoc_ubc,DIG,Robyn McLean,1,1,0,0,0,0,1,1,1,0
+_2026_10_24_uoc_ubc,DIG,Sona Sajeev,1,1,0,0,0,0,0,0,0,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Christine Abu,1,1,0,0,1,0,0,0,0,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Julia Tuckwood,1,1,0,0,0,0,0,0,0,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Leni Blanke,1,1,0,0,0,0,0,0,0,0

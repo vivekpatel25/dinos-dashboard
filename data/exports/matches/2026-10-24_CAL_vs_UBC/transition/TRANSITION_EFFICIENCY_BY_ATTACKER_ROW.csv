@@ -1,0 +1,6 @@
+match_id,transition_trigger_type,attacker_front_back_status,attack_attempts,rallies,kills,attack_errors_or_blocked,positive_attacks,attack_efficiency,uofc_rally_wins,rally_point_conversion,attack_record_rally_win_rate,phase_discrepancies
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Front Row,49,49,19,7,3,0.24489795918367346,30,0.6122448979591837,0.6122448979591837,0
+_2026_10_24_uoc_ubc,DIG,Front Row,28,23,7,9,1,-0.07142857142857142,12,0.5217391304347826,0.5357142857142857,0
+_2026_10_24_uoc_ubc,FREEBALL,Front Row,6,5,5,0,0,0.8333333333333334,5,1,1,0
+_2026_10_24_uoc_ubc,DIG,Back Row,1,1,0,0,1,0,1,1,1,0
+_2026_10_24_uoc_ubc,RECEPTION_FIRST_BALL,Back Row,1,1,0,0,0,0,0,0,0,0
