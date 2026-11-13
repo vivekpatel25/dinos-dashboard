@@ -2677,67 +2677,29 @@ metric_row_ui <- function(
     dinos = list(label = "25–26 Dinos Avg.", short = "Dinos", colour = "#7C3AED")
   )
 
-  # Keep ticks on the metric scale, but pack labels into separate rows
-  # whenever their horizontal footprints would overlap.
-  label_items <- list()
-  marker_items <- list()
-  for (key in names(benchmark_values)) {
+  benchmark_markers <- lapply(names(benchmark_values), function(key) {
     value <- benchmark_values[[key]]
-    if (!is.finite(value)) next
+    if (!is.finite(value)) return(NULL)
     pos <- metric_scale_value(value, metric_name) * 100
     meta <- benchmark_meta[[key]]
-    label_items[[length(label_items) + 1L]] <- list(
-      key = key, pos = pos,
-      text = paste0(meta$short, " ", metric_display_text(value, metric_name)),
-      colour = meta$colour, width = 12
-    )
-    marker_items[[length(marker_items) + 1L]] <- div(
-      class = paste("season-benchmark-marker", paste0("benchmark-", key)),
-      style = paste0("left:", pos, "%;background:", meta$colour, ";"),
-      title = paste0(meta$label, " ", metric_display_text(value, metric_name))
-    )
-  }
-
-  if (is.finite(opp_left)) {
-    opp_text <- paste0(as.character(opp_row$team[1]), " ", metric_display_text(opp_raw, metric_name))
-    label_items[[length(label_items) + 1L]] <- list(
-      key = "opponent", pos = opp_left, text = opp_text,
-      colour = "#e33e35", width = 23
-    )
-    marker_items[[length(marker_items) + 1L]] <- div(
-      class = "opponent-marker", style = paste0("left:", opp_left, "%;")
-    )
-  }
-
-  if (length(label_items)) {
-    ord <- order(vapply(label_items, `[[`, numeric(1), "pos"))
-    lane_ends <- numeric(0)
-    for (idx in ord) {
-      item <- label_items[[idx]]
-      left_edge <- max(0, item$pos - item$width / 2)
-      right_edge <- min(100, item$pos + item$width / 2)
-      lane <- 1L
-      while (lane <= length(lane_ends) && left_edge < lane_ends[lane] + 1.5) lane <- lane + 1L
-      if (lane > length(lane_ends)) lane_ends[lane] <- -Inf
-      lane_ends[lane] <- right_edge
-      label_items[[idx]]$lane <- lane - 1L
-    }
-    max_lane <- max(vapply(label_items, `[[`, integer(1), "lane"))
-    label_nodes <- lapply(label_items, function(item) {
-      label_class <- if (item$key == "opponent") "opponent-label" else
-        paste("season-benchmark-label", paste0("benchmark-label-", item$key))
+    tagList(
       div(
-        class = label_class,
-        style = paste0("left:", item$pos, "%;top:-", 18 + item$lane * 12,
-                       "px;color:", item$colour, ";"),
-        item$text
+        class = paste("season-benchmark-marker", paste0("benchmark-", key)),
+        style = paste0("left:", pos, "%;background:", meta$colour, ";"),
+        title = paste0(meta$label, " ", metric_display_text(value, metric_name))
+      ),
+      div(
+        class = paste("season-benchmark-label", paste0("benchmark-label-", key)),
+        style = paste0("left:", pos, "%;color:", meta$colour, ";"),
+        paste0(meta$short, " ", metric_display_text(value, metric_name))
       )
-    })
-  } else {
-    max_lane <- 0L
-    label_nodes <- list()
-  }
-  track_top_padding <- 22 + (max_lane + 1L) * 12
+    )
+  })
+  benchmark_markers <- Filter(Negate(is.null), benchmark_markers)
+
+  opp_text <- if (is.finite(opp_raw)) {
+    paste0(as.character(opp_row$team[1]), " ", metric_display_text(opp_raw, metric_name))
+  } else ""
 
   div(
     class = "metric-line",
@@ -2750,14 +2712,18 @@ metric_row_ui <- function(
         metric_display_text(uoc_raw, metric_name)),
     div(
       class = "metric-track-wrap",
-      style = paste0("padding-top:", track_top_padding, "px;"),
       div(
         class = "metric-track",
         div(class = "metric-fill",
             style = paste0("width:", uoc_width, "%;background:", bar_colour, ";")),
-        marker_items,
-        label_nodes
-      )
+        if (is.finite(opp_left)) {
+          div(class = "opponent-marker", style = paste0("left:", opp_left, "%;"))
+        } else NULL,
+        benchmark_markers
+      ),
+      if (is.finite(opp_left)) {
+        div(class = "opponent-label", style = paste0("left:", opp_left, "%;"), opp_text)
+      } else NULL
     )
   )
 }
@@ -3584,42 +3550,51 @@ ui <- fluidPage(
       .metric-formula{font-size:10px;color:#7b8996;margin-top:2px;line-height:1.35;}
       .metric-number{font-family:'Barlow Condensed';font-size:28px;font-weight:800;text-align:right;}
 
+      /* Benchmark controls: keep Shiny checkboxGroupInput behaviour,
+         but present each option as a clickable pill with no checkbox square. */
       .metric-benchmark-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
         justify-content:flex-end;margin:0 0 8px;padding:0 2px;}
       .metric-benchmark-toolbar-label{font-size:9px;letter-spacing:1px;font-weight:800;
         color:#82909d;white-space:nowrap;}
-      /* Shiny/Bootstrap 3 and 5 checkbox markup: render each option as a pill. */
       .metric-benchmark-toolbar .shiny-options-group,
-      .metric-benchmark-toolbar .checkbox-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0;}
-      .metric-benchmark-toolbar .shiny-options-group > div,
+      .metric-benchmark-toolbar .checkbox-group{display:flex;align-items:center;
+        gap:6px;flex-wrap:wrap;margin:0;}
       .metric-benchmark-toolbar .checkbox,
       .metric-benchmark-toolbar .form-check{position:relative;margin:0;padding:0;}
-      .metric-benchmark-toolbar .shiny-options-group label,
       .metric-benchmark-toolbar .checkbox label,
-      .metric-benchmark-toolbar .form-check-label{display:inline-flex;align-items:center;
-        border:1px solid #dce4ea;border-radius:16px;padding:5px 11px;background:#fff;
-        color:#647586;font-size:10px;font-weight:700;cursor:pointer;margin:0;white-space:nowrap;
-        transition:background .15s ease,border-color .15s ease,color .15s ease;}
-      .metric-benchmark-toolbar input[type="checkbox"]{position:absolute !important;
-        appearance:none !important;-webkit-appearance:none !important;display:none !important;
-        width:0 !important;height:0 !important;margin:0 !important;opacity:0 !important;}
+      .metric-benchmark-toolbar .form-check label,
+      .metric-benchmark-toolbar .shiny-options-group label{display:inline-flex;
+        align-items:center;border:1px solid #dce4ea;border-radius:16px;
+        padding:4px 10px;background:#fff;color:#647586;font-size:10px;
+        font-weight:700;cursor:pointer;margin:0;line-height:1.35;}
+      .metric-benchmark-toolbar input[type="checkbox"]{
+        position:absolute!important;width:1px!important;height:1px!important;
+        padding:0!important;margin:-1px!important;overflow:hidden!important;
+        clip:rect(0,0,0,0)!important;white-space:nowrap!important;
+        border:0!important;opacity:0!important;appearance:none!important;
+        -webkit-appearance:none!important;}
       .metric-benchmark-toolbar label:has(input[type="checkbox"]:checked){
         background:#eef2f5;border-color:#aebdca;color:#263746;}
-      .metric-benchmark-toolbar label:has(input[type="checkbox"]:focus-visible){
-        outline:2px solid #82909d;outline-offset:2px;}
-      .metric-track-wrap{position:relative;padding-bottom:3px;}
+      .metric-benchmark-toolbar label:focus-within{outline:2px solid #aebdca;
+        outline-offset:2px;}
+      .metric-track-wrap{position:relative;padding-top:38px;padding-bottom:3px;}
       .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
       .metric-fill{height:13px;border-radius:20px;min-width:0;}
       .season-benchmark-marker{position:absolute;top:-7px;height:27px;width:2px;
         transform:translateX(-50%);z-index:4;border-radius:2px;}
-      .season-benchmark-label{position:absolute;transform:translate(-50%,-100%);
+      .season-benchmark-label{position:absolute;top:-18px;transform:translateX(-50%);
         white-space:nowrap;font-size:8px;line-height:10px;font-weight:700;z-index:5;
-        max-width:130px;overflow:hidden;text-overflow:ellipsis;}
+        max-width:100px;overflow:hidden;text-overflow:ellipsis;}
+      .benchmark-label-team{top:-18px;}
+      .benchmark-label-top4{top:-29px;}
+      .benchmark-label-dinos{top:-40px;}
+
       .opponent-marker{position:absolute;top:-7px;height:27px;width:3px;background:#ef4438;
         transform:translateX(-50%);z-index:3;border-radius:2px;}
-      .opponent-label{position:absolute;transform:translate(-50%,-100%);
+
+      .opponent-label{position:absolute;top:2px;transform:translateX(-50%);
         white-space:nowrap;color:#e33e35;font-size:9px;line-height:11px;max-width:170px;
-        overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:5;}
+        overflow:hidden;text-overflow:ellipsis;text-align:center;z-index:4;}
 
       .skill-area-panel{margin:18px 0 22px;background:#e9eef2;border-radius:15px;padding:14px 16px 18px;}
       .skill-area-heading{font-family:'Barlow Condensed';font-size:15px;font-weight:800;
