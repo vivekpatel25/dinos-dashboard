@@ -35,6 +35,61 @@ read_csv_safe <- function(path) {
   )
 }
 
+# ----------------------------- SEASON BENCHMARKS -----------------------------
+
+TICK_MARK_PATH <- "data/reference/tick_mark.csv"
+
+load_season_benchmarks <- function() {
+  path <- TICK_MARK_PATH
+
+  # Allow case differences in the uploaded filename on GitHub/Linux.
+  if (!file.exists(path) && dir.exists("data/reference")) {
+    candidates <- list.files(
+      "data/reference",
+      pattern = "^tick_mark\\.csv$",
+      full.names = TRUE,
+      ignore.case = TRUE
+    )
+    if (length(candidates)) path <- candidates[1]
+  }
+
+  if (!file.exists(path)) return(data.frame())
+
+  # tick_mark.csv has a title row, followed by the actual column headings.
+  d <- tryCatch(
+    read.csv(
+      path, skip = 1, stringsAsFactors = FALSE,
+      check.names = FALSE, na.strings = c("", "NA")
+    ),
+    error = function(e) NULL
+  )
+
+  if (is.null(d) || !nrow(d) || !all(c(
+    "Metric", "Conference team average", "Top 4 team average", "Dinos Average"
+  ) %in% names(d))) {
+    warning("tick_mark.csv was found, but its columns do not match the expected format.")
+    return(data.frame())
+  }
+
+  out <- data.frame(
+    metric_name = trimws(as.character(d[["Metric"]])),
+    team_avg = suppressWarnings(as.numeric(d[["Conference team average"]])),
+    top4_avg = suppressWarnings(as.numeric(d[["Top 4 team average"]])),
+    dinos_avg = suppressWarnings(as.numeric(d[["Dinos Average"]])),
+    stringsAsFactors = FALSE
+  )
+
+  out <- out[!is.na(out$metric_name) & nzchar(out$metric_name), , drop = FALSE]
+  out
+}
+
+season_benchmarks <- load_season_benchmarks()
+
+normalise_metric_label <- function(x) {
+  tolower(gsub("[^a-z0-9]+", "", trimws(as.character(x))))
+}
+
+
 find_key_metric_files <- function() {
   if (!dir.exists(MATCH_ROOT)) return(character(0))
 
@@ -2575,184 +2630,150 @@ lower_is_better <- function(metric_name) {
   grepl("aced|disruption", metric_name, ignore.case = TRUE)
 }
 
-metric_row_ui <- function(uoc_row, opp_row = NULL, show_opponent = TRUE) {
-
+metric_row_ui <- function(
+  uoc_row, opp_row = NULL, show_opponent = TRUE,
+  benchmark_rows = NULL, selected_benchmarks = character(0)
+) {
   metric_name <- as.character(uoc_row$metric_name[1])
-  category <- as.character(uoc_row$metric_category[1])
   uoc_raw <- as.numeric(uoc_row$metric_value[1])
 
-  # Recalculate Aced % from the source counts to avoid stale summary values.
   if (grepl("^Aced %$", metric_name, ignore.case = TRUE) &&
       all(c("numerator", "denominator") %in% names(uoc_row))) {
     num <- suppressWarnings(as.numeric(uoc_row$numerator[1]))
     den <- suppressWarnings(as.numeric(uoc_row$denominator[1]))
-    if (is.finite(num) && is.finite(den) && den > 0) {
-      uoc_raw <- 100 * num / den
-    }
+    if (is.finite(num) && is.finite(den) && den > 0) uoc_raw <- 100 * num / den
   }
 
-  uoc_value <- metric_value_for_display(uoc_raw, metric_name)
-
   opp_raw <- NA_real_
-
   if (isTRUE(show_opponent) && !is.null(opp_row) && nrow(opp_row)) {
     opp_raw <- as.numeric(opp_row$metric_value[1])
     if (grepl("^Aced %$", metric_name, ignore.case = TRUE) &&
         all(c("numerator", "denominator") %in% names(opp_row))) {
       num <- suppressWarnings(as.numeric(opp_row$numerator[1]))
       den <- suppressWarnings(as.numeric(opp_row$denominator[1]))
-      if (is.finite(num) && is.finite(den) && den > 0) {
-        opp_raw <- 100 * num / den
-      }
+      if (is.finite(num) && is.finite(den) && den > 0) opp_raw <- 100 * num / den
     }
   }
 
-  opp_value <- if (!is.na(opp_raw)) {
-    metric_value_for_display(opp_raw, metric_name)
-  } else {
-    NA_real_
-  }
-
-  bar_colour <- if (
-    grepl("^Aced %$", metric_name, ignore.case = TRUE)
-  ) {
-    "#E34D40"
-  } else {
-    "#159B69"
-  }
-
+  bar_colour <- if (grepl("^Aced %$", metric_name, ignore.case = TRUE)) "#E34D40" else "#159B69"
   uoc_width <- metric_scale_value(uoc_raw, metric_name) * 100
+  opp_left <- if (is.finite(opp_raw)) metric_scale_value(opp_raw, metric_name) * 100 else NA_real_
 
-  opp_left <- if (is.na(opp_raw)) {
-    NA_real_
-  } else {
-    metric_scale_value(opp_raw, metric_name) * 100
+  benchmark_values <- list(team = NA_real_, top4 = NA_real_, dinos = NA_real_)
+  if (!is.null(benchmark_rows) && nrow(benchmark_rows) && length(selected_benchmarks)) {
+    hit <- which(normalise_metric_label(benchmark_rows$metric_name) ==
+                   normalise_metric_label(metric_name))
+    if (length(hit)) {
+      br <- benchmark_rows[hit[1], , drop = FALSE]
+      benchmark_values$team <- if ("team" %in% selected_benchmarks) br$team_avg[1] else NA_real_
+      benchmark_values$top4 <- if ("top4" %in% selected_benchmarks) br$top4_avg[1] else NA_real_
+      benchmark_values$dinos <- if ("dinos" %in% selected_benchmarks) br$dinos_avg[1] else NA_real_
+    }
   }
 
-  value_text <- metric_display_text(uoc_raw, metric_name)
+  benchmark_meta <- list(
+    team = list(label = "25–26 Team Avg.", short = "Team", colour = "#D97706"),
+    top4 = list(label = "25–26 Top 4 Avg.", short = "Top 4", colour = "#2563EB"),
+    dinos = list(label = "25–26 Dinos Avg.", short = "Dinos", colour = "#7C3AED")
+  )
 
-  opp_text <- if (is.na(opp_raw)) {
-    ""
-  } else {
-    paste0(
-      as.character(opp_row$team[1]), " ",
-      metric_display_text(opp_raw, metric_name)
+  benchmark_markers <- lapply(names(benchmark_values), function(key) {
+    value <- benchmark_values[[key]]
+    if (!is.finite(value)) return(NULL)
+    pos <- metric_scale_value(value, metric_name) * 100
+    meta <- benchmark_meta[[key]]
+    tagList(
+      div(
+        class = paste("season-benchmark-marker", paste0("benchmark-", key)),
+        style = paste0("left:", pos, "%;background:", meta$colour, ";"),
+        title = paste0(meta$label, " ", metric_display_text(value, metric_name))
+      ),
+      div(
+        class = paste("season-benchmark-label", paste0("benchmark-label-", key)),
+        style = paste0("left:", pos, "%;color:", meta$colour, ";"),
+        paste0(meta$short, " ", metric_display_text(value, metric_name))
+      )
     )
-  }
+  })
+  benchmark_markers <- Filter(Negate(is.null), benchmark_markers)
+
+  opp_text <- if (is.finite(opp_raw)) {
+    paste0(as.character(opp_row$team[1]), " ", metric_display_text(opp_raw, metric_name))
+  } else ""
 
   div(
     class = "metric-line",
-
     div(
       div(class = "metric-name", metric_name),
-      div(
-        class = "metric-formula",
-        if ("metric_formula" %in% names(uoc_row)) {
-          as.character(uoc_row$metric_formula[1])
-        } else {
-          ""
-        }
-      )
+      div(class = "metric-formula",
+          if ("metric_formula" %in% names(uoc_row)) as.character(uoc_row$metric_formula[1]) else "")
     ),
-
-    # Metric value now matches its bar colour.
-    div(
-      class = "metric-number",
-      style = paste0("color:", bar_colour, ";"),
-      value_text
-    ),
-
+    div(class = "metric-number", style = paste0("color:", bar_colour, ";"),
+        metric_display_text(uoc_raw, metric_name)),
     div(
       class = "metric-track-wrap",
-
       div(
         class = "metric-track",
-        div(
-          class = "metric-fill",
-          style = paste0(
-            "width:", uoc_width, "%;background:", bar_colour, ";"
-          )
-        ),
-
-        if (!is.na(opp_left)) {
-          div(
-            class = "opponent-marker",
-            style = paste0("left:", opp_left, "%;")
-          )
-        } else NULL
+        div(class = "metric-fill",
+            style = paste0("width:", uoc_width, "%;background:", bar_colour, ";")),
+        if (is.finite(opp_left)) {
+          div(class = "opponent-marker", style = paste0("left:", opp_left, "%;"))
+        } else NULL,
+        benchmark_markers
       ),
-
-      if (!is.na(opp_left)) {
-        div(
-          class = "opponent-label",
-          style = paste0("left:", opp_left, "%;"),
-          opp_text
-        )
+      if (is.finite(opp_left)) {
+        div(class = "opponent-label", style = paste0("left:", opp_left, "%;"), opp_text)
       } else NULL
     )
   )
 }
 
-metric_section_ui <- function(data, show_opponent = TRUE) {
-
+metric_section_ui <- function(
+  data, show_opponent = TRUE,
+  selected_benchmarks = character(0)
+) {
   if (is.null(data) || !nrow(data)) {
-    return(
-      div(
-        class = "empty-message",
-        "No key metrics are available for this match."
-      )
-    )
+    return(div(class = "empty-message", "No key metrics are available for this match."))
   }
 
-  uoc <- data[
-    grepl("University of Calgary", data$team, ignore.case = TRUE),
-    ,
-    drop = FALSE
-  ]
-
-  opp <- data[
-    !grepl("University of Calgary", data$team, ignore.case = TRUE),
-    ,
-    drop = FALSE
-  ]
+  uoc <- data[grepl("University of Calgary", data$team, ignore.case = TRUE), , drop = FALSE]
+  opp <- data[!grepl("University of Calgary", data$team, ignore.case = TRUE), , drop = FALSE]
 
   if (!nrow(uoc)) {
-    return(
-      div(
-        class = "empty-message",
-        "University of Calgary metrics could not be identified in this file."
-      )
-    )
+    return(div(class = "empty-message",
+               "University of Calgary metrics could not be identified in this file."))
   }
 
   categories <- unique(as.character(uoc$metric_category))
 
   tagList(
+    div(
+      class = "metric-benchmark-toolbar",
+      div(class = "metric-benchmark-toolbar-label", "TICKS VS"),
+      checkboxGroupInput(
+        "metric_benchmarks", label = NULL,
+        choices = c(
+          "25–26 Team Avg." = "team",
+          "25–26 Top 4 Avg." = "top4",
+          "25–26 Dinos Avg." = "dinos"
+        ),
+        selected = selected_benchmarks,
+        inline = TRUE
+      )
+    ),
     lapply(categories, function(cat) {
-
-      cat_rows <- uoc[
-        uoc$metric_category == cat,
-        ,
-        drop = FALSE
-      ]
-
+      cat_rows <- uoc[uoc$metric_category == cat, , drop = FALSE]
       div(
         class = "metric-category",
-
         div(class = "metric-category-title", toupper(cat)),
-
         lapply(seq_len(nrow(cat_rows)), function(i) {
-
-          opp_row <- opp[
-            opp$metric_name == cat_rows$metric_name[i],
-            ,
-            drop = FALSE
-          ]
-
+          opp_row <- opp[opp$metric_name == cat_rows$metric_name[i], , drop = FALSE]
           metric_row_ui(
             cat_rows[i, , drop = FALSE],
             if (nrow(opp_row)) opp_row[1, , drop = FALSE] else NULL,
-            show_opponent = show_opponent
+            show_opponent = show_opponent,
+            benchmark_rows = season_benchmarks,
+            selected_benchmarks = selected_benchmarks
           )
         })
       )
@@ -3529,9 +3550,29 @@ ui <- fluidPage(
       .metric-formula{font-size:10px;color:#7b8996;margin-top:2px;line-height:1.35;}
       .metric-number{font-family:'Barlow Condensed';font-size:28px;font-weight:800;text-align:right;}
 
-      .metric-track-wrap{position:relative;padding-top:23px;padding-bottom:3px;}
+      .metric-benchmark-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+        justify-content:flex-end;margin:0 0 8px;padding:0 2px;}
+      .metric-benchmark-toolbar-label{font-size:9px;letter-spacing:1px;font-weight:800;
+        color:#82909d;white-space:nowrap;}
+      .metric-benchmark-toolbar .checkbox-group{display:flex;gap:6px;flex-wrap:wrap;margin:0;}
+      .metric-benchmark-toolbar .checkbox{margin:0;padding:0;}
+      .metric-benchmark-toolbar .checkbox label{display:inline-flex;align-items:center;
+        border:1px solid #dce4ea;border-radius:16px;padding:4px 10px;background:#fff;
+        color:#647586;font-size:10px;font-weight:700;cursor:pointer;margin:0;}
+      .metric-benchmark-toolbar .checkbox input{position:absolute;opacity:0;pointer-events:none;}
+      .metric-benchmark-toolbar .checkbox label:has(input:checked){
+        background:#eef2f5;border-color:#aebdca;color:#263746;}
+      .metric-track-wrap{position:relative;padding-top:38px;padding-bottom:3px;}
       .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
       .metric-fill{height:13px;border-radius:20px;min-width:0;}
+      .season-benchmark-marker{position:absolute;top:-7px;height:27px;width:2px;
+        transform:translateX(-50%);z-index:4;border-radius:2px;}
+      .season-benchmark-label{position:absolute;top:-18px;transform:translateX(-50%);
+        white-space:nowrap;font-size:8px;line-height:10px;font-weight:700;z-index:5;
+        max-width:100px;overflow:hidden;text-overflow:ellipsis;}
+      .benchmark-label-team{top:-18px;}
+      .benchmark-label-top4{top:-29px;}
+      .benchmark-label-dinos{top:-40px;}
 
       .opponent-marker{position:absolute;top:-7px;height:27px;width:3px;background:#ef4438;
         transform:translateX(-50%);z-index:3;border-radius:2px;}
@@ -4655,7 +4696,12 @@ server <- function(input, output, session) {
         div(class = "metric-section-title", "KEY METRICS"),
         metric_section_ui(
           match_data,
-          show_opponent = show_opponent
+          show_opponent = show_opponent,
+          selected_benchmarks = if (is.null(input$metric_benchmarks)) {
+            character(0)
+          } else {
+            input$metric_benchmarks
+          }
         )
       ),
 
