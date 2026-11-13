@@ -38,17 +38,18 @@ read_csv_safe <- function(path) {
 
 # ----------------------------- TRANSITION ANALYSIS DATA -----------------------------
 
-TRANSITION_ROOT <- "data/exports/transition_analysis"
+TRANSITION_ROOT <- file.path("data", "exports", "matches")
 
 find_transition_attack_files <- function() {
   if (!dir.exists(TRANSITION_ROOT)) return(character(0))
-  list.files(
+  files <- list.files(
     TRANSITION_ROOT,
     pattern = "^TRANSITION_ATTACKS\\.csv$",
     recursive = TRUE,
     full.names = TRUE,
     ignore.case = TRUE
   )
+  files[grepl("[/\\\\]transition[/\\\\]", files, ignore.case = TRUE)]
 }
 
 load_transition_attack_data <- function(ids = NULL) {
