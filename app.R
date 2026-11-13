@@ -3794,16 +3794,23 @@ ui <- fluidPage(
         color:#82909d;white-space:nowrap;}
       .metric-benchmark-toolbar .shiny-options-group,
       .metric-benchmark-toolbar .checkbox-group{display:flex;gap:6px;flex-wrap:wrap;margin:0;}
-      .metric-benchmark-toolbar .checkbox{position:relative;margin:0;padding:0;}
-      .metric-benchmark-toolbar .checkbox label{display:inline-flex;align-items:center;
+      /* Shiny may render checkboxGroupInput options as checkbox-inline (Bootstrap)
+         or checkbox. Style both so the benchmark controls remain clickable pills. */
+      .metric-benchmark-toolbar .checkbox,
+      .metric-benchmark-toolbar .checkbox-inline{position:relative;margin:0;padding:0;}
+      .metric-benchmark-toolbar .checkbox label,
+      .metric-benchmark-toolbar .checkbox-inline label{display:inline-flex;align-items:center;
         border:1px solid #dce4ea;border-radius:16px;padding:5px 11px;background:#fff;
         color:#647586;font-size:10px;font-weight:700;cursor:pointer;margin:0;white-space:nowrap;
         transition:background .15s ease,border-color .15s ease,color .15s ease;}
-      .metric-benchmark-toolbar .checkbox input[type=checkbox]{position:absolute;opacity:0;
-        width:1px;height:1px;margin:0;pointer-events:none;}
-      .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:checked){
+      .metric-benchmark-toolbar .checkbox input[type=checkbox],
+      .metric-benchmark-toolbar .checkbox-inline input[type=checkbox]{position:absolute !important;opacity:0 !important;
+        width:1px !important;height:1px !important;margin:0 !important;pointer-events:none !important;}
+      .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:checked),
+      .metric-benchmark-toolbar .checkbox-inline label:has(input[type=checkbox]:checked){
         background:#eef2f5;border-color:#aebdca;color:#263746;}
-      .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:focus-visible){
+      .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:focus-visible),
+      .metric-benchmark-toolbar .checkbox-inline label:has(input[type=checkbox]:focus-visible){
         outline:2px solid #82909d;outline-offset:2px;}
       .metric-track-wrap{position:relative;padding-bottom:3px;}
       .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
