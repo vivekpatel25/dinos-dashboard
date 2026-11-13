@@ -2682,24 +2682,34 @@ metric_row_ui <- function(
     if (!is.finite(value)) return(NULL)
     pos <- metric_scale_value(value, metric_name) * 100
     meta <- benchmark_meta[[key]]
-    tagList(
-      div(
-        class = paste("season-benchmark-marker", paste0("benchmark-", key)),
-        style = paste0("left:", pos, "%;background:", meta$colour, ";"),
-        title = paste0(meta$label, " ", metric_display_text(value, metric_name))
-      ),
-      div(
-        class = paste("season-benchmark-label", paste0("benchmark-label-", key)),
-        style = paste0("left:", pos, "%;color:", meta$colour, ";"),
-        paste0(meta$short, " ", metric_display_text(value, metric_name))
-      )
+    div(
+      class = paste("season-benchmark-marker", paste0("benchmark-", key)),
+      style = paste0("left:", pos, "%;background:", meta$colour, ";"),
+      title = paste0(meta$label, " ", metric_display_text(value, metric_name))
     )
   })
   benchmark_markers <- Filter(Negate(is.null), benchmark_markers)
 
-  opp_text <- if (is.finite(opp_raw)) {
-    paste0(as.character(opp_row$team[1]), " ", metric_display_text(opp_raw, metric_name))
-  } else ""
+  reference_items <- list()
+  if (is.finite(opp_raw)) {
+    reference_items <- c(reference_items, list(
+      span(class = "metric-reference-item",
+           span(class = "metric-reference-dot", style = "background:#E34D40;"),
+           paste0(as.character(opp_row$team[1]), " ",
+                  metric_display_text(opp_raw, metric_name)))
+    ))
+  }
+  for (key in names(benchmark_values)) {
+    value <- benchmark_values[[key]]
+    if (!is.finite(value)) next
+    meta <- benchmark_meta[[key]]
+    reference_items <- c(reference_items, list(
+      span(class = "metric-reference-item",
+           span(class = "metric-reference-dot",
+                style = paste0("background:", meta$colour, ";")),
+           paste0(meta$short, " ", metric_display_text(value, metric_name)))
+    ))
+  }
 
   div(
     class = "metric-line",
@@ -2721,8 +2731,8 @@ metric_row_ui <- function(
         } else NULL,
         benchmark_markers
       ),
-      if (is.finite(opp_left)) {
-        div(class = "opponent-label", style = paste0("left:", opp_left, "%;"), opp_text)
+      if (length(reference_items)) {
+        div(class = "metric-reference-values", reference_items)
       } else NULL
     )
   )
@@ -3554,25 +3564,30 @@ ui <- fluidPage(
         justify-content:flex-end;margin:0 0 8px;padding:0 2px;}
       .metric-benchmark-toolbar-label{font-size:9px;letter-spacing:1px;font-weight:800;
         color:#82909d;white-space:nowrap;}
-      .metric-benchmark-toolbar .checkbox-group{display:flex;gap:6px;flex-wrap:wrap;margin:0;}
+      .metric-benchmark-toolbar .checkbox-group{display:flex;gap:10px;flex-wrap:wrap;margin:0;}
       .metric-benchmark-toolbar .checkbox{margin:0;padding:0;}
-      .metric-benchmark-toolbar .checkbox label{display:inline-flex;align-items:center;
-        border:1px solid #dce4ea;border-radius:16px;padding:4px 10px;background:#fff;
-        color:#647586;font-size:10px;font-weight:700;cursor:pointer;margin:0;}
-      .metric-benchmark-toolbar .checkbox input{position:absolute;opacity:0;pointer-events:none;}
-      .metric-benchmark-toolbar .checkbox label:has(input:checked){
-        background:#eef2f5;border-color:#aebdca;color:#263746;}
-      .metric-track-wrap{position:relative;padding-top:38px;padding-bottom:3px;}
+      .metric-benchmark-toolbar .checkbox label{display:inline-flex;align-items:center;gap:7px;
+        color:#647586;font-size:10px;font-weight:700;cursor:pointer;margin:0;line-height:22px;}
+      .metric-benchmark-toolbar .checkbox input{position:absolute!important;opacity:0!important;
+        width:1px!important;height:1px!important;margin:0!important;pointer-events:none;}
+      .metric-benchmark-toolbar .checkbox label:before{content:"";display:inline-block;
+        width:29px;height:16px;border-radius:12px;background:#c5ced6;position:relative;
+        flex:0 0 29px;transition:background .15s ease;}
+      .metric-benchmark-toolbar .checkbox label:after{content:"";position:relative;
+        width:10px;height:10px;border-radius:50%;background:#fff;left:-25px;
+        margin-right:-20px;transform:translateX(0);transition:transform .15s ease;
+        pointer-events:none;}
+      .metric-benchmark-toolbar .checkbox label:has(input:checked):before{background:#159B69;}
+      .metric-benchmark-toolbar .checkbox label:has(input:checked):after{transform:translateX(13px);}
+      .metric-track-wrap{position:relative;padding-top:8px;padding-bottom:5px;}
+      .metric-reference-values{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;
+        margin-top:7px;min-height:14px;color:#687989;font-size:9px;line-height:13px;}
+      .metric-reference-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+      .metric-reference-dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex:0 0 7px;}
       .metric-track{height:13px;border-radius:20px;background:#f3e9e2;position:relative;overflow:visible;}
       .metric-fill{height:13px;border-radius:20px;min-width:0;}
       .season-benchmark-marker{position:absolute;top:-7px;height:27px;width:2px;
         transform:translateX(-50%);z-index:4;border-radius:2px;}
-      .season-benchmark-label{position:absolute;top:-18px;transform:translateX(-50%);
-        white-space:nowrap;font-size:8px;line-height:10px;font-weight:700;z-index:5;
-        max-width:100px;overflow:hidden;text-overflow:ellipsis;}
-      .benchmark-label-team{top:-18px;}
-      .benchmark-label-top4{top:-29px;}
-      .benchmark-label-dinos{top:-40px;}
 
       .opponent-marker{position:absolute;top:-7px;height:27px;width:3px;background:#ef4438;
         transform:translateX(-50%);z-index:3;border-radius:2px;}
