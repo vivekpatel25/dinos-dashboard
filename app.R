@@ -3808,7 +3808,7 @@ ui <- fluidPage(
         width:1px !important;height:1px !important;margin:0 !important;pointer-events:none !important;}
       .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:checked),
       .metric-benchmark-toolbar .checkbox-inline label:has(input[type=checkbox]:checked){
-        background:#eef2f5;border-color:#aebdca;color:#263746;}
+        background:#fff0e8;border-color:#efb58f;color:#8f4b24;}
       .metric-benchmark-toolbar .checkbox label:has(input[type=checkbox]:focus-visible),
       .metric-benchmark-toolbar .checkbox-inline label:has(input[type=checkbox]:focus-visible){
         outline:2px solid #82909d;outline-offset:2px;}
@@ -4448,42 +4448,7 @@ ui <- fluidPage(
         .page-heading h2{font-size:32px;}
         .skill-grid{grid-template-columns:1fr;}
       }
-    
-      /* Benchmark controls: force Shiny checkbox options to render as pill buttons
-         across Bootstrap/Shiny markup variants. */
-      #metric_benchmarks .shiny-options-group{
-        display:flex !important;align-items:center !important;gap:7px !important;
-        flex-wrap:wrap !important;margin:0 !important;
-      }
-      #metric_benchmarks .shiny-options-group > div,
-      #metric_benchmarks .shiny-options-group .checkbox,
-      #metric_benchmarks .shiny-options-group .checkbox-inline,
-      #metric_benchmarks .shiny-options-group .shiny-choice-container{
-        display:inline-flex !important;position:relative !important;
-        margin:0 !important;padding:0 !important;
-      }
-      #metric_benchmarks label,
-      #metric_benchmarks .shiny-options-group label{
-        display:inline-flex !important;align-items:center !important;
-        border:1px solid #dce4ea !important;border-radius:18px !important;
-        padding:5px 12px !important;background:#fff !important;
-        color:#647586 !important;font-size:10px !important;font-weight:700 !important;
-        line-height:1.3 !important;cursor:pointer !important;margin:0 !important;
-        white-space:nowrap !important;
-      }
-      #metric_benchmarks input[type="checkbox"]{
-        position:absolute !important;opacity:0 !important;
-        width:1px !important;height:1px !important;margin:0 !important;
-        pointer-events:none !important;
-      }
-      #metric_benchmarks label:has(input[type="checkbox"]:checked){
-        background:#f8eee7 !important;border-color:#e7c2a9 !important;
-        color:#263746 !important;
-      }
-      #metric_benchmarks label:has(input[type="checkbox"]:focus-visible){
-        outline:2px solid #82909d !important;outline-offset:2px !important;
-      }
-"))
+    "))
   ),
 
   uiOutput("app_header"),
