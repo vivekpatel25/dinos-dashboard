@@ -59,27 +59,39 @@ load_transition_attack_data <- function(ids = NULL) {
   parts <- lapply(files, function(f) {
     d <- read_csv_safe(f)
     if (is.null(d) || !nrow(d)) return(NULL)
+    if (!all(c("match_id", "linked_set_end_zone") %in% names(d))) return(NULL)
 
-    required <- c(
-      "match_id", "transition_trigger_type",
-      "prior_dig_dig_start_zone", "linked_set_end_zone"
-    )
-    if (!all(required %in% names(d))) return(NULL)
-
+    # Classify from the actual exported link flags; the export does not
+    # contain a transition_trigger_type column.
+    has_dig <- if ("has_prior_dig_before_set" %in% names(d)) {
+      as.logical(d$has_prior_dig_before_set)
+    } else rep(FALSE, nrow(d))
+    has_block <- if ("has_prior_block_before_set" %in% names(d)) {
+      as.logical(d$has_prior_block_before_set)
+    } else rep(FALSE, nrow(d))
+    d$transition_trigger_type <- ifelse(has_dig & has_block, "DIG + BLOCK",
+      ifelse(has_dig, "DIG", ifelse(has_block, "BLOCK", "OTHER")))
     d$source_path <- f
     d
   })
 
   parts <- Filter(Negate(is.null), parts)
   if (!length(parts)) return(data.frame())
-
   out <- do.call(rbind, parts)
   out$match_id <- as.character(out$match_id)
 
   if (!is.null(ids) && length(ids)) {
-    out <- out[out$match_id %in% as.character(ids), , drop = FALSE]
+    ids <- as.character(ids)
+    # Exact match first; fallback to match date contained in the export ID.
+    keep <- out$match_id %in% ids
+    if (!any(keep)) {
+      id_dates <- gsub("[^0-9]", "", ids)
+      out_dates <- gsub("[^0-9]", "", out$match_id)
+      keep <- vapply(out_dates, function(x) any(nchar(id_dates) >= 8 &
+        substr(x, 1, 8) == substr(id_dates[nchar(id_dates) >= 8], 1, 8)), logical(1))
+    }
+    out <- out[keep, , drop = FALSE]
   }
-
   out
 }
 
@@ -92,16 +104,13 @@ transition_zone_xy <- function(zone, subzone = NA_character_) {
   for (i in seq_along(zone)) {
     pos <- which(layout == zone[i], arr.ind = TRUE)
     if (!nrow(pos)) next
-    x[i] <- (pos[1, 2] - 0.5) * 2
-    y[i] <- 6 - (pos[1, 1] - 0.5) * 2
-
-    # The transition export currently records dig start zone and coordinates,
-    # but not a dedicated dig start subzone. Keep the origin at zone centre.
-    # Set destinations use the recorded end subzone when it is available.
+    # Every numbered zone is a 2 x 2 A-D subzone block.
+    x[i] <- (pos[1, 2] - 1) * 2 + 1
+    y[i] <- 6 - ((pos[1, 1] - 1) * 2 + 1)
+    if (is.na(subzone[i]) || !nzchar(subzone[i])) next
     sub_pos <- switch(subzone[i],
       "C" = c(1, 1), "B" = c(1, 2),
-      "D" = c(2, 1), "A" = c(2, 2),
-      NULL
+      "D" = c(2, 1), "A" = c(2, 2), NULL
     )
     if (!is.null(sub_pos)) {
       x[i] <- (pos[1, 2] - 1) * 2 + sub_pos[2] - 0.5
@@ -114,14 +123,24 @@ transition_zone_xy <- function(zone, subzone = NA_character_) {
 transition_map_ui <- function() {
   div(
     class = "detail-section transition-map-section",
-    div(class = "detail-section-title", "TRANSITION · DIG TO SET MAP"),
-    div(
-      class = "setting-map-note",
-      "Lines connect the recorded dig start zone to the linked set destination. Line thickness represents route frequency."
-    ),
-    plotOutput("transition_dig_set_map", height = "560px")
+    div(class = "detail-section-title", "TRANSITION · DIG PASS TO SET MAP"),
+    div(class = "setting-map-note",
+        "Dig-pass destination (zone/subzone) connected to the linked set destination. Line thickness shows route frequency."),
+    plotOutput("transition_dig_set_map", height = "650px"),
+    uiOutput("transition_summary"),
+    div(class = "detail-section-title", "DIG QUALITY & SET SELECTION"),
+    tableOutput("transition_quality_table"),
+    div(class = "detail-section-title", "DEFENDING VS BLOCKING TRANSITION CONTEXT"),
+    tableOutput("transition_trigger_table"),
+    div(class = "detail-section-title", "SETTER & SET TYPE"),
+    tableOutput("transition_setter_table"),
+    div(class = "detail-section-title", "ATTACKER TRANSITION OUTCOMES"),
+    tableOutput("transition_attacker_table"),
+    div(class = "detail-section-title", "SET DESTINATION OUTCOMES"),
+    tableOutput("transition_destination_table")
   )
 }
+
 
 # ----------------------------- SEASON BENCHMARKS -----------------------------
 
@@ -5401,82 +5420,178 @@ server <- function(input, output, session) {
     ids <- current_attack_match_ids()
     d <- load_transition_attack_data(ids)
 
-    par(mar = c(1, 1, 2.5, 1), xaxs = "i", yaxs = "i", pty = "s")
-    plot(NA, xlim = c(0, 6), ylim = c(0, 6.35), asp = 1,
+    par(mar = c(1, 1, 3, 1), xaxs = "i", yaxs = "i", pty = "s")
+    plot(NA, xlim = c(0, 6), ylim = c(0, 6.55), asp = 1,
          axes = FALSE, xlab = "", ylab = "")
-    text(3, 6.2, "NET", cex = 0.9, font = 2, col = "#52616b")
-    segments(0, 6.05, 6, 6.05, col = "#344653", lwd = 4)
-
-    band_cols <- c("#F1F3F4", "#EEE9E4", "#E9DDD3")
-    for (x in 0:5) for (y in 0:5) {
-      band <- floor((5 - y) / 2) + 1
-      rect(x, y, x + 1, y + 1, col = band_cols[band],
-           border = "#C7D1D9", lwd = 0.8)
-    }
-    rect(0, 0, 6, 6, border = "#AEBBC5", lwd = 1.1)
+    text(3, 6.35, "DIG PASS → SET DESTINATION", cex = 1.0,
+         font = 2, col = "#344653")
 
     if (!nrow(d)) {
-      text(3, 3, "No transition attack CSVs found for this selection",
+      text(3, 3, "No transition attack data for this match selection",
            col = "#7b8996", cex = 0.9)
       return(invisible(NULL))
     }
 
-    trigger <- toupper(trimws(as.character(d$transition_trigger_type)))
-    d <- d[trigger == "DIG", , drop = FALSE]
+    d <- d[grepl("DIG", d$transition_trigger_type), , drop = FALSE]
     if (!nrow(d)) {
-      text(3, 3, "No linked dig-to-set transition sequences",
+      text(3, 3, "No linked dig-pass sequences in this selection",
            col = "#7b8996", cex = 0.9)
       return(invisible(NULL))
     }
 
-    start <- transition_zone_xy(d$prior_dig_dig_start_zone)
-    end_subzone <- if ("linked_set_end_subzone" %in% names(d)) {
-      d$linked_set_end_subzone
-    } else rep(NA_character_, nrow(d))
-    end <- transition_zone_xy(d$linked_set_end_zone, end_subzone)
+    # Use the dig ball destination (end zone/subzone), not the digger's
+    # starting position, as the origin of the pass-to-set route.
+    dig_sub <- if ("prior_dig_dig_end_subzone" %in% names(d)) d$prior_dig_dig_end_subzone else NA
+    set_sub <- if ("linked_set_end_subzone" %in% names(d)) d$linked_set_end_subzone else NA
+    origin <- transition_zone_xy(d$prior_dig_dig_end_zone, dig_sub)
+    target <- transition_zone_xy(d$linked_set_end_zone, set_sub)
+    valid <- is.finite(origin$x) & is.finite(origin$y) &
+      is.finite(target$x) & is.finite(target$y)
+    d <- d[valid, , drop = FALSE]
+    origin <- origin[valid, , drop = FALSE]
+    target <- target[valid, , drop = FALSE]
 
-    valid <- is.finite(start$x) & is.finite(start$y) &
-      is.finite(end$x) & is.finite(end$y)
-    start <- start[valid, , drop = FALSE]
-    end <- end[valid, , drop = FALSE]
-
-    if (!nrow(start)) {
-      text(3, 3, "No valid dig start zones and set destinations",
-           col = "#7b8996", cex = 0.9)
-      return(invisible(NULL))
+    # Court grid: 3 x 3 numbered zones, each split into C/B over D/A.
+    zone_layout <- matrix(c(4, 3, 2, 7, 8, 9, 5, 6, 1), nrow = 3, byrow = TRUE)
+    for (r in 1:3) for (c in 1:3) {
+      x0 <- (c - 1) * 2
+      y0 <- 6 - r * 2
+      fill <- if (r == 1) "#F5C27A" else if (r == 2) "#F4D9B9" else "#EEC9A8"
+      rect(x0, y0, x0 + 2, y0 + 2, col = fill, border = "#FFFFFF", lwd = 1.4)
+      text(x0 + 1, y0 + 1, zone_layout[r, c], cex = 2.0,
+           font = 2, col = grDevices::adjustcolor("#8A5A20", alpha.f = 0.55))
+      text(x0 + 0.5, y0 + 1.5, "C", cex = 0.8, font = 2, col = "#A8793E")
+      text(x0 + 1.5, y0 + 1.5, "B", cex = 0.8, font = 2, col = "#A8793E")
+      text(x0 + 0.5, y0 + 0.5, "D", cex = 0.8, font = 2, col = "#A8793E")
+      text(x0 + 1.5, y0 + 0.5, "A", cex = 0.8, font = 2, col = "#A8793E")
     }
+    abline(v = c(2, 4), h = c(2, 4), col = "#FFFFFF", lwd = 2, lty = 2)
+    rect(0, 0, 6, 6, border = "#FFFFFF", lwd = 2)
 
-    route_key <- paste(round(start$x, 2), round(start$y, 2),
-                       round(end$x, 2), round(end$y, 2), sep = "_")
-    route_groups <- split(seq_len(nrow(start)), route_key)
-    route_counts <- vapply(route_groups, length, integer(1))
-    max_count <- max(route_counts)
-
-    for (i in seq_along(route_groups)) {
-      ix <- route_groups[[i]][1]
-      count <- route_counts[i]
-      segments(start$x[ix], start$y[ix], end$x[ix], end$y[ix],
-               col = grDevices::adjustcolor("#C8102E", alpha.f = 0.42),
-               lwd = 1 + 4 * count / max_count)
+    if (nrow(origin)) {
+      route_key <- paste(round(origin$x, 2), round(origin$y, 2),
+                         round(target$x, 2), round(target$y, 2), sep = "_")
+      route_groups <- split(seq_len(nrow(origin)), route_key)
+      route_counts <- vapply(route_groups, length, integer(1))
+      max_count <- max(route_counts)
+      for (i in seq_along(route_groups)) {
+        ix <- route_groups[[i]][1]
+        segments(origin$x[ix], origin$y[ix], target$x[ix], target$y[ix],
+          col = grDevices::adjustcolor("#C8102E", alpha.f = 0.48),
+          lwd = 1 + 4 * route_counts[i] / max_count)
+      }
+      points(origin$x, origin$y, pch = 21, bg = "#E6A11A",
+             col = "#FFFFFF", cex = 1.25, lwd = 1.2)
+      points(target$x, target$y, pch = 21, bg = "#C8102E",
+             col = "#FFFFFF", cex = 1.25, lwd = 1.2)
     }
-
-    points(start$x, start$y, pch = 21, bg = "#E6A11A",
-           col = "#ffffff", cex = 1.0)
-    points(end$x, end$y, pch = 21, bg = "#C8102E",
-           col = "#ffffff", cex = 1.0)
-    text(start$x, start$y, labels = "D", cex = 0.55, col = "#263746")
-    text(end$x, end$y, labels = "S", cex = 0.55, col = "#ffffff")
-
-    mtext(paste0("DIG-TO-SET ROUTES · ", nrow(start), " LINKED ATTACK SEQUENCES"),
-          side = 3, line = 0.5, cex = 0.9, font = 2, col = "#344653")
-    legend("bottom", inset = 0.02, horiz = TRUE, bty = "n",
-           legend = c("Dig origin", "Set destination", "Route frequency"),
-           pch = c(21, 21, NA), lty = c(NA, NA, 1),
-           pt.bg = c("#E6A11A", "#C8102E", NA),
-           col = c("#ffffff", "#ffffff", "#C8102E"),
-           lwd = c(NA, NA, 3), cex = 0.75)
-    invisible(NULL)
+    legend("bottom", inset = -0.10, horiz = TRUE, xpd = NA, bty = "n",
+      legend = c("Dig pass destination", "Set destination", "Route frequency"),
+      pch = c(21, 21, NA), lty = c(NA, NA, 1),
+      pt.bg = c("#E6A11A", "#C8102E", NA),
+      col = c("#FFFFFF", "#FFFFFF", "#C8102E"),
+      lwd = c(NA, NA, 3), cex = 0.8)
+    mtext(paste0("DIG-TO-SET ROUTES · ", nrow(origin), " LINKED ATTACKS"),
+          side = 3, line = 0.2, cex = 0.9, font = 2, col = "#344653")
   }, res = 110)
+
+  transition_summary_data <- reactive({
+    d <- load_transition_attack_data(current_attack_match_ids())
+    if (!nrow(d)) return(d)
+    d[grepl("DIG", d$transition_trigger_type), , drop = FALSE]
+  })
+
+  output$transition_trigger_table <- renderTable({
+    d <- load_transition_attack_data(current_attack_match_ids())
+    if (!nrow(d)) return(data.frame())
+    trigger <- as.character(d$transition_trigger_type)
+    trigger[is.na(trigger)] <- "OTHER"
+    z <- aggregate(data.frame(attacks = 1,
+      kills = as.integer(d$attack_result_class == "Kill"),
+      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
+      rally_wins = as.integer(as.logical(d$uofc_rally_won))),
+      list(transition_context = trigger), sum, na.rm = TRUE)
+    z$attack_efficiency <- (z$kills - z$errors) / z$attacks
+    z$rally_conversion <- z$rally_wins / z$attacks
+    z[order(-z$attacks), , drop = FALSE]
+  }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
+
+  output$transition_summary <- renderUI({
+    d <- transition_summary_data()
+    if (!nrow(d)) return(div("No linked dig-transition attacks for this selection."))
+    n <- nrow(d)
+    kills <- sum(d$attack_result_class == "Kill", na.rm = TRUE)
+    errs <- sum(d$attack_result_class == "Error_or_blocked", na.rm = TRUE)
+    attempts <- sum(!is.na(d$attack_result_class) & d$attack_result_class != "", na.rm = TRUE)
+    wins <- sum(as.logical(d$uofc_rally_won), na.rm = TRUE)
+    eff <- if (attempts > 0) (kills - errs) / attempts else NA_real_
+    conv <- if (n > 0) wins / n else NA_real_
+    div(class = "transition-kpi-grid",
+      div(class = "transition-kpi", strong("Linked dig attacks"), h3(n)),
+      div(class = "transition-kpi", strong("Kills"), h3(kills)),
+      div(class = "transition-kpi", strong("Attack efficiency"), h3(ifelse(is.finite(eff), sprintf("%.1f%%", 100 * eff), "—"))),
+      div(class = "transition-kpi", strong("Rally-point conversion"), h3(sprintf("%.1f%%", 100 * conv)))
+    )
+  })
+
+  output$transition_quality_table <- renderTable({
+    d <- transition_summary_data()
+    if (!nrow(d)) return(data.frame())
+    q <- if ("prior_dig_dig_evaluation" %in% names(d)) as.character(d$prior_dig_dig_evaluation) else rep("Unknown", nrow(d))
+    q[is.na(q) | !nzchar(q)] <- "Unknown"
+    result <- aggregate(cbind(attacks = rep(1, nrow(d)),
+      kills = as.integer(d$attack_result_class == "Kill"),
+      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
+      rally_wins = as.integer(as.logical(d$uofc_rally_won))), list(dig_quality = q), sum, na.rm = TRUE)
+    result$attack_efficiency <- ifelse(result$attacks > 0, (result$kills - result$errors) / result$attacks, NA)
+    result$rally_conversion <- result$rally_wins / result$attacks
+    result
+  }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
+
+  output$transition_setter_table <- renderTable({
+    d <- transition_summary_data()
+    if (!nrow(d)) return(data.frame())
+    setter <- as.character(d$linked_set_player_name)
+    setter[is.na(setter) | !nzchar(setter)] <- "Unknown"
+    stype <- as.character(d$linked_set_type)
+    stype[is.na(stype) | !nzchar(stype)] <- "Unknown"
+    aggregate(data.frame(attacks = 1,
+      kills = as.integer(d$attack_result_class == "Kill"),
+      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
+      rally_wins = as.integer(as.logical(d$uofc_rally_won))),
+      list(setter = setter, set_type = stype), sum, na.rm = TRUE)
+  }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
+
+  output$transition_attacker_table <- renderTable({
+    d <- transition_summary_data()
+    if (!nrow(d)) return(data.frame())
+    player <- as.character(d$attack_player_name)
+    player[is.na(player) | !nzchar(player)] <- "Unknown"
+    z <- aggregate(data.frame(attempts = 1,
+      kills = as.integer(d$attack_result_class == "Kill"),
+      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
+      rally_wins = as.integer(as.logical(d$uofc_rally_won))),
+      list(attacker = player), sum, na.rm = TRUE)
+    z$attack_efficiency <- (z$kills - z$errors) / z$attempts
+    z$rally_conversion <- z$rally_wins / z$attempts
+    z[order(-z$attempts), , drop = FALSE]
+  }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
+
+  output$transition_destination_table <- renderTable({
+    d <- transition_summary_data()
+    if (!nrow(d)) return(data.frame())
+    zone <- paste0(d$linked_set_end_zone, "-", d$linked_set_end_subzone)
+    zone[is.na(d$linked_set_end_zone)] <- "Unknown"
+    z <- aggregate(data.frame(attacks = 1,
+      kills = as.integer(d$attack_result_class == "Kill"),
+      errors = as.integer(d$attack_result_class == "Error_or_blocked"),
+      rally_wins = as.integer(as.logical(d$uofc_rally_won))),
+      list(set_destination = zone), sum, na.rm = TRUE)
+    z$attack_efficiency <- (z$kills - z$errors) / z$attacks
+    z$rally_conversion <- z$rally_wins / z$attacks
+    z[order(-z$attacks), , drop = FALSE]
+  }, digits = 3, striped = TRUE, bordered = FALSE, spacing = "s")
+
 
 }
 
