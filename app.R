@@ -2853,29 +2853,23 @@ momentum_team_logo <- function(team) {
   file.path("team_logos", hit[1])
 }
 
-momentum_action_label <- function(skill, evaluation = "") {
-  s <- tolower(trimws(as.character(if (is.null(skill) || !length(skill) || is.na(skill[1])) "" else skill[1])))
-  e <- trimws(as.character(if (is.null(evaluation) || !length(evaluation) || is.na(evaluation[1])) "" else evaluation[1]))
-  if (grepl("attack", s)) {
-    if (e == "#") return("K")
-    if (e == "!") return("AE")
-    return("AT")
-  }
-  if (grepl("block", s)) {
-    if (e == "#") return("B")
-    if (e == "!") return("BE")
-    return("B")
-  }
-  if (grepl("serve", s)) {
-    if (e == "#") return("A")
-    if (e == "!") return("SE")
-    return("S")
-  }
-  if (grepl("set", s) && e == "!") return("EE")
-  if (grepl("free", s) && e == "!") return("FE")
-  if (grepl("dig", s)) return("D")
-  if (grepl("reception", s)) return("R")
-  toupper(substr(s, 1, 2))
+momentum_action_label <- function(ending_action, ending_skill = "") {
+  action <- tolower(trimws(as.character(if (is.null(ending_action) || !length(ending_action) || is.na(ending_action[1])) "" else ending_action[1])))
+  skill <- tolower(trimws(as.character(if (is.null(ending_skill) || !length(ending_skill) || is.na(ending_skill[1])) "" else ending_skill[1])))
+  if (grepl("kill", action)) return("K")
+  if (grepl("block error", action)) return("BE")
+  if (grepl("block", action) || grepl("block", skill)) return("B")
+  if (grepl("ace", action)) return("A")
+  if (grepl("serve error", action)) return("SE")
+  if (grepl("attack error", action)) return("AE")
+  if (grepl("set error", action)) return("EE")
+  if (grepl("free.ball error", action)) return("FE")
+  if (grepl("attack", skill)) return("AT")
+  if (grepl("serve", skill)) return("S")
+  if (grepl("set", skill)) return("S")
+  if (grepl("dig", skill)) return("D")
+  if (grepl("reception", skill)) return("R")
+  toupper(substr(action, 1, 2))
 }
 
 momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
@@ -2883,28 +2877,30 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   if (!nrow(d)) return(div(class = "momentum-match-card", div(class = "momentum-empty", "Momentum export not found for this match.")))
   sets <- sort(unique(d$set_number[!is.na(d$set_number)]))
   if (!length(sets)) return(div(class = "momentum-match-card", div(class = "momentum-empty", "No set-level rally data available.")))
-
   selected_set <- if (!is.null(selected_set) && selected_set %in% sets) selected_set else NULL
-  home <- if ("home_team" %in% names(d)) as.character(d$home_team[1]) else "Home"
-  away <- if ("visiting_team" %in% names(d)) as.character(d$visiting_team[1]) else "Opponent"
-  uoc_is_home <- grepl("University of Calgary", home, ignore.case = TRUE)
-  calgary_name <- if (uoc_is_home) home else away
-  opponent_name <- if (uoc_is_home) away else home
+
   team_is_calgary <- function(x) grepl("University of Calgary", as.character(x), ignore.case = TRUE)
+  idx <- match_index[as.character(match_index$match_id) == as.character(match_id), , drop = FALSE]
+  opponent <- if (nrow(idx) && "opponent" %in% names(idx)) as.character(idx$opponent[1]) else "OPPONENT"
+  match_date <- if (nrow(idx) && "match_date" %in% names(idx)) as.character(idx$match_date[1]) else ""
 
   set_buttons <- lapply(sets, function(sn) {
     actionButton(paste0("momentum_", slot, "_set_", sn), paste("SET", sn),
       class = if (!is.null(selected_set) && sn == selected_set) "momentum-set-btn active" else "momentum-set-btn")
   })
 
+  controls <- div(class = "momentum-chart-controls",
+    div(class = "momentum-set-buttons", set_buttons),
+    if (!is.null(selected_set)) actionButton(paste0("momentum_", slot, "_close"), "CLOSE SET ×",
+      class = "momentum-close-btn")
+  )
   if (is.null(selected_set)) {
-    return(div(class = "momentum-match-card",
-      div(class = "momentum-set-buttons", set_buttons)))
+    return(div(class = "momentum-match-card momentum-collapsed-card", controls))
   }
 
   one <- d[d$set_number == selected_set, , drop = FALSE]
   one <- one[order(one$rally_number), , drop = FALSE]
-  if (!nrow(one)) return(div(class = "momentum-match-card", div(class = "momentum-empty", "No rally data available for this set.")))
+  if (!nrow(one)) return(div(class = "momentum-match-card", controls, div(class = "momentum-empty", "No rally data available for this set.")))
 
   point_is_calgary <- vapply(one$point_won_by, team_is_calgary, logical(1))
   diff_after <- cumsum(ifelse(point_is_calgary, 1, -1))
@@ -2912,36 +2908,33 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   y_pct <- 50 - (diff_after / max_abs) * 43
   n_points <- nrow(one)
 
-  skill_col <- if ("last_skill" %in% names(one)) "last_skill" else ""
-  eval_col <- if ("last_skill_evaluation_code" %in% names(one)) "last_skill_evaluation_code" else ""
-  player_col <- if ("last_skill_player" %in% names(one)) "last_skill_player" else ""
-  team_col <- if ("last_skill_team" %in% names(one)) "last_skill_team" else ""
+  # These are the exact fields in SET_XX_RALLY_SUMMARY.csv.
+  skill_col <- if ("ending_skill" %in% names(one)) "ending_skill" else ""
+  action_col <- if ("ending_action" %in% names(one)) "ending_action" else ""
+  player_col <- if ("ending_skill_jersey_number" %in% names(one)) "ending_skill_jersey_number" else ""
+  team_col <- if ("ending_skill_team" %in% names(one)) "ending_skill_team" else ""
 
   event_boxes <- lapply(seq_len(n_points), function(i) {
     skill <- if (nzchar(skill_col)) one[[skill_col]][i] else ""
-    evaluation <- if (nzchar(eval_col)) one[[eval_col]][i] else ""
-    player <- if (nzchar(player_col)) one[[player_col]][i] else ""
+    action <- if (nzchar(action_col)) one[[action_col]][i] else ""
+    jersey <- if (nzchar(player_col)) one[[player_col]][i] else NA
     play_team <- if (nzchar(team_col)) as.character(one[[team_col]][i]) else as.character(one$point_won_by[i])
     if (is.na(play_team) || !nzchar(play_team)) play_team <- as.character(one$point_won_by[i])
     is_calgary_play <- team_is_calgary(play_team)
     left <- ((i - 0.5) / n_points) * 100
-    label <- momentum_action_label(skill, evaluation)
-    jersey <- if (!is.na(player) && nzchar(as.character(player))) {
-      sub("^.*#([0-9]+).*$", "\\1", as.character(player))
-    } else ""
-    title_text <- paste0("Rally ", one$rally_number[i], " · ", skill,
-                         " · ", evaluation, " · ", player,
-                         " · Point: ", one$point_won_by[i])
+    label <- momentum_action_label(action, skill)
+    jersey_text <- if (!is.na(jersey) && nzchar(as.character(jersey))) as.character(as.integer(as.numeric(jersey))) else ""
+    title_text <- paste0("Rally ", one$rally_number[i], " · ", skill, " · ", action,
+                         " · #", jersey_text, " · Point: ", one$point_won_by[i])
     div(class = paste("momentum-chart-event", if (is_calgary_play) "uoc-play" else "opp-play"),
         style = paste0("left:", left, "%;top:", y_pct[i], "%;"),
         title = title_text,
         span(class = "momentum-chart-action", label),
-        span(class = "momentum-chart-jersey", jersey))
+        span(class = "momentum-chart-jersey", jersey_text))
   })
 
-  # Earned/unearned is shown only when the source explicitly supplies point_type.
   has_point_type <- "point_type" %in% names(one)
-  earned <- if (has_point_type) toupper(as.character(one$point_type)) == "EARNED" else rep(NA, n_points)
+  earned <- if (has_point_type) toupper(as.character(one$point_type)) == "EARNED" else rep(FALSE, n_points)
   earned[is.na(earned)] <- FALSE
   run_starts <- c(1, which(point_is_calgary[-1] != point_is_calgary[-length(point_is_calgary)]) + 1)
   run_ends <- c(run_starts[-1] - 1, length(point_is_calgary))
@@ -2951,12 +2944,9 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   longest_idx <- which.max(run_lengths)
   longest_label <- if (run_teams[longest_idx]) "CALGARY" else "OPPONENT"
 
-  calgary_final <- if (uoc_is_home && "home_team_score" %in% names(one)) tail(one$home_team_score, 1) else if (!uoc_is_home && "visiting_team_score" %in% names(one)) tail(one$visiting_team_score, 1) else sum(point_is_calgary)
-  opponent_final <- if (uoc_is_home && "visiting_team_score" %in% names(one)) tail(one$visiting_team_score, 1) else if (!uoc_is_home && "home_team_score" %in% names(one)) tail(one$home_team_score, 1) else sum(!point_is_calgary)
-  set_winner <- if (as.numeric(calgary_final) > as.numeric(opponent_final)) "WIN" else "LOSS"
-  match_date <- if ("match_date" %in% names(match_index[as.character(match_index$match_id) == as.character(match_id), , drop = FALSE])) {
-    as.character(match_index$match_date[match_index$match_id == match_id][1])
-  } else ""
+  calgary_final <- sum(point_is_calgary)
+  opponent_final <- sum(!point_is_calgary)
+  set_winner <- if (calgary_final > opponent_final) "WIN" else "LOSS"
 
   chart_grid <- lapply(c(7, 3, 0, -3, -7), function(v) {
     top <- 50 - (v / max_abs) * 43
@@ -2965,10 +2955,11 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   })
 
   div(class = "momentum-match-card momentum-expanded-card",
+    controls,
     div(class = "momentum-game-banner",
       div(class = "momentum-game-kicker", paste0("SET ", selected_set, " MOMENTUM · ", set_winner)),
       div(class = "momentum-game-score",
-        span("CALGARY"), span(paste(calgary_final, "–", opponent_final)), span(opponent_name)),
+        span("CALGARY"), span(paste(calgary_final, "–", opponent_final)), span(opponent)),
       div(class = "momentum-game-date", match_date)),
     div(class = "momentum-chart-wrap",
       div(class = "momentum-chart-area",
@@ -2977,7 +2968,7 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
         event_boxes,
         div(class = "momentum-chart-endline")),
       div(class = "momentum-chart-caption",
-        "Each box is one rally, left to right. Up = Calgary point; down = opponent point. Box colour shows which team made the play.")),
+        "Each box is one rally, left to right. Up = Calgary point; down = opponent point. Box colour shows which team made the ending skill.")),
     div(class = "momentum-summary-cards",
       div(class = "momentum-summary-card",
         div(class = "momentum-summary-title", "POINTS"),
@@ -2999,6 +2990,11 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
         div(class = "momentum-summary-title", "LONGEST RUN"),
         strong(paste0(max(run_lengths), " POINTS")),
         span(longest_label))),
+    div(class = "momentum-skill-legend",
+      span(tags$b("K"), " Kill"), span(tags$b("B"), " Block"),
+      span(tags$b("A"), " Ace"), span(tags$b("SE"), " Serve Error"),
+      span(tags$b("AE"), " Attack Error"), span(tags$b("EE"), " Set Error"),
+      span(tags$b("BE"), " Block Error"), span(tags$b("FE"), " Free-ball Error")),
     div(class = "momentum-chart-legend",
       span(class = "legend-uoc", "CALGARY PLAY"),
       span(class = "legend-opp", "OPPONENT PLAY")))
@@ -3010,23 +3006,23 @@ momentum_earned_table_ui <- function(ids) {
     if (!nrow(d)) return(NULL)
     idx <- match_index[as.character(match_index$match_id) == id, , drop = FALSE]
     opponent <- if (nrow(idx) && "opponent" %in% names(idx)) as.character(idx$opponent[1]) else "Opponent"
-    uoc_won <- momentum_team_is_uoc(d$point_won_by)
+    match_label <- if (nrow(idx)) format(as.Date(idx$match_date[1]), "%b %d") else ""
+    uoc_won <- vapply(d$point_won_by, momentum_team_is_uoc, logical(1))
+    earned <- toupper(as.character(d$point_type)) == "EARNED"
+    unearned <- toupper(as.character(d$point_type)) == "UNEARNED"
     data.frame(
-      Match = if (nrow(idx)) format(as.Date(idx$match_date[1]), "%b %d") else opponent,
-      Opponent = opponent,
-      `Calgary Earned` = sum(uoc_won & d$point_type == "EARNED", na.rm = TRUE),
-      `Calgary Unearned` = sum(uoc_won & d$point_type == "UNEARNED", na.rm = TRUE),
-      `Opponent Earned` = sum(!uoc_won & d$point_type == "EARNED", na.rm = TRUE),
-      `Opponent Unearned` = sum(!uoc_won & d$point_type == "UNEARNED", na.rm = TRUE),
+      Match = c(match_label, match_label),
+      Team = c("CALGARY", opponent),
+      Earned = c(sum(uoc_won & earned, na.rm = TRUE), sum(!uoc_won & earned, na.rm = TRUE)),
+      Unearned = c(sum(uoc_won & unearned, na.rm = TRUE), sum(!uoc_won & unearned, na.rm = TRUE)),
       check.names = FALSE
     )
   })
   rows <- Filter(Negate(is.null), rows)
   if (!length(rows)) return(div(class = "momentum-empty", "No momentum rally summaries found for this period."))
   out <- do.call(rbind, rows)
-  totals <- data.frame(Match = "TOTAL", Opponent = paste(nrow(out), "matches"),
-    `Calgary Earned` = sum(out$`Calgary Earned`), `Calgary Unearned` = sum(out$`Calgary Unearned`),
-    `Opponent Earned` = sum(out$`Opponent Earned`), `Opponent Unearned` = sum(out$`Opponent Unearned`), check.names = FALSE)
+  totals <- data.frame(Match = "TOTAL", Team = "ALL MATCHES",
+    Earned = sum(out$Earned), Unearned = sum(out$Unearned), check.names = FALSE)
   out <- rbind(out, totals)
   tags$table(class = "table momentum-earned-table",
     tags$thead(tags$tr(lapply(names(out), tags$th))),
@@ -3912,6 +3908,8 @@ ui <- fluidPage(
   tags$head(
     tags$title("Dinos Coaches Dashboard"),
     tags$link(rel = "stylesheet", type = "text/css", href = "app.css"),
+    tags$style(HTML("\n/* Dinos momentum final refinements */\n.momentum-section .momentum-game-banner{background:#C8102E!important;color:#fff!important}\n.momentum-section .momentum-chart-event.uoc-play{border-color:#C8102E!important;background:#fff0f2!important;color:#C8102E!important}\n.momentum-section .momentum-chart-legend .legend-uoc:before{background:#C8102E!important}\n.momentum-section .momentum-longest-card>strong,.momentum-section .momentum-longest-card>span{color:#C8102E!important}\n.momentum-section .momentum-summary-row:not(.opponent){color:#C8102E!important}\n.momentum-section .momentum-summary-row:not(.opponent) strong{color:#C8102E!important}\n.momentum-section .momentum-tie-band{top:49.1%!important;height:1.8%!important;background:#f7f1e8!important;border-top:1px solid #626262!important;border-bottom:1px solid #626262!important}\n.momentum-section .momentum-chart-event{width:25px!important;min-height:39px!important}\n.momentum-section .momentum-chart-action{font-size:11px!important;line-height:12px!important}\n.momentum-section .momentum-chart-jersey{font-size:9px!important;line-height:10px!important}\n.momentum-chart-controls{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}\n.momentum-close-btn{background:#fff!important;color:#C8102E!important;border:1px solid #C8102E!important;border-radius:7px!important;font-size:10px!important;font-weight:900!important;padding:7px 12px!important}\n.momentum-skill-legend{display:flex;flex-wrap:wrap;gap:8px 15px;margin-top:13px;padding:10px 2px 3px;border-top:1px solid #e6e9ec;color:#596979;font-size:10px}\n.momentum-skill-legend b{color:#C8102E;font-size:11px}\n.momentum-earned-table th:nth-child(1){width:15%}\n.momentum-earned-table th:nth-child(2){width:45%}\n.momentum-earned-table th:nth-child(3),.momentum-earned-table th:nth-child(4){width:20%}\n")),
+
     tags$style(HTML("/* MOMENTUM INLINE STYLE FIX\n/* Reference-style single-match momentum graphic */\n.momentum-match-grid{display:grid;grid-template-columns:1fr;gap:22px}\n.momentum-slot{width:100%;min-width:0}\n.momentum-match-card{width:100%;background:#fff;border:1px solid #e0e6ec;border-radius:16px;padding:16px;overflow:hidden}\n.momentum-set-buttons{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 14px}\n.momentum-set-btn{min-width:58px;border:1px solid #d8e0e7!important;background:#fff!important;color:#5e7082!important;border-radius:7px!important;font-size:11px!important;font-weight:800!important;padding:7px 12px!important;box-shadow:none!important}\n.momentum-set-btn.active{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}\n.momentum-game-banner{background:#a9571e;color:#fff;margin:-16px -16px 18px;padding:18px 22px;min-height:120px}\n.momentum-game-kicker{font-family:\"Barlow Condensed\",sans-serif;font-size:16px;font-weight:800;letter-spacing:2px;opacity:.95}\n.momentum-game-score{display:flex;align-items:baseline;gap:14px;font-family:\"Barlow Condensed\",sans-serif;font-size:clamp(25px,4vw,48px);font-weight:900;line-height:1.05}\n.momentum-game-score span:first-child{font-size:clamp(22px,3vw,38px)}\n.momentum-game-score span:last-child{font-size:clamp(22px,3vw,38px)}\n.momentum-game-date{font-size:13px;opacity:.9;margin-top:4px}\n.momentum-chart-area{height:520px;position:relative;overflow:hidden;border-bottom:2px solid #59616a;border-top:1px solid #edf0f2;background:#fff}\n.momentum-chart-gridline{position:absolute;left:0;right:0;height:1px;border-top:1px solid #e7e9eb;z-index:0}\n.momentum-chart-gridline span{position:absolute;left:0;top:-16px;font-size:11px;font-weight:800;color:#6f7780;background:#fff;padding-right:5px}\n.momentum-tie-band{position:absolute;left:0;right:0;top:43%;height:14%;background:#f7f1e8;border-top:2px solid #777;border-bottom:2px solid #777;z-index:1}\n.momentum-chart-event{position:absolute;z-index:3;transform:translate(-50%,-50%);width:25px;min-height:39px;border:2px solid #354b5e;background:#e8edf1;color:#253746;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:1px}\n.momentum-chart-event.uoc-play{border-color:#ad6b31;background:#fff4e7;color:#98551e}\n.momentum-chart-action{font-size:11px;font-weight:900;line-height:13px}\n.momentum-chart-jersey{font-size:9px;line-height:11px}\n.momentum-chart-endline{position:absolute;right:0;top:0;bottom:0;border-left:2px dashed #ad6b31;z-index:2}\n.momentum-chart-caption{font-size:13px;color:#777;line-height:1.5;padding:12px 8px 16px}\n.momentum-summary-cards{display:grid;grid-template-columns:1.1fr 1.1fr .8fr;gap:12px}\n.momentum-summary-card{background:#f5f2e9;border-radius:11px;padding:14px 16px;min-width:0}\n.momentum-summary-title{font-family:\"Barlow Condensed\",sans-serif;font-size:19px;font-weight:900;letter-spacing:1px;color:#303d48;border-bottom:1px solid #d9d6cd;padding-bottom:7px;margin-bottom:8px}\n.momentum-summary-subhead{display:grid;grid-template-columns:repeat(2,1fr);font-size:11px;color:#78818a;text-align:center;font-weight:700}\n.momentum-summary-card:nth-child(2) .momentum-summary-subhead{grid-template-columns:repeat(3,1fr)}\n.momentum-summary-row{display:grid;grid-template-columns:1.2fr repeat(2,1fr);align-items:center;gap:4px;font-size:25px;font-weight:900;color:#a8642d;text-align:center}\n.momentum-summary-card:nth-child(2) .momentum-summary-row{grid-template-columns:1.2fr repeat(3,1fr)}\n.momentum-summary-row strong{font-size:14px;text-align:left;color:#9a5c25}\n.momentum-summary-row.opponent{color:#334b60}\n.momentum-summary-row.opponent strong{color:#334b60}\n.momentum-longest-card>strong{display:block;font-family:\"Barlow Condensed\",sans-serif;font-size:42px;line-height:1.1;color:#a8642d}\n.momentum-longest-card>span{font-family:\"Barlow Condensed\",sans-serif;font-size:19px;font-weight:800;color:#a8642d}\n.momentum-chart-legend{display:flex;gap:15px;margin-top:12px;font-size:10px;font-weight:800;color:#82909b}\n.momentum-chart-legend span:before{content:\"\";display:inline-block;width:8px;height:8px;margin-right:5px;border-radius:2px}\n.momentum-chart-legend .legend-uoc:before{background:#ad6b31}\n.momentum-chart-legend .legend-opp:before{background:#354b5e}\n@media(max-width:760px){.momentum-chart-area{height:380px}.momentum-summary-cards{grid-template-columns:1fr}.momentum-game-score{flex-wrap:wrap;gap:8px}}\n\n")),
 
     tags$style(HTML("\n/* Force the reference chart layout even if older dashboard rules have higher precedence. */\n.momentum-section .momentum-match-grid{display:flex!important;flex-direction:column!important;width:100%!important;gap:24px!important}\n.momentum-section .momentum-slot{display:block!important;width:100%!important;max-width:none!important}\n.momentum-section .momentum-match-card{display:block!important;width:100%!important;max-width:none!important;background:#fff!important}\n.momentum-section .momentum-chart-area{display:block!important;position:relative!important;height:520px!important;width:100%!important;overflow:hidden!important}\n.momentum-section .momentum-chart-event{position:absolute!important}\n.momentum-section .momentum-set-buttons{display:flex!important;flex-direction:row!important;gap:7px!important;margin:0 0 14px!important}\n.momentum-section .momentum-game-banner{display:block!important;background:#a9571e!important;color:#fff!important}\n.momentum-section .momentum-summary-cards{display:grid!important;grid-template-columns:1.1fr 1.1fr .8fr!important}\n@media(max-width:760px){.momentum-section .momentum-summary-cards{grid-template-columns:1fr!important}.momentum-section .momentum-chart-area{height:380px!important}}\n")),
@@ -4758,13 +4756,21 @@ server <- function(input, output, session) {
   for (sn in 1:5) {
     local({ set_no <- sn
       observeEvent(input[[paste0("momentum_recent_set_", set_no)]], {
-        momentum_recent_set(set_no)
+        if (identical(momentum_recent_set(), set_no)) momentum_recent_set(NULL) else momentum_recent_set(set_no)
       }, ignoreInit = TRUE)
       observeEvent(input[[paste0("momentum_previous_set_", set_no)]], {
-        momentum_previous_set(set_no)
+        if (identical(momentum_previous_set(), set_no)) momentum_previous_set(NULL) else momentum_previous_set(set_no)
       }, ignoreInit = TRUE)
     })
   }
+
+  observeEvent(input$momentum_recent_close, {
+    momentum_recent_set(NULL)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$momentum_previous_close, {
+    momentum_previous_set(NULL)
+  }, ignoreInit = TRUE)
 
   observeEvent(input$nav_dashboard, {
     page("dashboard")
