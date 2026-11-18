@@ -5008,6 +5008,7 @@ server <- function(input, output, session) {
   selected_athlete <- reactiveVal(NULL)
   momentum_recent_set <- reactiveVal(NULL)
   momentum_previous_set <- reactiveVal(NULL)
+  momentum_report_set <- reactiveVal(NULL)
 
   for (sn in 1:5) {
     local({ set_no <- sn
@@ -5020,6 +5021,11 @@ server <- function(input, output, session) {
         if (identical(momentum_previous_set(), set_no)) momentum_previous_set(NULL) else momentum_previous_set(set_no)
       }, ignoreInit = TRUE)
     })
+    local({ set_no <- sn
+      observeEvent(input[[paste0("momentum_report_set_", set_no)]], {
+        if (identical(momentum_report_set(), set_no)) momentum_report_set(NULL) else momentum_report_set(set_no)
+      }, ignoreInit = TRUE)
+    })
   }
 
   observeEvent(input$momentum_recent_close, {
@@ -5028,6 +5034,14 @@ server <- function(input, output, session) {
 
   observeEvent(input$momentum_previous_close, {
     momentum_previous_set(NULL)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$momentum_report_close, {
+    momentum_report_set(NULL)
+  }, ignoreInit = TRUE)
+
+  observeEvent(selected_match(), {
+    momentum_report_set(NULL)
   }, ignoreInit = TRUE)
 
   observeEvent(input$nav_dashboard, {
@@ -5461,7 +5475,20 @@ server <- function(input, output, session) {
         ),
             if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
           )
-          ,attack_map_ui()
+          ,attack_map_ui(),
+          div(
+            class = "momentum-section",
+            div(class = "momentum-section-heading", "MOMENTUM RUNS"),
+            div(class = "momentum-slot",
+              div(class = "momentum-slot-title", "MATCH MOMENTUM"),
+              momentum_match_panel_ui(mid, "report", momentum_report_set())
+            ),
+            div(class = "momentum-earned-wrap",
+              div(class = "momentum-earned-heading", "EARNED / UNEARNED POINTS · MATCH"),
+              momentum_earned_table_ui(mid, "MATCH")
+            )
+          ),
+          transition_map_ui()
         )
       )
     }
