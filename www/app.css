@@ -611,3 +611,40 @@ body {
 .momentum-earned-table tbody tr:last-child{font-weight:800;background:#f8f9fa}
 @media(max-width:900px){.momentum-match-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.momentum-section{padding:13px}.momentum-match-card{padding:10px}.momentum-point{min-width:10px;flex-basis:10px}}
+
+
+/* Momentum set selection + expanded score-trajectory chart */
+.momentum-team-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px}
+.momentum-team-name{font-size:10px;font-weight:900;letter-spacing:.8px;color:#536475}
+.momentum-team-name-right{text-align:right}
+.momentum-set-prompt{padding:13px 2px 4px;color:#8b98a5;font-size:11px;font-weight:700;text-align:center}
+.momentum-expanded-card{padding:16px}
+.momentum-expanded-title{font-family:"Barlow Condensed",sans-serif;font-size:17px;font-weight:900;letter-spacing:1px;color:#263746;text-align:center}
+.momentum-chart-wrap{margin-top:8px}
+.momentum-chart-area{height:370px;position:relative;overflow:hidden;border-bottom:2px solid #59616a;border-top:1px solid #edf0f2;background:#fff}
+.momentum-chart-gridline{position:absolute;left:0;right:0;height:1px;border-top:1px solid #e7e9eb;z-index:0}
+.momentum-chart-gridline span{position:absolute;left:0;top:-15px;font-size:9px;font-weight:800;color:#8a9299;background:#fff;padding-right:5px}
+.momentum-tie-band{position:absolute;left:0;right:0;top:43%;height:14%;background:#f6f2ea;border-top:1px solid #8b8b8b;border-bottom:1px solid #8b8b8b;z-index:1}
+.momentum-chart-event{position:absolute;z-index:3;transform:translate(-50%,-50%);width:23px;min-height:37px;border:2px solid #334b60;background:#eef1f4;color:#253746;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,.08);border-radius:1px}
+.momentum-chart-event.uoc-play{border-color:#b87535;background:#fbf3e9;color:#9a5c25}
+.momentum-chart-action{font-size:10px;font-weight:900;line-height:13px}
+.momentum-chart-jersey{font-size:9px;line-height:11px}
+.momentum-chart-endline{position:absolute;right:0;top:0;bottom:0;border-left:2px dashed #b87535;z-index:2}
+.momentum-chart-caption{font-size:11px;color:#78838d;line-height:1.5;padding:10px 2px 13px}
+.momentum-summary-cards{display:grid;grid-template-columns:1.1fr 1.1fr .8fr;gap:10px}
+.momentum-summary-card{background:#f5f2e9;border-radius:10px;padding:11px 13px;min-width:0}
+.momentum-summary-title{font-family:"Barlow Condensed",sans-serif;font-size:16px;font-weight:900;letter-spacing:1px;color:#33404b;border-bottom:1px solid #d9d6cd;padding-bottom:5px;margin-bottom:7px}
+.momentum-summary-subhead{display:grid;grid-template-columns:repeat(2,1fr);font-size:9px;color:#78818a;text-align:center;font-weight:800;letter-spacing:.4px}
+.momentum-summary-card:nth-child(2) .momentum-summary-subhead{grid-template-columns:repeat(3,1fr)}
+.momentum-summary-row{display:grid;grid-template-columns:1.2fr repeat(2,1fr);align-items:center;gap:4px;font-size:19px;font-weight:900;color:#a8642d;text-align:center}
+.momentum-summary-card:nth-child(2) .momentum-summary-row{grid-template-columns:1.2fr repeat(3,1fr)}
+.momentum-summary-row strong{font-size:10px;text-align:left;color:#9a5c25}
+.momentum-summary-row.opponent{color:#334b60}
+.momentum-summary-row.opponent strong{color:#334b60}
+.momentum-longest-card>strong{display:block;font-family:"Barlow Condensed",sans-serif;font-size:32px;line-height:1.1;color:#a8642d}
+.momentum-longest-card>span{font-size:11px;font-weight:800;color:#a8642d}
+.momentum-chart-legend{display:flex;gap:15px;margin-top:10px;font-size:9px;font-weight:800;color:#82909b}
+.momentum-chart-legend span:before{content:"";display:inline-block;width:8px;height:8px;margin-right:5px;border-radius:2px}
+.momentum-chart-legend .legend-uoc:before{background:#b87535}
+.momentum-chart-legend .legend-opp:before{background:#334b60}
+@media(max-width:760px){.momentum-chart-area{height:300px}.momentum-summary-cards{grid-template-columns:1fr}.momentum-chart-event{width:18px;min-height:31px}.momentum-chart-action{font-size:8px}}
