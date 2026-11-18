@@ -2789,53 +2789,36 @@ if (!is.null(match_metadata) && nrow(match_metadata) &&
 
 # ----------------------------- MOMENTUM RUNS -----------------------------
 
-# Momentum exports live inside each match folder:
-# data/exports/matches/<MATCH_FOLDER>/momentum/SET_XX_RALLY_SUMMARY.csv
-MOMENTUM_ROOT <- MATCH_ROOT
+MOMENTUM_ROOT <- file.path("data", "exports", "momentum")
 
 load_momentum_match <- function(match_id) {
   if (is.null(match_id) || !length(match_id) || !nrow(match_index)) return(data.frame())
   row <- match_index[as.character(match_index$match_id) == as.character(match_id), , drop = FALSE]
   if (!nrow(row)) return(data.frame())
-
   folder <- if ("match_folder" %in% names(row)) as.character(row$match_folder[1]) else ""
   candidates <- character(0)
-
-  # First try the exact match folder supplied by the dashboard index.
-  if (!is.na(folder) && nzchar(folder)) {
-    candidates <- c(candidates, file.path(MATCH_ROOT, folder, "momentum"))
+  if (!is.na(folder) && nzchar(folder)) candidates <- c(candidates, file.path(MOMENTUM_ROOT, folder))
+  # Also support an export folder named exactly like the source match folder.
+  if (dir.exists(MOMENTUM_ROOT)) {
+    dirs <- list.dirs(MOMENTUM_ROOT, recursive = FALSE, full.names = TRUE)
+    if (length(dirs) && nzchar(folder)) candidates <- c(candidates, dirs[basename(dirs) == folder])
+    # Date-based fallback handles exporter folder labels that differ from match_index.
+    match_date <- if ("match_date" %in% names(row)) as.character(row$match_date[1]) else ""
+    date_key <- gsub("[^0-9]", "", match_date)
+    if (nchar(date_key) >= 8 && length(dirs)) {
+      candidates <- c(candidates, dirs[grepl(substr(date_key, 1, 8), gsub("[^0-9]", "", basename(dirs)), fixed = TRUE)])
+    }
   }
-
-  # Then match the match-index date to the actual repository folder name.
-  match_date <- if ("match_date" %in% names(row)) as.character(row$match_date[1]) else ""
-  date_key <- gsub("[^0-9]", "", match_date)
-  match_dirs <- if (dir.exists(MATCH_ROOT)) {
-    list.dirs(MATCH_ROOT, recursive = FALSE, full.names = TRUE)
-  } else character(0)
-  if (length(match_dirs) && nchar(date_key) >= 8) {
-    folder_keys <- gsub("[^0-9]", "", basename(match_dirs))
-    candidates <- c(candidates, file.path(match_dirs[grepl(substr(date_key, 1, 8), folder_keys, fixed = TRUE)], "momentum"))
-  }
-
   candidates <- unique(candidates[dir.exists(candidates)])
   if (!length(candidates)) return(data.frame())
-
-  files <- list.files(candidates[1], pattern = "^SET_[0-9]+_RALLY_SUMMARY\\.csv$",
-                      full.names = TRUE, ignore.case = TRUE)
+  files <- list.files(candidates[1], pattern = "^SET_[0-9]+_RALLY_SUMMARY\\.csv$", full.names = TRUE, ignore.case = TRUE)
   if (!length(files)) return(data.frame())
   parts <- lapply(files, read_csv_safe)
   parts <- Filter(function(x) !is.null(x) && nrow(x), parts)
   if (!length(parts)) return(data.frame())
   out <- do.call(rbind, parts)
-
-  # Accept the sample/export schema: rally_number and point_id are both present.
-  if (!"rally_number" %in% names(out) && "point_id" %in% names(out)) {
-    out$rally_number <- out$point_id
-  }
-  required <- c("set_number", "rally_number", "point_type", "point_won_by",
-                "home_score_after", "visiting_score_after")
+  required <- c("set_number", "rally_number", "point_type", "point_won_by", "home_score_after", "visiting_score_after")
   if (!all(required %in% names(out))) return(data.frame())
-
   out$set_number <- suppressWarnings(as.integer(out$set_number))
   out$rally_number <- suppressWarnings(as.integer(out$rally_number))
   out$point_type <- toupper(trimws(as.character(out$point_type)))
@@ -2859,60 +2842,143 @@ momentum_team_logo <- function(team) {
   file.path("team_logos", hit[1])
 }
 
-momentum_match_panel_ui <- function(match_id, slot, selected_set = 1) {
+momentum_action_label <- function(action) {
+  a <- tolower(trimws(as.character(if (is.null(action) || !length(action) || is.na(action[1])) "" else action[1])))
+  if (grepl("kill", a)) return("K")
+  if (grepl("block", a) && grepl("error", a)) return("BE")
+  if (grepl("block", a)) return("B")
+  if (grepl("ace", a)) return("A")
+  if (grepl("serve", a) && grepl("error", a)) return("SE")
+  if (grepl("attack", a) && grepl("error", a)) return("AE")
+  if (grepl("set", a) && grepl("error", a)) return("EE")
+  if (grepl("free", a) && grepl("error", a)) return("FE")
+  if (grepl("error", a)) return("E")
+  if (grepl("dig", a)) return("D")
+  if (grepl("reception", a)) return("R")
+  if (grepl("set", a)) return("S")
+  if (grepl("attack", a)) return("AT")
+  toupper(substr(a, 1, 2))
+}
+
+momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   d <- load_momentum_match(match_id)
   if (!nrow(d)) return(div(class = "momentum-match-card", div(class = "momentum-empty", "Momentum export not found for this match.")))
   sets <- sort(unique(d$set_number[!is.na(d$set_number)]))
   if (!length(sets)) return(div(class = "momentum-match-card", div(class = "momentum-empty", "No set-level rally data available.")))
-  selected_set <- if (selected_set %in% sets) selected_set else sets[1]
-  one <- d[d$set_number == selected_set, , drop = FALSE]
-  teams <- unique(one$point_won_by)
-  uoc_name <- teams[which(vapply(teams, momentum_team_is_uoc, logical(1)))[1]]
-  opp_name <- teams[!vapply(teams, momentum_team_is_uoc, logical(1))][1]
+
+  selected_set <- if (!is.null(selected_set) && selected_set %in% sets) selected_set else NULL
+  team_names <- unique(as.character(d$point_won_by))
+  uoc_name <- team_names[which(vapply(team_names, momentum_team_is_uoc, logical(1)))[1]]
+  opp_name <- team_names[!vapply(team_names, momentum_team_is_uoc, logical(1))][1]
   if (!length(uoc_name) || is.na(uoc_name[1])) uoc_name <- "University of Calgary"
   if (!length(opp_name) || is.na(opp_name[1])) opp_name <- "Opponent"
-  uoc_logo <- momentum_team_logo(uoc_name)
-  opp_logo <- momentum_team_logo(opp_name)
-  point_cells <- lapply(seq_len(nrow(one)), function(i) {
-    won <- one$point_won_by[i]
-    is_uoc <- momentum_team_is_uoc(won)
-    div(class = paste("momentum-point", if (is_uoc) "momentum-point-uoc" else "momentum-point-opp"),
-        title = paste0("Rally ", one$rally_number[i], ": ", won,
-                       if ("point_type" %in% names(one)) paste0(" · ", one$point_type[i]) else ""),
-        span(class = "momentum-point-number", i))
+
+  set_buttons <- lapply(sets, function(sn) {
+    actionButton(paste0("momentum_", slot, "_set_", sn), paste("SET", sn),
+      class = if (!is.null(selected_set) && sn == selected_set) "momentum-set-btn active" else "momentum-set-btn")
   })
-  # Longest consecutive scoring runs, calculated from the official point_won_by field.
-  winners <- as.character(one$point_won_by)
-  starts <- c(1, which(winners[-1] != winners[-length(winners)]) + 1)
-  ends <- c(starts[-1] - 1, length(winners))
-  run_rows <- lapply(seq_along(starts), function(i) {
-    team <- winners[starts[i]]
-    count <- ends[i] - starts[i] + 1
-    div(class = paste("momentum-run-chip", if (momentum_team_is_uoc(team)) "uoc" else "opp"),
-        paste0(count, " straight · ", if (momentum_team_is_uoc(team)) "CALGARY" else "OPPONENT"))
-  })
-  team_logo_ui <- function(src, label) {
-    if (is.null(src)) div(class = "momentum-team-logo-fallback", substr(label, 1, 3))
-    else tags$img(src = src, class = "momentum-team-logo", alt = label)
+
+  if (is.null(selected_set)) {
+    return(div(class = "momentum-match-card",
+      div(class = "momentum-team-row",
+        div(class = "momentum-team-name", "CALGARY"),
+        div(class = "momentum-team-name momentum-team-name-right", "OPPONENT")),
+      div(class = "momentum-set-buttons", set_buttons),
+      div(class = "momentum-set-prompt", "Select a set to view its momentum chart.")
+    ))
   }
-  div(class = "momentum-match-card",
-    div(class = "momentum-match-top",
-      div(class = "momentum-team-identity", team_logo_ui(uoc_logo, uoc_name), span("CALGARY")),
-      div(class = "momentum-match-vs", "MOMENTUM RUNS"),
-      div(class = "momentum-team-identity", team_logo_ui(opp_logo, opp_name), span("OPPONENT"))
+
+  one <- d[d$set_number == selected_set, , drop = FALSE]
+  one <- one[order(one$rally_number), , drop = FALSE]
+  if (!nrow(one)) return(div(class = "momentum-match-card", div(class = "momentum-empty", "No rally data available for this set.")))
+
+  # Build the score-differential trajectory using the official point_won_by field.
+  uoc_won <- vapply(one$point_won_by, momentum_team_is_uoc, logical(1))
+  diff_after <- cumsum(ifelse(uoc_won, 1, -1))
+  max_abs <- max(9, max(abs(diff_after), na.rm = TRUE) + 2)
+  y_pct <- 50 - (diff_after / max_abs) * 43
+  n_points <- nrow(one)
+
+  action_col <- if ("point_scoring_action" %in% names(one)) "point_scoring_action" else "ending_action"
+  player_col <- if ("point_scoring_jersey_number" %in% names(one)) "point_scoring_jersey_number" else "ending_skill_jersey_number"
+  team_col <- if ("ending_skill_team" %in% names(one)) "ending_skill_team" else "point_scoring_team"
+  if (!team_col %in% names(one)) team_col <- "point_won_by"
+
+  event_boxes <- lapply(seq_len(n_points), function(i) {
+    action <- if (action_col %in% names(one)) one[[action_col]][i] else ""
+    if ((is.na(action) || !nzchar(as.character(action))) && "ending_action" %in% names(one)) action <- one$ending_action[i]
+    jersey <- if (player_col %in% names(one)) one[[player_col]][i] else NA
+    if ((is.na(jersey) || !nzchar(as.character(jersey))) && "ending_skill_jersey_number" %in% names(one)) jersey <- one$ending_skill_jersey_number[i]
+    play_team <- if (team_col %in% names(one)) as.character(one[[team_col]][i]) else as.character(one$point_won_by[i])
+    if (is.na(play_team) || !nzchar(play_team)) play_team <- as.character(one$point_won_by[i])
+    is_uoc_play <- momentum_team_is_uoc(play_team)
+    left <- ((i - 0.5) / n_points) * 100
+    label <- momentum_action_label(action)
+    jersey_label <- if (!is.na(jersey) && nzchar(as.character(jersey))) as.character(jersey) else ""
+    title_text <- paste0("Rally ", one$rally_number[i], " · ", action,
+                         if (nzchar(jersey_label)) paste0(" · #", jersey_label) else "",
+                         " · Point: ", one$point_won_by[i])
+    div(class = paste("momentum-chart-event", if (is_uoc_play) "uoc-play" else "opp-play"),
+        style = paste0("left:", left, "%;top:", y_pct[i], "%;"),
+        title = title_text,
+        span(class = "momentum-chart-action", label),
+        span(class = "momentum-chart-jersey", jersey_label))
+  })
+
+  # Point counts and scoring-run summary cards.
+  earned <- if ("point_type" %in% names(one)) toupper(as.character(one$point_type)) == "EARNED" else rep(FALSE, n_points)
+  earned[is.na(earned)] <- FALSE
+  run_starts <- c(1, which(uoc_won[-1] != uoc_won[-length(uoc_won)]) + 1)
+  run_ends <- c(run_starts[-1] - 1, length(uoc_won))
+  run_lengths <- run_ends - run_starts + 1
+  run_teams <- uoc_won[run_starts]
+  run_count <- function(team, minimum, maximum = Inf) sum(run_teams == team & run_lengths >= minimum & run_lengths <= maximum)
+  longest_idx <- which.max(run_lengths)
+  longest_label <- if (run_teams[longest_idx]) "CALGARY" else "OPPONENT"
+
+  chart_grid <- lapply(c(7, 3, 0, -3, -7), function(v) {
+    top <- 50 - (v / max_abs) * 43
+    div(class = "momentum-chart-gridline", style = paste0("top:", top, "%;"),
+        span(if (v > 0) paste0("CALGARY +", v) else if (v < 0) paste0("OPPONENT +", abs(v)) else "TIED"))
+  })
+
+  div(class = "momentum-match-card momentum-expanded-card",
+    div(class = "momentum-team-row",
+      div(class = "momentum-team-name", "CALGARY"),
+      div(class = "momentum-expanded-title", paste0("SET ", selected_set, " MOMENTUM")),
+      div(class = "momentum-team-name momentum-team-name-right", "OPPONENT")),
+    div(class = "momentum-set-buttons", set_buttons),
+    div(class = "momentum-chart-wrap",
+      div(class = "momentum-chart-area",
+        chart_grid,
+        div(class = "momentum-tie-band"),
+        event_boxes,
+        div(class = "momentum-chart-endline")),
+      div(class = "momentum-chart-caption",
+        "Each box is one rally, left to right. Up = Calgary point; down = opponent point. Box colour shows which team made the play.")
     ),
-    div(class = "momentum-set-buttons",
-      lapply(sets, function(sn) actionButton(paste0("momentum_", slot, "_set_", sn), paste("SET", sn),
-        class = if (sn == selected_set) "momentum-set-btn active" else "momentum-set-btn"))
-    ),
-    div(class = "momentum-score-line",
-      span(paste0("SET ", selected_set)),
-      strong(paste0(sum(momentum_team_is_uoc(one$point_won_by)), " – ",
-                     sum(!momentum_team_is_uoc(one$point_won_by))))
-    ),
-    div(class = "momentum-point-strip", point_cells),
-    div(class = "momentum-run-list", run_rows),
-    div(class = "momentum-legend", span(class = "legend-uoc", "CALGARY POINT"), span(class = "legend-opp", "OPPONENT POINT"))
+    div(class = "momentum-summary-cards",
+      div(class = "momentum-summary-card",
+        div(class = "momentum-summary-title", "POINTS"),
+        div(class = "momentum-summary-subhead", "EARNED", " ", "UNEARNED"),
+        div(class = "momentum-summary-row", strong("CALGARY"),
+          span(sum(uoc_won & earned)), span(sum(uoc_won & !earned))),
+        div(class = "momentum-summary-row opponent", strong("OPPONENT"),
+          span(sum(!uoc_won & earned)), span(sum(!uoc_won & !earned)))),
+      div(class = "momentum-summary-card",
+        div(class = "momentum-summary-title", "SCORING RUNS"),
+        div(class = "momentum-summary-subhead", "3", " ", "4", " ", "5+"),
+        div(class = "momentum-summary-row", strong("CALGARY"),
+          span(run_count(TRUE, 3, 3)), span(run_count(TRUE, 4, 4)), span(run_count(TRUE, 5))),
+        div(class = "momentum-summary-row opponent", strong("OPPONENT"),
+          span(run_count(FALSE, 3, 3)), span(run_count(FALSE, 4, 4)), span(run_count(FALSE, 5)))),
+      div(class = "momentum-summary-card momentum-longest-card",
+        div(class = "momentum-summary-title", "LONGEST RUN"),
+        strong(paste0(max(run_lengths), " POINTS")),
+        span(longest_label))),
+    div(class = "momentum-chart-legend",
+      span(class = "legend-uoc", "CALGARY PLAY"),
+      span(class = "legend-opp", "OPPONENT PLAY"))
   )
 }
 
@@ -3823,7 +3889,6 @@ ui <- fluidPage(
 
   tags$head(
     tags$title("Dinos Coaches Dashboard"),
-    tags$link(rel = "stylesheet", type = "text/css", href = "app.css"),
 
     tags$style(HTML("
       @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
@@ -4660,8 +4725,8 @@ server <- function(input, output, session) {
   selected_match <- reactiveVal(NULL)
   selected_attack_player <- reactiveVal("All")
   selected_athlete <- reactiveVal(NULL)
-  momentum_recent_set <- reactiveVal(1)
-  momentum_previous_set <- reactiveVal(1)
+  momentum_recent_set <- reactiveVal(NULL)
+  momentum_previous_set <- reactiveVal(NULL)
 
   for (sn in 1:5) {
     local({ set_no <- sn
