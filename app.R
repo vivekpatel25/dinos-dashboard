@@ -2847,7 +2847,7 @@ momentum_team_logo <- function(team) {
   # Calgary uses the primary Dinos mark stored directly in www/.
   if (grepl("calgary|dinos", nm)) return("dinos_logo.png")
 
-  logo_file <- if (grepl("okanagan|ubco", nm)) {
+  logo_file <- if (grepl("okanagan|ubco|heat", nm)) {
     "ubco.png"
   } else if (grepl("british columbia|\\bubc\\b", nm)) {
     "ubc.png"
@@ -3090,7 +3090,19 @@ momentum_earned_table_ui <- function(ids, period_label = NULL) {
     d <- load_momentum_match(id)
     if (!nrow(d)) return(NULL)
     idx <- match_index[as.character(match_index$match_id) == id, , drop = FALSE]
-    opponent <- if (nrow(idx) && "opponent" %in% names(idx)) as.character(idx$opponent[1]) else "Opponent"
+    # Prefer the opponent's actual team name from point_won_by in this match's
+    # rally export; fall back to the match index only if it is unavailable.
+    rally_teams <- unique(trimws(as.character(d$point_won_by)))
+    rally_teams <- rally_teams[!is.na(rally_teams) & nzchar(rally_teams)]
+    rally_opponents <- rally_teams[!grepl("University of Calgary|\\bcalgary\\b|\\bdinos\\b",
+                                          rally_teams, ignore.case = TRUE)]
+    opponent <- if (length(rally_opponents)) {
+      rally_opponents[1]
+    } else if (nrow(idx) && "opponent" %in% names(idx)) {
+      as.character(idx$opponent[1])
+    } else {
+      "Opponent"
+    }
     match_label <- if (nrow(idx)) format(as.Date(idx$match_date[1]), "%b %d") else ""
     uoc_won <- vapply(d$point_won_by, momentum_team_is_uoc, logical(1))
     earned <- toupper(as.character(d$point_type)) == "EARNED"
@@ -5435,6 +5447,18 @@ server <- function(input, output, session) {
           ),
 
           div(
+            class = "momentum-section",
+            div(class = "momentum-section-heading", "MOMENTUM RUNS"),
+            div(class = "momentum-slot",
+              div(class = "momentum-slot-title", "MATCH MOMENTUM"),
+              momentum_match_panel_ui(mid, "report", momentum_report_set())
+            ),
+            div(class = "momentum-earned-wrap",
+              div(class = "momentum-earned-heading", "EARNED / UNEARNED POINTS · MATCH"),
+              momentum_earned_table_ui(mid, "MATCH")
+            )
+          ),
+          div(
             class = "white-panel",
             metric_section_ui(
               all_metrics[all_metrics$match_id == mid, , drop = FALSE],
@@ -5476,18 +5500,6 @@ server <- function(input, output, session) {
             if (is.null(input$pass_lines_toggle)) TRUE else input$pass_lines_toggle
           )
           ,attack_map_ui(),
-          div(
-            class = "momentum-section",
-            div(class = "momentum-section-heading", "MOMENTUM RUNS"),
-            div(class = "momentum-slot",
-              div(class = "momentum-slot-title", "MATCH MOMENTUM"),
-              momentum_match_panel_ui(mid, "report", momentum_report_set())
-            ),
-            div(class = "momentum-earned-wrap",
-              div(class = "momentum-earned-heading", "EARNED / UNEARNED POINTS · MATCH"),
-              momentum_earned_table_ui(mid, "MATCH")
-            )
-          ),
           transition_map_ui()
         )
       )
