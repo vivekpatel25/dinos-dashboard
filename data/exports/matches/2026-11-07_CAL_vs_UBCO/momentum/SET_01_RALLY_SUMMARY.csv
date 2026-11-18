@@ -1,0 +1,48 @@
+set_number,rally_number,point_id,serving_team,home_score_before,visiting_score_before,home_score_after,visiting_score_after,ending_skill,ending_action,ending_skill_team,ending_skill_player,ending_skill_jersey_number,point_scoring_action,point_scoring_team,point_scoring_player,point_scoring_jersey_number,point_type,point_won_by
+1,1,0,University of British Colombia Okanagan,0,0,1,0,Dig,Dig Error,University of British Colombia Okanagan,Faith Solecki,11,Kill,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+1,2,1,University of Calgary,1,0,2,0,Attack,Attack Error,University of British Colombia Okanagan,Korey Jenkins,10,Attack Error,,,,UNEARNED,University of Calgary
+1,3,2,University of Calgary,2,0,2,1,Attack,Kill,University of British Colombia Okanagan,Rachel Rosser,14,Kill,University of British Colombia Okanagan,Rachel Rosser,14,EARNED,University of British Colombia Okanagan
+1,4,3,University of British Colombia Okanagan,2,1,3,1,Serve,Serve Error,University of British Colombia Okanagan,Korey Jenkins,10,Serve Error,,,,UNEARNED,University of Calgary
+1,5,4,University of Calgary,3,1,3,2,Attack,Kill,University of British Colombia Okanagan,Rachel Rosser,14,Kill,University of British Colombia Okanagan,Rachel Rosser,14,EARNED,University of British Colombia Okanagan
+1,6,5,University of British Colombia Okanagan,3,2,3,3,Attack,Kill,University of British Colombia Okanagan,Ali Rathlef,9,Kill,University of British Colombia Okanagan,Ali Rathlef,9,EARNED,University of British Colombia Okanagan
+1,7,6,University of British Colombia Okanagan,3,3,4,3,Attack,Kill,University of Calgary,Anya Fehr,12,Kill,University of Calgary,Anya Fehr,12,EARNED,University of Calgary
+1,8,7,University of Calgary,4,3,4,4,Serve,Serve Error,University of Calgary,Jasmine Chretien,14,Serve Error,,,,UNEARNED,University of British Colombia Okanagan
+1,9,8,University of British Colombia Okanagan,4,4,5,4,Serve,Serve Error,University of British Colombia Okanagan,Marija Josipovic,4,Serve Error,,,,UNEARNED,University of Calgary
+1,10,9,University of Calgary,5,4,5,5,Block,Block,University of British Colombia Okanagan,Ali Rathlef,9,Block,University of British Colombia Okanagan,Ali Rathlef,9,EARNED,University of British Colombia Okanagan
+1,11,10,University of British Colombia Okanagan,5,5,5,6,Reception,Reception Error,University of Calgary,Jasmine Chretien,14,Ace,University of British Colombia Okanagan,Faith Solecki,11,EARNED,University of British Colombia Okanagan
+1,12,11,University of British Colombia Okanagan,5,6,6,6,Block,Block Error,University of British Colombia Okanagan,Hayden Hagel,2,Block Error,,,,UNEARNED,University of Calgary
+1,13,12,University of Calgary,6,6,6,7,Serve,Serve Error,University of Calgary,Anya Fehr,12,Serve Error,,,,UNEARNED,University of British Colombia Okanagan
+1,14,13,University of British Colombia Okanagan,6,7,7,7,Block,Block Error,University of British Colombia Okanagan,Rachel Rosser,14,Block Error,,,,UNEARNED,University of Calgary
+1,15,14,University of Calgary,7,7,8,7,Dig,Dig Error,University of British Colombia Okanagan,Hayden Hagel,2,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+1,17,16,University of Calgary,8,7,8,8,Attack,Attack Error,University of Calgary,Jasmine Chretien,14,Attack Error,,,,UNEARNED,University of British Colombia Okanagan
+1,18,17,University of British Colombia Okanagan,8,8,9,8,Serve,Serve Error,University of British Colombia Okanagan,Hayden Hagel,2,Serve Error,,,,UNEARNED,University of Calgary
+1,19,18,University of Calgary,9,8,10,8,Block,Block,University of Calgary,Christine Abu,2,Block,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+1,20,19,University of Calgary,10,8,10,9,Attack,Kill,University of British Colombia Okanagan,Korey Jenkins,10,Kill,University of British Colombia Okanagan,Korey Jenkins,10,EARNED,University of British Colombia Okanagan
+1,21,20,University of British Colombia Okanagan,10,9,10,10,Attack,Attack Error,University of Calgary,Christine Abu,2,Attack Error,,,,UNEARNED,University of British Colombia Okanagan
+1,22,21,University of British Colombia Okanagan,10,10,11,10,Serve,Serve Error,University of British Colombia Okanagan,Korey Jenkins,10,Serve Error,,,,UNEARNED,University of Calgary
+1,23,22,University of Calgary,11,10,12,10,Block,Block Error,University of British Colombia Okanagan,Marija Josipovic,4,Block Error,,,,UNEARNED,University of Calgary
+1,24,23,University of Calgary,12,10,12,11,Dig,Dig Error,University of Calgary,Anya Fehr,12,Kill,University of British Colombia Okanagan,Marija Josipovic,4,EARNED,University of British Colombia Okanagan
+1,25,24,University of British Colombia Okanagan,12,11,13,11,Dig,Dig Error,University of British Colombia Okanagan,Hayden Hagel,2,Kill,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+1,26,25,University of Calgary,13,11,13,12,Attack,Kill,University of British Colombia Okanagan,Ali Rathlef,9,Kill,University of British Colombia Okanagan,Ali Rathlef,9,EARNED,University of British Colombia Okanagan
+1,27,26,University of British Colombia Okanagan,13,12,14,12,Serve,Serve Error,University of British Colombia Okanagan,Marija Josipovic,4,Serve Error,,,,UNEARNED,University of Calgary
+1,28,27,University of Calgary,14,12,15,12,Dig,Dig Error,University of British Colombia Okanagan,Sydney Matthews,16,Kill,University of Calgary,Julia Tuckwood,15,EARNED,University of Calgary
+1,30,29,University of Calgary,15,12,16,12,Dig,Dig Error,University of British Colombia Okanagan,Sydney Matthews,16,Kill,University of Calgary,Julia Tuckwood,15,EARNED,University of Calgary
+1,32,31,University of Calgary,16,12,16,13,Block,Block Error,University of Calgary,Narelle Arnold,6,Block Error,,,,UNEARNED,University of British Colombia Okanagan
+1,33,32,University of British Colombia Okanagan,16,13,16,14,Block,Block,University of British Colombia Okanagan,Ali Rathlef,9,Block,University of British Colombia Okanagan,Ali Rathlef,9,EARNED,University of British Colombia Okanagan
+1,34,33,University of British Colombia Okanagan,16,14,16,15,Reception,Reception Error,University of Calgary,Julia Tuckwood,15,Ace,University of British Colombia Okanagan,Faith Solecki,11,EARNED,University of British Colombia Okanagan
+1,36,35,University of British Colombia Okanagan,16,15,17,15,Serve,Serve Error,University of British Colombia Okanagan,Faith Solecki,11,Serve Error,,,,UNEARNED,University of Calgary
+1,37,36,University of Calgary,17,15,17,16,Serve,Serve Error,University of Calgary,Madden Hansen,5,Serve Error,,,,UNEARNED,University of British Colombia Okanagan
+1,38,37,University of British Colombia Okanagan,17,16,18,16,Block,Block Error,University of British Colombia Okanagan,Kirsten Hill,12,Block Error,,,,UNEARNED,University of Calgary
+1,39,38,University of Calgary,18,16,18,17,Dig,Dig Error,University of Calgary,Madden Hansen,5,Kill,University of British Colombia Okanagan,Rachel Rosser,14,EARNED,University of British Colombia Okanagan
+1,40,39,University of British Colombia Okanagan,18,17,19,17,Serve,Serve Error,University of British Colombia Okanagan,Hayden Hagel,2,Serve Error,,,,UNEARNED,University of Calgary
+1,41,40,University of Calgary,19,17,20,17,Block,Block Error,University of British Colombia Okanagan,Rachel Rosser,14,Block Error,,,,UNEARNED,University of Calgary
+1,42,41,University of Calgary,20,17,20,18,Attack,Attack Error,University of Calgary,Leni Blanke,1,Attack Error,,,,UNEARNED,University of British Colombia Okanagan
+1,43,42,University of British Colombia Okanagan,20,18,20,19,Attack,Kill,University of British Colombia Okanagan,Marija Josipovic,4,Kill,University of British Colombia Okanagan,Marija Josipovic,4,EARNED,University of British Colombia Okanagan
+1,44,43,University of British Colombia Okanagan,20,19,21,19,Freeball,Free-ball Error,University of British Colombia Okanagan,Marija Josipovic,4,Free-ball Error,,,,UNEARNED,University of Calgary
+1,45,44,University of Calgary,21,19,21,20,Block,Block,University of British Colombia Okanagan,Marija Josipovic,4,Block,University of British Colombia Okanagan,Marija Josipovic,4,EARNED,University of British Colombia Okanagan
+1,46,45,University of British Colombia Okanagan,21,20,21,21,Attack,Attack Error,University of Calgary,Jasmine Chretien,14,Attack Error,,,,UNEARNED,University of British Colombia Okanagan
+1,47,46,University of British Colombia Okanagan,21,21,22,21,Attack,Attack Error,University of British Colombia Okanagan,Korey Jenkins,10,Attack Error,,,,UNEARNED,University of Calgary
+1,48,47,University of Calgary,22,21,22,22,Attack,Kill,University of British Colombia Okanagan,Ali Rathlef,9,Kill,University of British Colombia Okanagan,Ali Rathlef,9,EARNED,University of British Colombia Okanagan
+1,49,48,University of British Colombia Okanagan,22,22,23,22,Serve,Serve Error,University of British Colombia Okanagan,Marija Josipovic,4,Serve Error,,,,UNEARNED,University of Calgary
+1,50,49,University of Calgary,23,22,24,22,Block,Block Error,University of British Colombia Okanagan,Faith Solecki,11,Block Error,,,,UNEARNED,University of Calgary
+1,52,51,University of Calgary,24,22,25,22,Reception,Reception Error,University of British Colombia Okanagan,Sydney Matthews,16,Ace,University of Calgary,Christine Abu,2,EARNED,University of Calgary
