@@ -2841,38 +2841,40 @@ load_momentum_match <- function(match_id) {
 momentum_team_is_uoc <- function(team) grepl("University of Calgary", team, ignore.case = TRUE)
 
 momentum_team_logo <- function(team) {
-  if (is.null(team) || !length(team) || is.na(team[1]) || !nzchar(trimws(as.character(team[1])))) return(NULL)
+  if (is.null(team) || !length(team) || is.na(team[1]) ||
+      !nzchar(trimws(as.character(team[1])))) return(NULL)
+
   nm <- tolower(trimws(as.character(team[1])))
 
-  # Calgary uses the primary Dinos mark stored directly in www/.
-  if (grepl("calgary|dinos", nm)) return("dinos_logo.png")
+  # Resolve team aliases from either match_index or DataVolley team names.
+  # Asset URLs are rooted at the Shiny www directory; do not gate them on
+  # file.exists(), which can fail when the deployed app has a different cwd.
+  if (grepl("university of calgary|calgary|dinos", nm)) return("/dinos_logo.png")
 
   logo_file <- if (grepl("okanagan|ubco|heat", nm)) {
     "ubco.png"
-  } else if (grepl("british columbia|\\bubc\\b", nm)) {
+  } else if (grepl("university of british columbia|british columbia|thunderbirds|(^|[^a-z])ubc([^a-z]|$)", nm)) {
     "ubc.png"
-  } else if (grepl("mount royal|\\bmru\\b", nm)) {
+  } else if (grepl("mount royal|mount royal cougars|(^|[^a-z])mru([^a-z]|$)", nm)) {
     "mru.png"
-  } else if (grepl("trinity western|\\btwu\\b", nm)) {
+  } else if (grepl("trinity western|(^|[^a-z])twu([^a-z]|$)", nm)) {
     "twu.png"
-  } else if (grepl("saskatchewan|\\buos\\b", nm)) {
+  } else if (grepl("saskatchewan|(^|[^a-z])uos([^a-z]|$)", nm)) {
     "uos.png"
   } else {
     NULL
   }
 
   if (is.null(logo_file)) return(NULL)
-  path <- file.path("team_logos", logo_file)
-  if (!file.exists(file.path("www", path))) return(NULL)
-  path
+  paste0("/team_logos/", logo_file)
 }
 
 momentum_logo_tag <- function(team, class = "momentum-team-logo") {
   logo <- momentum_team_logo(team)
   if (is.null(logo)) {
-    return(span(class = paste(class, "momentum-logo-fallback"), title = team, ""))
+    return(span(class = paste(class, "momentum-logo-fallback"), title = as.character(team), ""))
   }
-  tags$img(src = logo, class = class, alt = team, title = team)
+  tags$img(src = logo, class = class, alt = as.character(team), title = as.character(team))
 }
 
 momentum_action_label <- function(ending_action, ending_skill = "") {
@@ -2901,9 +2903,21 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   if (!length(sets)) return(div(class = "momentum-match-card", div(class = "momentum-empty", "No set-level rally data available.")))
   selected_set <- if (!is.null(selected_set) && selected_set %in% sets) selected_set else NULL
 
-  team_is_calgary <- function(x) grepl("University of Calgary", as.character(x), ignore.case = TRUE)
+  team_is_calgary <- function(x) grepl("University of Calgary|\\bCalgary\\b|Dinos", as.character(x), ignore.case = TRUE)
   idx <- match_index[as.character(match_index$match_id) == as.character(match_id), , drop = FALSE]
-  opponent <- if (nrow(idx) && "opponent" %in% names(idx)) as.character(idx$opponent[1]) else "OPPONENT"
+
+  # Prefer the opponent's actual DataVolley team name in this match's rally file.
+  rally_teams <- unique(trimws(as.character(d$point_won_by)))
+  rally_teams <- rally_teams[!is.na(rally_teams) & nzchar(rally_teams)]
+  rally_opponents <- rally_teams[!vapply(rally_teams, team_is_calgary, logical(1))]
+  opponent <- if (length(rally_opponents)) {
+    rally_opponents[1]
+  } else if (nrow(idx) && "opponent" %in% names(idx) &&
+             !is.na(idx$opponent[1]) && nzchar(trimws(as.character(idx$opponent[1])))) {
+    as.character(idx$opponent[1])
+  } else {
+    "OPPONENT"
+  }
   match_date <- if (nrow(idx) && "match_date" %in% names(idx)) as.character(idx$match_date[1]) else ""
 
   set_buttons <- lapply(sets, function(sn) {
