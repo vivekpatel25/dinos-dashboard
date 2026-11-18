@@ -690,3 +690,23 @@ body {
 .momentum-chart-legend .legend-uoc:before{background:#ad6b31}
 .momentum-chart-legend .legend-opp:before{background:#354b5e}
 @media(max-width:760px){.momentum-chart-area{height:380px}.momentum-summary-cards{grid-template-columns:1fr}.momentum-game-score{flex-wrap:wrap;gap:8px}}
+
+
+/* Dinos momentum final refinements */
+.momentum-section .momentum-game-banner{background:#C8102E!important;color:#fff!important}
+.momentum-section .momentum-chart-event.uoc-play{border-color:#C8102E!important;background:#fff0f2!important;color:#C8102E!important}
+.momentum-section .momentum-chart-legend .legend-uoc:before{background:#C8102E!important}
+.momentum-section .momentum-longest-card>strong,.momentum-section .momentum-longest-card>span{color:#C8102E!important}
+.momentum-section .momentum-summary-row:not(.opponent){color:#C8102E!important}
+.momentum-section .momentum-summary-row:not(.opponent) strong{color:#C8102E!important}
+.momentum-section .momentum-tie-band{top:49.1%!important;height:1.8%!important;background:#f7f1e8!important;border-top:1px solid #626262!important;border-bottom:1px solid #626262!important}
+.momentum-section .momentum-chart-event{width:25px!important;min-height:39px!important}
+.momentum-section .momentum-chart-action{font-size:11px!important;line-height:12px!important}
+.momentum-section .momentum-chart-jersey{font-size:9px!important;line-height:10px!important}
+.momentum-chart-controls{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.momentum-close-btn{background:#fff!important;color:#C8102E!important;border:1px solid #C8102E!important;border-radius:7px!important;font-size:10px!important;font-weight:900!important;padding:7px 12px!important}
+.momentum-skill-legend{display:flex;flex-wrap:wrap;gap:8px 15px;margin-top:13px;padding:10px 2px 3px;border-top:1px solid #e6e9ec;color:#596979;font-size:10px}
+.momentum-skill-legend b{color:#C8102E;font-size:11px}
+.momentum-earned-table th:nth-child(1){width:15%}
+.momentum-earned-table th:nth-child(2){width:45%}
+.momentum-earned-table th:nth-child(3),.momentum-earned-table th:nth-child(4){width:20%}
