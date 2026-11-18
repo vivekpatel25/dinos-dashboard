@@ -4757,7 +4757,7 @@ ui <- fluidPage(
         .page-heading h2{font-size:32px;}
         .skill-grid{grid-template-columns:1fr;}
       }
-    "))
+    ")),
     tags$style(HTML("\n/* Final momentum visual corrections: load after all legacy momentum rules */\n.momentum-section .momentum-game-banner,\n.momentum-section .momentum-match-card .momentum-game-banner {\n  background: #C8102E !important;\n  background-color: #C8102E !important;\n  color: #fff !important;\n}\n.momentum-section .momentum-tie-band {\n  top: calc(50% - 19.5px) !important;\n  height: 39px !important;\n  box-sizing: border-box !important;\n  background: #f7f1e8 !important;\n  border-top: 1px solid #59616a !important;\n  border-bottom: 1px solid #59616a !important;\n  z-index: 1 !important;\n}\n.momentum-section .momentum-chart-event {\n  width: 25px !important;\n  height: 39px !important;\n  min-height: 39px !important;\n  box-sizing: border-box !important;\n  padding: 2px 1px !important;\n  overflow: visible !important;\n  line-height: 1 !important;\n}\n.momentum-section .momentum-chart-action,\n.momentum-section .momentum-chart-jersey {\n  display: block !important;\n  width: 100% !important;\n  min-height: 10px !important;\n  text-align: center !important;\n  white-space: nowrap !important;\n  visibility: visible !important;\n  opacity: 1 !important;\n}\n.momentum-section .momentum-chart-action {\n  font-size: 11px !important;\n  font-weight: 900 !important;\n  line-height: 13px !important;\n}\n.momentum-section .momentum-chart-jersey {\n  font-size: 9px !important;\n  font-weight: 700 !important;\n  line-height: 11px !important;\n}\n"))
   ),
 
