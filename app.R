@@ -2853,6 +2853,14 @@ momentum_team_logo <- function(team) {
   file.path("team_logos", hit[1])
 }
 
+momentum_logo_tag <- function(team, class = "momentum-team-logo") {
+  logo <- momentum_team_logo(team)
+  if (is.null(logo)) {
+    return(span(class = paste(class, "momentum-logo-fallback"), title = team, team))
+  }
+  tags$img(src = logo, class = class, alt = team, title = team)
+}
+
 momentum_action_label <- function(ending_action, ending_skill = "") {
   action <- tolower(trimws(as.character(if (is.null(ending_action) || !length(ending_action) || is.na(ending_action[1])) "" else ending_action[1])))
   skill <- tolower(trimws(as.character(if (is.null(ending_skill) || !length(ending_skill) || is.na(ending_skill[1])) "" else ending_skill[1])))
@@ -2905,7 +2913,15 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   point_is_calgary <- vapply(one$point_won_by, team_is_calgary, logical(1))
   diff_after <- cumsum(ifelse(point_is_calgary, 1, -1))
   max_abs <- max(9, max(abs(diff_after), na.rm = TRUE) + 2)
-  y_pct <- 50 - (diff_after / max_abs) * 43
+  # Keep the full event marker clear of the central tie band on every lead.
+  chart_height_px <- 380
+  marker_height_px <- 39
+  clear_tie_pct <- ((marker_height_px / 2) + 3) / chart_height_px * 100
+  lead_offset_pct <- clear_tie_pct + (abs(diff_after) / max_abs) * 39
+  y_pct <- ifelse(
+    diff_after > 0, 50 - lead_offset_pct,
+    ifelse(diff_after < 0, 50 + lead_offset_pct, 50)
+  )
   n_points <- nrow(one)
 
   # These are the exact fields in SET_XX_RALLY_SUMMARY.csv.
@@ -2987,7 +3003,9 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
     div(class = "momentum-game-banner",
       div(class = "momentum-game-kicker", paste0("SET ", selected_set, " MOMENTUM · ", set_winner)),
       div(class = "momentum-game-score",
-        span("CALGARY"), span(paste(calgary_final, "–", opponent_final)), span(opponent)),
+        momentum_logo_tag("University of Calgary", "momentum-banner-logo"),
+        span(paste(calgary_final, "–", opponent_final)),
+        momentum_logo_tag(opponent, "momentum-banner-logo")),
       div(class = "momentum-game-date", match_date)),
     div(class = "momentum-chart-wrap",
       div(class = "momentum-chart-area",
@@ -3040,23 +3058,39 @@ momentum_earned_table_ui <- function(ids) {
     unearned <- toupper(as.character(d$point_type)) == "UNEARNED"
     data.frame(
       Match = c(match_label, match_label),
-      Team = c("CALGARY", opponent),
+      Team = c("University of Calgary", opponent),
       Earned = c(sum(uoc_won & earned, na.rm = TRUE), sum(!uoc_won & earned, na.rm = TRUE)),
       Unearned = c(sum(uoc_won & unearned, na.rm = TRUE), sum(!uoc_won & unearned, na.rm = TRUE)),
-      check.names = FALSE
+      check.names = FALSE,
+      stringsAsFactors = FALSE
     )
   })
   rows <- Filter(Negate(is.null), rows)
   if (!length(rows)) return(div(class = "momentum-empty", "No momentum rally summaries found for this period."))
   out <- do.call(rbind, rows)
-  totals <- data.frame(Match = "TOTAL", Team = "ALL MATCHES",
-    Earned = sum(out$Earned), Unearned = sum(out$Unearned), check.names = FALSE)
-  out <- rbind(out, totals)
-  tags$table(class = "table momentum-earned-table",
-    tags$thead(tags$tr(lapply(names(out), tags$th))),
-    tags$tbody(lapply(seq_len(nrow(out)), function(i) tags$tr(
-      lapply(out[i, , drop = FALSE], function(v) tags$td(as.character(v)))
-    )))
+
+  tags$table(
+    class = "table momentum-earned-table",
+    tags$colgroup(
+      tags$col(style = "width:15%"),
+      tags$col(style = "width:45%"),
+      tags$col(style = "width:20%"),
+      tags$col(style = "width:20%")
+    ),
+    tags$thead(tags$tr(
+      tags$th("MATCH"), tags$th("TEAM"),
+      tags$th("EARNED"), tags$th("UNEARNED")
+    )),
+    tags$tbody(lapply(seq_len(nrow(out)), function(i) {
+      team <- as.character(out$Team[i])
+      logo_team <- if (momentum_team_is_uoc(team)) "University of Calgary" else team
+      tags$tr(
+        tags$td(as.character(out$Match[i])),
+        tags$td(momentum_logo_tag(logo_team, "momentum-table-logo")),
+        tags$td(as.character(out$Earned[i])),
+        tags$td(as.character(out$Unearned[i]))
+      )
+    }))
   )
 }
 
@@ -4758,7 +4792,57 @@ ui <- fluidPage(
         .skill-grid{grid-template-columns:1fr;}
       }
     ")),
-    tags$style(HTML("\n/* Final momentum visual corrections: load after all legacy momentum rules */\n.momentum-section .momentum-game-banner,\n.momentum-section .momentum-match-card .momentum-game-banner {\n  background: #C8102E !important;\n  background-color: #C8102E !important;\n  color: #fff !important;\n}\n.momentum-section .momentum-tie-band {\n  top: calc(50% - 19.5px) !important;\n  height: 39px !important;\n  box-sizing: border-box !important;\n  background: #f7f1e8 !important;\n  border-top: 1px solid #59616a !important;\n  border-bottom: 1px solid #59616a !important;\n  z-index: 1 !important;\n}\n.momentum-section .momentum-chart-event {\n  width: 25px !important;\n  height: 39px !important;\n  min-height: 39px !important;\n  box-sizing: border-box !important;\n  padding: 2px 1px !important;\n  overflow: visible !important;\n  line-height: 1 !important;\n}\n.momentum-section .momentum-chart-action,\n.momentum-section .momentum-chart-jersey {\n  display: block !important;\n  width: 100% !important;\n  min-height: 10px !important;\n  text-align: center !important;\n  white-space: nowrap !important;\n  visibility: visible !important;\n  opacity: 1 !important;\n}\n.momentum-section .momentum-chart-action {\n  font-size: 11px !important;\n  font-weight: 900 !important;\n  line-height: 13px !important;\n}\n.momentum-section .momentum-chart-jersey {\n  font-size: 9px !important;\n  font-weight: 700 !important;\n  line-height: 11px !important;\n}\n"))
+    tags$style(HTML("\n/* Final momentum visual corrections: load after all legacy momentum rules */\n.momentum-section .momentum-game-banner,\n.momentum-section .momentum-match-card .momentum-game-banner {\n  background: #C8102E !important;\n  background-color: #C8102E !important;\n  color: #fff !important;\n}\n.momentum-section .momentum-tie-band {\n  top: calc(50% - 19.5px) !important;\n  height: 39px !important;\n  box-sizing: border-box !important;\n  background: #f7f1e8 !important;\n  border-top: 1px solid #59616a !important;\n  border-bottom: 1px solid #59616a !important;\n  z-index: 1 !important;\n}\n.momentum-section .momentum-chart-event {\n  width: 25px !important;\n  height: 39px !important;\n  min-height: 39px !important;\n  box-sizing: border-box !important;\n  padding: 2px 1px !important;\n  overflow: visible !important;\n  line-height: 1 !important;\n}\n.momentum-section .momentum-chart-action,\n.momentum-section .momentum-chart-jersey {\n  display: block !important;\n  width: 100% !important;\n  min-height: 10px !important;\n  text-align: center !important;\n  white-space: nowrap !important;\n  visibility: visible !important;\n  opacity: 1 !important;\n}\n.momentum-section .momentum-chart-action {\n  font-size: 11px !important;\n  font-weight: 900 !important;\n  line-height: 13px !important;\n}\n.momentum-section .momentum-chart-jersey {\n  font-size: 9px !important;\n  font-weight: 700 !important;\n  line-height: 11px !important;\n}
+/* Team marks and earned/unearned table alignment */
+.momentum-section .momentum-game-score {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+.momentum-section .momentum-banner-logo {
+  display: inline-block !important;
+  width: auto !important;
+  height: 42px !important;
+  max-width: 120px !important;
+  object-fit: contain !important;
+  flex: 0 0 auto !important;
+}
+.momentum-section .momentum-table-logo {
+  display: block !important;
+  width: auto !important;
+  height: 30px !important;
+  max-width: 150px !important;
+  object-fit: contain !important;
+  margin: 0 auto !important;
+}
+.momentum-section .momentum-earned-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  margin: 0 !important;
+}
+.momentum-section .momentum-earned-table th,
+.momentum-section .momentum-earned-table td {
+  vertical-align: middle !important;
+  padding: 9px 12px !important;
+  white-space: nowrap !important;
+}
+.momentum-section .momentum-earned-table th:nth-child(n+3),
+.momentum-section .momentum-earned-table td:nth-child(n+3) {
+  text-align: center !important;
+}
+.momentum-section .momentum-earned-table td:nth-child(2) {
+  text-align: center !important;
+}
+.momentum-section .momentum-earned-table tbody tr {
+  height: 48px !important;
+}
+@media(max-width:760px) {
+  .momentum-section .momentum-banner-logo { height: 30px !important; max-width: 76px !important; }
+  .momentum-section .momentum-earned-table th,
+  .momentum-section .momentum-earned-table td { padding: 7px 6px !important; }
+}
+\n"))
   ),
 
   uiOutput("app_header"),
@@ -4780,25 +4864,17 @@ server <- function(input, output, session) {
   selected_attack_player <- reactiveVal("All")
   selected_athlete <- reactiveVal(NULL)
   momentum_recent_set <- reactiveVal(NULL)
-  momentum_previous_set <- reactiveVal(NULL)
 
   for (sn in 1:5) {
     local({ set_no <- sn
       observeEvent(input[[paste0("momentum_recent_set_", set_no)]], {
         if (identical(momentum_recent_set(), set_no)) momentum_recent_set(NULL) else momentum_recent_set(set_no)
       }, ignoreInit = TRUE)
-      observeEvent(input[[paste0("momentum_previous_set_", set_no)]], {
-        if (identical(momentum_previous_set(), set_no)) momentum_previous_set(NULL) else momentum_previous_set(set_no)
-      }, ignoreInit = TRUE)
     })
   }
 
   observeEvent(input$momentum_recent_close, {
     momentum_recent_set(NULL)
-  }, ignoreInit = TRUE)
-
-  observeEvent(input$momentum_previous_close, {
-    momentum_previous_set(NULL)
   }, ignoreInit = TRUE)
 
   observeEvent(input$nav_dashboard, {
@@ -5371,11 +5447,7 @@ server <- function(input, output, session) {
         div(class = "momentum-section-heading", "MOMENTUM RUNS"),
         div(class = "momentum-match-grid",
           div(class = "momentum-slot", div(class = "momentum-slot-title", "MOST RECENT MATCH"),
-              momentum_match_panel_ui(match_index$match_id[1], "recent", momentum_recent_set())),
-          if (nrow(match_index) >= 2) {
-            div(class = "momentum-slot", div(class = "momentum-slot-title", "PREVIOUS MATCH"),
-                momentum_match_panel_ui(if (nrow(match_index) >= 2) match_index$match_id[2] else match_index$match_id[1], "previous", momentum_previous_set()))
-          }
+              momentum_match_panel_ui(match_index$match_id[1], "recent", momentum_recent_set()))
         ),
         div(class = "momentum-earned-wrap",
           div(class = "momentum-earned-heading", "EARNED / UNEARNED POINTS · ", active_period()),
