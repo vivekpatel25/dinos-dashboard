@@ -1,0 +1,13 @@
+match_id,transition_trigger_type,linked_set_player_name,attack_attempts,rallies,kills,attack_errors_or_blocked,positive_attacks,attack_efficiency,uofc_rally_wins,rally_point_conversion,attack_record_rally_win_rate,phase_discrepancies
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Anya Fehr,52,50,25,12,6,0.25,32,0.64,0.6538461538461539,2
+_2026_11_13_uoc_mru,DIG,Anya Fehr,29,25,13,6,1,0.2413793103448276,15,0.6,0.6206896551724138,0
+_2026_11_13_uoc_mru,FREEBALL,Anya Fehr,13,12,8,3,1,0.38461538461538464,8,0.6666666666666666,0.6923076923076923,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Amelia Anderson,11,11,3,2,1,0.09090909090909091,4,0.36363636363636365,0.36363636363636365,0
+_2026_11_13_uoc_mru,DIG,Amelia Anderson,9,7,2,1,0,0.1111111111111111,5,0.7142857142857143,0.7777777777777778,0
+_2026_11_13_uoc_mru,DIG,Evvia Belireau,6,5,2,0,1,0.3333333333333333,5,1,1,0
+_2026_11_13_uoc_mru,NO_LINKED_SET,,4,4,1,2,0,-0.25,2,0.5,0.5,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Evvia Belireau,3,3,0,0,0,0,1,0.3333333333333333,0.3333333333333333,0
+_2026_11_13_uoc_mru,FREEBALL,Amelia Anderson,2,2,1,1,0,0,1,0.5,0.5,0
+_2026_11_13_uoc_mru,DIG,Narelle Arnold,1,1,1,0,0,1,1,1,1,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Kalyssa Komori,1,1,1,0,0,1,1,1,1,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Narelle Arnold,1,1,0,0,0,0,1,1,1,0

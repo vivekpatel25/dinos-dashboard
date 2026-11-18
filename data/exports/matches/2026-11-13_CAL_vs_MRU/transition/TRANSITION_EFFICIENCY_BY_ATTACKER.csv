@@ -1,0 +1,22 @@
+match_id,transition_trigger_type,attack_player_name,attack_player_number,roster_role,attacker_front_back_status,attack_attempts,rallies,kills,attack_errors_or_blocked,positive_attacks,attack_efficiency,uofc_rally_wins,rally_point_conversion,attack_record_rally_win_rate,phase_discrepancies
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Julia Tuckwood,15,outside,Front Row,20,19,4,5,5,-0.05,10,0.5263157894736842,0.55,1
+_2026_11_13_uoc_mru,DIG,Jasmine Chretien,14,middle,Front Row,17,14,5,5,0,0,8,0.5714285714285714,0.5882352941176471,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Leni Blanke,1,outside,Front Row,11,11,4,1,0,0.2727272727272727,7,0.6363636363636364,0.6363636363636364,0
+_2026_11_13_uoc_mru,DIG,Leni Blanke,1,outside,Front Row,10,10,3,0,2,0.3,9,0.9,0.9,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Christine Abu,2,middle,Front Row,10,10,7,2,0,0.5,8,0.8,0.8,1
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Jasmine Chretien,14,middle,Front Row,10,10,4,3,0,0.1,4,0.4,0.4,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Narelle Arnold,6,middle,Front Row,10,10,6,2,1,0.4,6,0.6,0.6,0
+_2026_11_13_uoc_mru,DIG,Julia Tuckwood,15,outside,Front Row,6,6,2,1,0,0.16666666666666666,4,0.6666666666666666,0.6666666666666666,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Anya Fehr,12,setter,Front Row,6,6,3,1,1,0.3333333333333333,4,0.6666666666666666,0.6666666666666666,0
+_2026_11_13_uoc_mru,FREEBALL,Leni Blanke,1,outside,Front Row,5,5,3,2,0,0.2,3,0.6,0.6,0
+_2026_11_13_uoc_mru,DIG,Anya Fehr,12,setter,Front Row,4,4,2,0,0,0.5,2,0.5,0.5,0
+_2026_11_13_uoc_mru,DIG,Christine Abu,2,middle,Front Row,3,3,2,0,0,0.6666666666666666,3,1,1,0
+_2026_11_13_uoc_mru,DIG,Leni Blanke,1,outside,Back Row,3,3,2,1,0,0.3333333333333333,2,0.6666666666666666,0.6666666666666666,0
+_2026_11_13_uoc_mru,FREEBALL,Christine Abu,2,middle,Front Row,3,3,3,0,0,1,3,1,1,0
+_2026_11_13_uoc_mru,FREEBALL,Narelle Arnold,6,middle,Front Row,3,3,1,1,1,0,2,0.6666666666666666,0.6666666666666666,0
+_2026_11_13_uoc_mru,NO_LINKED_SET,Christine Abu,2,middle,Front Row,3,3,0,2,0,-0.6666666666666666,1,0.3333333333333333,0.3333333333333333,0
+_2026_11_13_uoc_mru,DIG,Narelle Arnold,6,middle,Front Row,2,2,2,0,0,1,2,1,1,0
+_2026_11_13_uoc_mru,FREEBALL,Jasmine Chretien,14,middle,Front Row,2,2,1,0,0,0.5,1,0.5,0.5,0
+_2026_11_13_uoc_mru,FREEBALL,Julia Tuckwood,15,outside,Front Row,2,2,1,1,0,0,1,0.5,0.5,0
+_2026_11_13_uoc_mru,NO_LINKED_SET,Jasmine Chretien,14,middle,Front Row,1,1,1,0,0,1,1,1,1,0
+_2026_11_13_uoc_mru,RECEPTION_FIRST_BALL,Reese Evjen,21,outside,Front Row,1,1,1,0,0,1,1,1,1,0
