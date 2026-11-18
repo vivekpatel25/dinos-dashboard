@@ -2841,22 +2841,36 @@ load_momentum_match <- function(match_id) {
 momentum_team_is_uoc <- function(team) grepl("University of Calgary", team, ignore.case = TRUE)
 
 momentum_team_logo <- function(team) {
-  logo_dir <- file.path("www", "team_logos")
-  if (!dir.exists(logo_dir) || is.na(team) || !nzchar(team)) return(NULL)
-  files <- list.files(logo_dir, full.names = FALSE)
-  key <- tolower(gsub("[^a-z0-9]", "", team))
-  hit <- files[vapply(files, function(f) {
-    stem <- tolower(gsub("[^a-z0-9]", "", tools::file_path_sans_ext(f)))
-    nzchar(stem) && (grepl(key, stem, fixed = TRUE) || grepl(stem, key, fixed = TRUE))
-  }, logical(1))]
-  if (!length(hit)) return(NULL)
-  file.path("team_logos", hit[1])
+  if (is.null(team) || !length(team) || is.na(team[1]) || !nzchar(trimws(as.character(team[1])))) return(NULL)
+  nm <- tolower(trimws(as.character(team[1])))
+
+  # Calgary uses the primary Dinos mark stored directly in www/.
+  if (grepl("calgary|dinos", nm)) return("dinos_logo.png")
+
+  logo_file <- if (grepl("okanagan|ubco", nm)) {
+    "ubco.png"
+  } else if (grepl("british columbia|\\bubc\\b", nm)) {
+    "ubc.png"
+  } else if (grepl("mount royal|\\bmru\\b", nm)) {
+    "mru.png"
+  } else if (grepl("trinity western|\\btwu\\b", nm)) {
+    "twu.png"
+  } else if (grepl("saskatchewan|\\buos\\b", nm)) {
+    "uos.png"
+  } else {
+    NULL
+  }
+
+  if (is.null(logo_file)) return(NULL)
+  path <- file.path("team_logos", logo_file)
+  if (!file.exists(file.path("www", path))) return(NULL)
+  path
 }
 
 momentum_logo_tag <- function(team, class = "momentum-team-logo") {
   logo <- momentum_team_logo(team)
   if (is.null(logo)) {
-    return(span(class = paste(class, "momentum-logo-fallback"), title = team, team))
+    return(span(class = paste(class, "momentum-logo-fallback"), title = team, ""))
   }
   tags$img(src = logo, class = class, alt = team, title = team)
 }
@@ -2913,15 +2927,13 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   point_is_calgary <- vapply(one$point_won_by, team_is_calgary, logical(1))
   diff_after <- cumsum(ifelse(point_is_calgary, 1, -1))
   max_abs <- max(9, max(abs(diff_after), na.rm = TRUE) + 2)
-  # Keep the full event marker clear of the central tie band on every lead.
-  chart_height_px <- 380
+  # A one-point change always moves the marker by the same vertical distance.
+  # The minimum step also keeps a one-point lead clear of the tie band.
+  chart_height_px <- 520
   marker_height_px <- 39
   clear_tie_pct <- ((marker_height_px / 2) + 3) / chart_height_px * 100
-  lead_offset_pct <- clear_tie_pct + (abs(diff_after) / max_abs) * 39
-  y_pct <- ifelse(
-    diff_after > 0, 50 - lead_offset_pct,
-    ifelse(diff_after < 0, 50 + lead_offset_pct, 50)
-  )
+  step_pct <- max(clear_tie_pct, 43 / max_abs)
+  y_pct <- 50 - (diff_after * step_pct)
   n_points <- nrow(one)
 
   # These are the exact fields in SET_XX_RALLY_SUMMARY.csv.
@@ -3018,7 +3030,7 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
     div(class = "momentum-summary-cards",
       div(class = "momentum-summary-card",
         div(class = "momentum-summary-title", "POINTS"),
-        div(class = "momentum-summary-subhead", span("EARNED"), span("UNEARNED")),
+        div(class = "momentum-summary-subhead", span(""), span("EARNED"), span("UNEARNED")),
         div(class = "momentum-summary-row", strong("CALGARY"),
           span(if (has_point_type) sum(point_is_calgary & earned) else "—"),
           span(if (has_point_type) sum(point_is_calgary & !earned) else "—")),
@@ -3027,7 +3039,7 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
           span(if (has_point_type) sum(!point_is_calgary & !earned) else "—"))),
       div(class = "momentum-summary-card",
         div(class = "momentum-summary-title", "SCORING RUNS"),
-        div(class = "momentum-summary-subhead", span("3"), span("4"), span("5+")),
+        div(class = "momentum-summary-subhead", span(""), span("3"), span("4"), span("5+")),
         div(class = "momentum-summary-row", strong("CALGARY"),
           span(run_count(TRUE, 3, 3)), span(run_count(TRUE, 4, 4)), span(run_count(TRUE, 5))),
         div(class = "momentum-summary-row opponent", strong("OPPONENT"),
@@ -4842,10 +4854,88 @@ ui <- fluidPage(
   .momentum-section .momentum-earned-table th,
   .momentum-section .momentum-earned-table td { padding: 7px 6px !important; }
 }
-\n"))
-  ),
-
-  uiOutput("app_header"),
+\n
+/* Final logo, momentum-step and alignment refinements */
+.momentum-section .momentum-game-score {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  gap: 18px !important;
+  line-height: 1 !important;
+  min-width: 0 !important;
+}
+.momentum-section .momentum-game-score > span {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+.momentum-section .momentum-banner-logo {
+  display: block !important;
+  width: auto !important;
+  height: 46px !important;
+  max-width: 110px !important;
+  object-fit: contain !important;
+  flex: 0 0 auto !important;
+}
+.momentum-section .momentum-chart-event {
+  /* Keep the same marker dimensions so equal score steps look equal. */
+  height: 39px !important;
+  min-height: 39px !important;
+  box-sizing: border-box !important;
+}
+.momentum-section .momentum-summary-subhead {
+  display: grid !important;
+  grid-template-columns: 1.2fr repeat(2, 1fr) !important;
+  align-items: center !important;
+  text-align: center !important;
+  gap: 4px !important;
+  min-height: 20px !important;
+}
+.momentum-section .momentum-summary-card:nth-child(2) .momentum-summary-subhead {
+  grid-template-columns: 1.2fr repeat(3, 1fr) !important;
+}
+.momentum-section .momentum-summary-row {
+  grid-template-columns: 1.2fr repeat(2, 1fr) !important;
+  align-items: center !important;
+}
+.momentum-section .momentum-summary-card:nth-child(2) .momentum-summary-row {
+  grid-template-columns: 1.2fr repeat(3, 1fr) !important;
+}
+.momentum-section .momentum-summary-row strong {
+  text-align: left !important;
+}
+.momentum-section .momentum-earned-table th,
+.momentum-section .momentum-earned-table td {
+  font-weight: 500 !important;
+}
+.momentum-section .momentum-earned-table thead th {
+  font-weight: 700 !important;
+}
+.momentum-section .momentum-earned-table td:nth-child(2) {
+  text-align: center !important;
+  font-weight: 500 !important;
+}
+.momentum-section .momentum-earned-table .momentum-table-logo {
+  display: inline-block !important;
+  width: auto !important;
+  height: 29px !important;
+  max-width: 145px !important;
+  object-fit: contain !important;
+  vertical-align: middle !important;
+  margin: 0 auto !important;
+}
+.momentum-section .momentum-earned-table th:nth-child(2),
+.momentum-section .momentum-earned-table td:nth-child(2) {
+  text-align: center !important;
+}
+@media(max-width:760px) {
+  .momentum-section .momentum-banner-logo {
+    height: 32px !important;
+    max-width: 76px !important;
+  }
+  .momentum-section .momentum-game-score { gap: 9px !important; }
+}
+\n"))\n  ),\n\n  uiOutput("app_header"),
   uiOutput("page_body"),
 
   div(
