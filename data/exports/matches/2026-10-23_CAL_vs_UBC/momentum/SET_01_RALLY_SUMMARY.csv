@@ -1,0 +1,55 @@
+set_number,rally_number,point_id,serving_team,home_score_before,visiting_score_before,home_score_after,visiting_score_after,ending_skill,ending_action,ending_skill_team,ending_skill_player,ending_skill_jersey_number,point_scoring_action,point_scoring_team,point_scoring_player,point_scoring_jersey_number,point_type,point_won_by
+1,1,0,University of British Colombia,0,0,1,0,Attack,Kill,University of Calgary,Kalyssa Komori,11,Kill,University of Calgary,Kalyssa Komori,11,EARNED,University of Calgary
+1,2,1,University of Calgary,1,0,2,0,Attack,Attack Error,University of British Colombia,Kylie Glanville,8,Attack Error,,,,UNEARNED,University of Calgary
+1,3,2,University of Calgary,2,0,2,1,Block,Block Error,University of Calgary,Julia Tuckwood,15,Block Error,,,,UNEARNED,University of British Colombia
+1,4,3,University of British Colombia,2,1,2,2,Block,Block,University of British Colombia,Emilie Silovs,1,Block,University of British Colombia,Emilie Silovs,1,EARNED,University of British Colombia
+1,5,4,University of British Colombia,2,2,3,2,Serve,Serve Error,University of British Colombia,Aimee Skinner,9,Serve Error,,,,UNEARNED,University of Calgary
+1,6,5,University of Calgary,3,2,4,2,Dig,Dig Error,University of British Colombia,Gabrielle Flaman,10,Kill,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+1,7,6,University of Calgary,4,2,5,2,Attack,Kill,University of Calgary,Julia Tuckwood,15,Kill,University of Calgary,Julia Tuckwood,15,EARNED,University of Calgary
+1,8,7,University of Calgary,5,2,5,3,Attack,Kill,University of British Colombia,Ella Ungemach,11,Kill,University of British Colombia,Ella Ungemach,11,EARNED,University of British Colombia
+1,9,8,University of British Colombia,5,3,6,3,Serve,Serve Error,University of British Colombia,Emilie Silovs,1,Serve Error,,,,UNEARNED,University of Calgary
+1,10,9,University of Calgary,6,3,6,4,Dig,Dig Error,University of Calgary,Leni Blanke,1,Kill,University of British Colombia,Ella Ungemach,11,EARNED,University of British Colombia
+1,11,10,University of British Colombia,6,4,6,5,Reception,Reception Error,University of Calgary,Evvia Belireau,4,Ace,University of British Colombia,Kylie Glanville,8,EARNED,University of British Colombia
+1,12,11,University of British Colombia,6,5,7,5,Dig,Dig Error,University of British Colombia,Aimee Skinner,9,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+1,13,12,University of Calgary,7,5,7,6,Dig,Dig Error,University of Calgary,Christine Abu,2,Kill,University of British Colombia,Issy Robertshaw,5,EARNED,University of British Colombia
+1,14,13,University of British Colombia,7,6,7,7,Attack,Attack Error,University of Calgary,Narelle Arnold,6,Attack Error,,,,UNEARNED,University of British Colombia
+1,15,14,University of British Colombia,7,7,8,7,Serve,Serve Error,University of British Colombia,Ella Ungemach,11,Serve Error,,,,UNEARNED,University of Calgary
+1,17,16,University of Calgary,8,7,8,8,Dig,Dig Error,University of Calgary,Anya Fehr,12,Kill,University of British Colombia,Aimee Skinner,9,EARNED,University of British Colombia
+1,18,17,University of British Colombia,8,8,8,9,Block,Block,University of British Colombia,Emilie Silovs,1,Block,University of British Colombia,Emilie Silovs,1,EARNED,University of British Colombia
+1,19,18,University of British Colombia,8,9,9,9,Attack,Attack Error,University of British Colombia,Aimee Skinner,9,Attack Error,,,,UNEARNED,University of Calgary
+1,20,19,University of Calgary,9,9,9,10,Serve,Serve Error,University of Calgary,Jasmine Chretien,14,Serve Error,,,,UNEARNED,University of British Colombia
+1,21,20,University of British Colombia,9,10,10,10,Block,Block Error,University of British Colombia,Emilie Silovs,1,Block Error,,,,UNEARNED,University of Calgary
+1,22,21,University of Calgary,10,10,10,11,Serve,Serve Error,University of Calgary,Narelle Arnold,6,Serve Error,,,,UNEARNED,University of British Colombia
+1,23,22,University of British Colombia,10,11,10,12,Reception,Reception Error,University of Calgary,Jasmine Chretien,14,Ace,University of British Colombia,Aimee Skinner,9,EARNED,University of British Colombia
+1,24,23,University of British Colombia,10,12,11,12,Attack,Kill,University of Calgary,Leni Blanke,1,Kill,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+1,25,24,University of Calgary,11,12,11,13,Dig,Dig Error,University of Calgary,Evvia Belireau,4,Kill,University of British Colombia,Emilie Silovs,1,EARNED,University of British Colombia
+1,26,25,University of British Colombia,11,13,11,14,Dig,Dig Error,University of Calgary,Jasmine Chretien,14,Kill,University of British Colombia,Ella Ungemach,11,EARNED,University of British Colombia
+1,27,26,University of British Colombia,11,14,12,14,Attack,Kill,University of Calgary,Daisy Olsen,18,Kill,University of Calgary,Daisy Olsen,18,EARNED,University of Calgary
+1,28,27,University of Calgary,12,14,12,15,Dig,Dig Error,University of Calgary,Jasmine Chretien,14,Kill,University of British Colombia,Ella Ungemach,11,EARNED,University of British Colombia
+1,29,28,University of British Colombia,12,15,12,16,Block,Block,University of British Colombia,Jocelyn Lenarcic,3,Block,University of British Colombia,Jocelyn Lenarcic,3,EARNED,University of British Colombia
+1,32,31,University of British Colombia,12,16,13,16,Serve,Serve Error,University of British Colombia,Kylie Glanville,8,Serve Error,,,,UNEARNED,University of Calgary
+1,33,32,University of Calgary,13,16,14,16,Attack,Attack Error,University of British Colombia,Elizabeth Lee,7,Attack Error,,,,UNEARNED,University of Calgary
+1,34,33,University of Calgary,14,16,15,16,Attack,Attack Error,University of British Colombia,Jocelyn Lenarcic,3,Attack Error,,,,UNEARNED,University of Calgary
+1,35,34,University of Calgary,15,16,15,17,Dig,Dig Error,University of Calgary,Princess Dacanay,20,Kill,University of British Colombia,Elizabeth Lee,7,EARNED,University of British Colombia
+1,36,35,University of British Colombia,15,17,16,17,Serve,Serve Error,University of British Colombia,Ella Ungemach,11,Serve Error,,,,UNEARNED,University of Calgary
+1,37,36,University of Calgary,16,17,16,18,Serve,Serve Error,University of Calgary,Daisy Olsen,18,Serve Error,,,,UNEARNED,University of British Colombia
+1,38,37,University of British Colombia,16,18,17,18,Serve,Serve Error,University of British Colombia,Jocelyn Lenarcic,3,Serve Error,,,,UNEARNED,University of Calgary
+1,39,38,University of Calgary,17,18,18,18,Block,Block,University of Calgary,Narelle Arnold,6,Block,University of Calgary,Narelle Arnold,6,EARNED,University of Calgary
+1,40,39,University of Calgary,18,18,18,19,Serve,Serve Error,University of Calgary,Jasmine Chretien,14,Serve Error,,,,UNEARNED,University of British Colombia
+1,41,40,University of British Colombia,18,19,19,19,Block,Block Error,University of British Colombia,Kylie Glanville,8,Block Error,,,,UNEARNED,University of Calgary
+1,42,41,University of Calgary,19,19,20,19,Attack,Attack Error,University of British Colombia,Kylie Glanville,8,Attack Error,,,,UNEARNED,University of Calgary
+1,44,43,University of Calgary,20,19,21,19,Block,Block,University of Calgary,Christine Abu,2,Block,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+1,45,44,University of Calgary,21,19,21,20,Serve,Serve Error,University of Calgary,Kalyssa Komori,11,Serve Error,,,,UNEARNED,University of British Colombia
+1,46,45,University of British Colombia,21,20,21,21,Dig,Dig Error,University of Calgary,Anya Fehr,12,Kill,University of British Colombia,Akash Grewal,4,EARNED,University of British Colombia
+1,47,46,University of British Colombia,21,21,22,21,Attack,Kill,University of Calgary,Christine Abu,2,Kill,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+1,48,47,University of Calgary,22,21,22,22,Attack,Kill,University of British Colombia,Kylie Glanville,8,Kill,University of British Colombia,Kylie Glanville,8,EARNED,University of British Colombia
+1,49,48,University of British Colombia,22,22,22,23,Attack,Kill,University of British Colombia,Kylie Glanville,8,Kill,University of British Colombia,Kylie Glanville,8,EARNED,University of British Colombia
+1,51,50,University of British Colombia,22,23,23,23,Attack,Kill,University of Calgary,Julia Tuckwood,15,Kill,University of Calgary,Julia Tuckwood,15,EARNED,University of Calgary
+1,52,51,University of Calgary,23,23,23,24,Attack,Kill,University of British Colombia,Jocelyn Lenarcic,3,Kill,University of British Colombia,Jocelyn Lenarcic,3,EARNED,University of British Colombia
+1,53,52,University of British Colombia,23,24,24,24,Block,Block Error,University of British Colombia,Akash Grewal,4,Block Error,,,,UNEARNED,University of Calgary
+1,54,53,University of Calgary,24,24,25,24,Reception,Reception Error,University of British Colombia,Aimee Skinner,9,Ace,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+1,55,54,University of Calgary,25,24,25,25,Dig,Dig Error,University of Calgary,Anya Fehr,12,Kill,University of British Colombia,Jocelyn Lenarcic,3,EARNED,University of British Colombia
+1,56,55,University of British Colombia,25,25,26,25,Dig,Dig Error,University of British Colombia,Issy Robertshaw,5,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+1,57,56,University of Calgary,26,25,26,26,Serve,Serve Error,University of Calgary,Anya Fehr,12,Serve Error,,,,UNEARNED,University of British Colombia
+1,58,57,University of British Colombia,26,26,27,26,Block,Block Error,University of British Colombia,Aimee Skinner,9,Block Error,,,,UNEARNED,University of Calgary
+1,59,58,University of Calgary,27,26,28,26,Block,Block,University of Calgary,Leni Blanke,1,Block,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
