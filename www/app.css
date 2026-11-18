@@ -648,3 +648,45 @@ body {
 .momentum-chart-legend .legend-uoc:before{background:#b87535}
 .momentum-chart-legend .legend-opp:before{background:#334b60}
 @media(max-width:760px){.momentum-chart-area{height:300px}.momentum-summary-cards{grid-template-columns:1fr}.momentum-chart-event{width:18px;min-height:31px}.momentum-chart-action{font-size:8px}}
+
+
+/* Reference-style single-match momentum graphic */
+.momentum-match-grid{display:grid;grid-template-columns:1fr;gap:22px}
+.momentum-slot{width:100%;min-width:0}
+.momentum-match-card{width:100%;background:#fff;border:1px solid #e0e6ec;border-radius:16px;padding:16px;overflow:hidden}
+.momentum-set-buttons{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 14px}
+.momentum-set-btn{min-width:58px;border:1px solid #d8e0e7!important;background:#fff!important;color:#5e7082!important;border-radius:7px!important;font-size:11px!important;font-weight:800!important;padding:7px 12px!important;box-shadow:none!important}
+.momentum-set-btn.active{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}
+.momentum-game-banner{background:#a9571e;color:#fff;margin:-16px -16px 18px;padding:18px 22px;min-height:120px}
+.momentum-game-kicker{font-family:"Barlow Condensed",sans-serif;font-size:16px;font-weight:800;letter-spacing:2px;opacity:.95}
+.momentum-game-score{display:flex;align-items:baseline;gap:14px;font-family:"Barlow Condensed",sans-serif;font-size:clamp(25px,4vw,48px);font-weight:900;line-height:1.05}
+.momentum-game-score span:first-child{font-size:clamp(22px,3vw,38px)}
+.momentum-game-score span:last-child{font-size:clamp(22px,3vw,38px)}
+.momentum-game-date{font-size:13px;opacity:.9;margin-top:4px}
+.momentum-chart-area{height:520px;position:relative;overflow:hidden;border-bottom:2px solid #59616a;border-top:1px solid #edf0f2;background:#fff}
+.momentum-chart-gridline{position:absolute;left:0;right:0;height:1px;border-top:1px solid #e7e9eb;z-index:0}
+.momentum-chart-gridline span{position:absolute;left:0;top:-16px;font-size:11px;font-weight:800;color:#6f7780;background:#fff;padding-right:5px}
+.momentum-tie-band{position:absolute;left:0;right:0;top:43%;height:14%;background:#f7f1e8;border-top:2px solid #777;border-bottom:2px solid #777;z-index:1}
+.momentum-chart-event{position:absolute;z-index:3;transform:translate(-50%,-50%);width:25px;min-height:39px;border:2px solid #354b5e;background:#e8edf1;color:#253746;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:1px}
+.momentum-chart-event.uoc-play{border-color:#ad6b31;background:#fff4e7;color:#98551e}
+.momentum-chart-action{font-size:11px;font-weight:900;line-height:13px}
+.momentum-chart-jersey{font-size:9px;line-height:11px}
+.momentum-chart-endline{position:absolute;right:0;top:0;bottom:0;border-left:2px dashed #ad6b31;z-index:2}
+.momentum-chart-caption{font-size:13px;color:#777;line-height:1.5;padding:12px 8px 16px}
+.momentum-summary-cards{display:grid;grid-template-columns:1.1fr 1.1fr .8fr;gap:12px}
+.momentum-summary-card{background:#f5f2e9;border-radius:11px;padding:14px 16px;min-width:0}
+.momentum-summary-title{font-family:"Barlow Condensed",sans-serif;font-size:19px;font-weight:900;letter-spacing:1px;color:#303d48;border-bottom:1px solid #d9d6cd;padding-bottom:7px;margin-bottom:8px}
+.momentum-summary-subhead{display:grid;grid-template-columns:repeat(2,1fr);font-size:11px;color:#78818a;text-align:center;font-weight:700}
+.momentum-summary-card:nth-child(2) .momentum-summary-subhead{grid-template-columns:repeat(3,1fr)}
+.momentum-summary-row{display:grid;grid-template-columns:1.2fr repeat(2,1fr);align-items:center;gap:4px;font-size:25px;font-weight:900;color:#a8642d;text-align:center}
+.momentum-summary-card:nth-child(2) .momentum-summary-row{grid-template-columns:1.2fr repeat(3,1fr)}
+.momentum-summary-row strong{font-size:14px;text-align:left;color:#9a5c25}
+.momentum-summary-row.opponent{color:#334b60}
+.momentum-summary-row.opponent strong{color:#334b60}
+.momentum-longest-card>strong{display:block;font-family:"Barlow Condensed",sans-serif;font-size:42px;line-height:1.1;color:#a8642d}
+.momentum-longest-card>span{font-family:"Barlow Condensed",sans-serif;font-size:19px;font-weight:800;color:#a8642d}
+.momentum-chart-legend{display:flex;gap:15px;margin-top:12px;font-size:10px;font-weight:800;color:#82909b}
+.momentum-chart-legend span:before{content:"";display:inline-block;width:8px;height:8px;margin-right:5px;border-radius:2px}
+.momentum-chart-legend .legend-uoc:before{background:#ad6b31}
+.momentum-chart-legend .legend-opp:before{background:#354b5e}
+@media(max-width:760px){.momentum-chart-area{height:380px}.momentum-summary-cards{grid-template-columns:1fr}.momentum-game-score{flex-wrap:wrap;gap:8px}}
