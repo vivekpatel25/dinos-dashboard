@@ -1,0 +1,32 @@
+match_id,match_date,team,team_role,export_type,section,evaluation_code,outcome,event_count,denominator,percentage,opponent,metric_name,numerator,metric_value,metric_formula,benchmark_side
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Attack,!,In play,9,120,7.5,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Attack,#,Kills,51,120,42.5,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Attack,+,In play,5,120,4.166666666666667,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Attack,-,In play,33,120,27.5,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Attack,/,Blocked,7,120,5.833333333333333,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Attack,=,Errors,15,120,12.5,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Reception,!,Medium,13,74,17.56756756756757,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Reception,#,Good pass,5,74,6.756756756756757,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Reception,+,Good pass,15,74,20.27027027027027,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Reception,-,Out-of-system,19,74,25.675675675675677,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Reception,/,Overpass,12,74,16.216216216216218,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Reception,=,Aced,10,74,13.513513513513514,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Block,!,Fulfilled,16,54,29.62962962962963,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Block,#,Stuff,11,54,20.37037037037037,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Block,+,Positive,11,54,20.37037037037037,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Block,-,Negative,2,54,3.7037037037037037,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Block,=,Errors,14,54,25.925925925925927,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Serve,!,Medium,15,102,14.705882352941176,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Serve,#,Aces,10,102,9.803921568627452,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Serve,+,OOS Pass,31,102,30.392156862745097,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Serve,-,Good Pass,32,102,31.372549019607842,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Serve,/,Overpass,5,102,4.901960784313726,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Serve,=,Serve Error,9,102,8.823529411764707,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Dig,+,In play,56,98,57.142857142857146,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Dig,-,In play,7,98,7.142857142857143,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Dig,/,In play,13,98,13.26530612244898,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,skill_outcome,Dig,=,Dig errors,22,98,22.448979591836736,Mount Royal University,,,,,
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,benchmark,Serve,,,,102,,Mount Royal University,Disruption %,41,40.19607843137255,(Own aces + opponent '-' receptions while this team serves) / own total serves * 100,UofC value
+_2026_11_14_uoc_mru,2026-11-14,University of Calgary,UofC,benchmark,Defense,,,,76,,Mount Royal University,Conversion %,18,23.68421052631579,"Successful dig -> set -> kill sequences / playable digs (+, -, /) * 100",UofC value
+_2026_11_14_uoc_mru,2026-11-14,Mount Royal University,Opponent,benchmark,Serve,,,,87,,University of Calgary,Disruption %,29,33.333333333333336,(Own aces + opponent '-' receptions while this team serves) / own total serves * 100,Opponent value
+_2026_11_14_uoc_mru,2026-11-14,Mount Royal University,Opponent,benchmark,Defense,,,,54,,University of Calgary,Conversion %,11,20.37037037037037,"Successful dig -> set -> kill sequences / playable digs (+, -, /) * 100",Opponent value

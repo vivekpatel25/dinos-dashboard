@@ -1,0 +1,121 @@
+Season,Match_ID,Source_File,Team,Point_ID,Event_Order,Player_ID,Player_Number,Player_Name,Player,Attack_Code,Attack_Type,Evaluation_Code,Evaluation,Attack_Outcome,Attack_Phase,Is_First_Ball,Is_Transition,Start_Zone,End_Zone,End_Subzone
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,2,146,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,5,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,2,152,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X8,High ball z2,=,Error,Error,Transition breakpoint,FALSE,TRUE,2,1,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,4,162,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,8,188,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,5,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,10,214,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,X1,High ball z4,=,Error,Error,Transition breakpoint,FALSE,TRUE,4,NA,NA
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,14,249,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C8,Slide to pin,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,14,253,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,V7,Inside Backspike A,=,Error,Error,Transition sideout,FALSE,TRUE,9,3,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,15,259,FEH-ANY,12,Anya Fehr,#12 - Anya Fehr,ZZ,Setter Dump,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,3,8,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,15,266,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C8,Slide to pin,!,Blocked for reattack,In Play,Transition sideout,FALSE,TRUE,2,4,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,15,270,FEH-ANY,12,Anya Fehr,#12 - Anya Fehr,ZZ,Setter Dump,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,3,7,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,15,276,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,X1,High ball z4,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,18,300,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X1,High ball z4,=,Error,Error,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,22,319,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,2,3,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,22,325,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,27,354,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,27,357,ABU-CHR,2,Christine Abu,#2 - Christine Abu,Z2,Attack on 2nd touch,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,2,8,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,29,384,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XX,Super in z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,5,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,31,397,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,35,416,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,=,Error,Error,Transition breakpoint,FALSE,TRUE,4,1,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,36,423,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,/,Blocked,Blocked,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,37,430,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C8,Slide to pin,#,Winning attack,Kill,Reception,TRUE,FALSE,2,5,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,41,462,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XV,Super in z2,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,2,9,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,45,487,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C6,Til,#,Winning attack,Kill,Reception,TRUE,FALSE,3,3,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,46,497,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,+,"Positive, good attack",Positive,Transition breakpoint,FALSE,TRUE,4,2,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,46,499,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,ZX,Attack on Overpass,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,2,3,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,49,513,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,1,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,50,523,TUC-JUL,15,Julia Tuckwood,#15 - Julia Tuckwood,X1,High ball z4,/,Blocked,Blocked,Transition breakpoint,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,51,530,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,/,Blocked,Blocked,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,53,537,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Reception,TRUE,FALSE,2,8,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,54,548,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,3,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,55,563,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Reception,TRUE,FALSE,2,8,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,56,577,FEH-ANY,12,Anya Fehr,#12 - Anya Fehr,ZZ,Setter Dump,!,Blocked for reattack,In Play,Transition breakpoint,FALSE,TRUE,3,3,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,56,581,KOM-KAL,11,Kalyssa Komori,#11 - Kalyssa Komori,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,6,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,61,621,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,X1,High ball z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,1,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,63,636,BLA-LEN,1,Leni Blanke,#1 - Leni Blanke,XV,Super in z2,=,Error,Error,Reception,TRUE,FALSE,2,1,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,65,653,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,8,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,67,668,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,=,Error,Error,Reception,TRUE,FALSE,4,6,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,74,731,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,75,741,ABU-CHR,2,Christine Abu,#2 - Christine Abu,ZX,Attack on Overpass,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,3,3,NA
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,77,751,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,79,759,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,=,Error,Error,Transition breakpoint,FALSE,TRUE,2,1,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,80,769,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,3,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,80,776,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,/,Blocked,Blocked,Transition sideout,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,83,794,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,8,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,84,804,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,VV,Super Backspike A,=,Error,Error,Transition breakpoint,FALSE,TRUE,9,4,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,85,811,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,85,815,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,4,6,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,86,824,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,5,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,86,830,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,2,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,86,836,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,90,864,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XX,Super in z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,93,879,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,6,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,101,939,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C2,Stik,/,Blocked,Blocked,Reception,TRUE,FALSE,4,3,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,103,952,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,+,"Positive, good attack",Positive,Reception,TRUE,FALSE,4,7,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,103,954,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,ZX,Attack on Overpass,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,4,9,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,104,966,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,=,Error,Error,Transition breakpoint,FALSE,TRUE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,105,973,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Reception,TRUE,FALSE,2,5,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,107,987,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,2,4,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,107,991,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,!,Blocked for reattack,In Play,Transition sideout,FALSE,TRUE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,107,995,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,4,1,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,110,1018,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,X8,High ball z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,5,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,112,1033,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,114,1055,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,X8,High ball z2,=,Error,Error,Transition breakpoint,FALSE,TRUE,2,1,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,117,1076,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,1,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,122,1095,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,7,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,126,1118,AND-AME,19,Amelia Anderson,#19 - Amelia Anderson,ZZ,Setter Dump,#,Winning attack,Kill,Reception,TRUE,FALSE,3,3,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,130,1144,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,XV,Super in z2,+,"Positive, good attack",Positive,Reception,TRUE,FALSE,2,8,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,130,1150,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,XV,Super in z2,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,2,3,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,132,1172,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XV,Super in z2,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,2,4,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,133,1182,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,2,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,133,1189,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,1,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,134,1199,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,XV,Super in z2,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,2,5,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,139,1220,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C5,P?,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,3,9,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,141,1236,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,XV,Super in z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,3,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,144,1251,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,1,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,146,1267,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XX,Super in z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,147,1276,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XX,Super in z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,1,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,152,1321,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XX,Super in z4,=,Error,Error,Transition breakpoint,FALSE,TRUE,4,NA,NA
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,153,1328,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C6,Til,#,Winning attack,Kill,Reception,TRUE,FALSE,2,8,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,156,1353,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,X1,High ball z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,5,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,156,1359,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X8,High ball z2,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,2,1,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,158,1373,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,3,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,162,1399,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,/,Blocked,Blocked,Reception,TRUE,FALSE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,166,1409,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C5,P?,#,Winning attack,Kill,Reception,TRUE,FALSE,3,3,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,167,1415,AND-AME,19,Amelia Anderson,#19 - Amelia Anderson,ZX,Attack on Overpass,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,2,1,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,167,1420,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,2,8,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,170,1438,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,8,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,171,1450,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Transition sideout,FALSE,TRUE,2,4,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,173,1464,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X2,Inside z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,6,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,174,1473,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C8,Slide to pin,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,2,8,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,175,1482,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,=,Error,Error,Transition breakpoint,FALSE,TRUE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,176,1489,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C8,Slide to pin,#,Winning attack,Kill,Reception,TRUE,FALSE,2,9,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,178,1502,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,XV,Super in z2,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,2,4,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,180,1512,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X7,Inside z2,#,Winning attack,Kill,Reception,TRUE,FALSE,2,8,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,182,1523,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,3,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,183,1532,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,XV,Super in z2,/,Blocked,Blocked,Transition breakpoint,FALSE,TRUE,2,4,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,184,1539,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C5,P?,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,3,3,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,186,1557,ABU-CHR,2,Christine Abu,#2 - Christine Abu,C8,Slide to pin,#,Winning attack,Kill,Reception,TRUE,FALSE,2,7,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,188,1570,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X2,Inside z4,!,Blocked for reattack,In Play,Transition breakpoint,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,188,1573,ABU-CHR,2,Christine Abu,#2 - Christine Abu,Z2,Attack on 2nd touch,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,3,3,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,188,1579,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,VX,High Ball Pipe,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,8,8,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,190,1598,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X1,High ball z4,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,4,1,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,190,1603,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,X2,Inside z4,+,"Positive, good attack",Positive,Transition breakpoint,FALSE,TRUE,4,2,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,190,1605,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,ZX,Attack on Overpass,-,"Poor, easily dug",Negative,Transition breakpoint,FALSE,TRUE,3,3,NA
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,190,1612,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XX,Super in z4,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,193,1627,AND-AME,19,Amelia Anderson,#19 - Amelia Anderson,ZZ,Setter Dump,!,Blocked for reattack,In Play,Reception,TRUE,FALSE,3,7,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,194,1636,SAJ-SON,8,Sona Sajeev,#8 - Sona Sajeev,XX,Super in z4,#,Winning attack,Kill,Reception,TRUE,FALSE,4,8,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,197,1657,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C2,Stik,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,4,9,A
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,198,1667,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,XX,Super in z4,=,Error,Error,Transition breakpoint,FALSE,TRUE,4,1,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,199,1674,ARN-NAR,6,Narelle Arnold,#6 - Narelle Arnold,C8,Slide to pin,=,Error,Error,Reception,TRUE,FALSE,2,5,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,200,1684,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,4,2,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,201,1701,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,XV,Super in z2,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,2,7,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,204,1713,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Reception,TRUE,FALSE,4,8,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,204,1727,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,XV,Super in z2,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,2,6,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,204,1733,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X3,33,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,204,1740,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,4,2,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,206,1751,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,+,"Positive, good attack",Positive,Reception,TRUE,FALSE,4,5,B
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,206,1760,EVJ-REE,21,Reese Evjen,#21 - Reese Evjen,X1,High ball z4,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,4,2,D
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,206,1766,OLS-DAI,18,Daisy Olsen,#18 - Daisy Olsen,X8,High ball z2,-,"Poor, easily dug",Negative,Transition sideout,FALSE,TRUE,2,1,C
+2026-27,_2026_11_14_uoc_mru,&2026-11-14 UoC-MRU.dvw,University of Calgary,207,1780,ABU-CHR,2,Christine Abu,#2 - Christine Abu,ZX,Attack on Overpass,#,Winning attack,Kill,Transition breakpoint,FALSE,TRUE,3,7,B
