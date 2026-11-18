@@ -710,3 +710,50 @@ body {
 .momentum-earned-table th:nth-child(1){width:15%}
 .momentum-earned-table th:nth-child(2){width:45%}
 .momentum-earned-table th:nth-child(3),.momentum-earned-table th:nth-child(4){width:20%}
+
+
+/* Final momentum visual corrections: load after all legacy momentum rules */
+.momentum-section .momentum-game-banner,
+.momentum-section .momentum-match-card .momentum-game-banner {
+  background: #C8102E !important;
+  background-color: #C8102E !important;
+  color: #fff !important;
+}
+.momentum-section .momentum-tie-band {
+  top: calc(50% - 19.5px) !important;
+  height: 39px !important;
+  box-sizing: border-box !important;
+  background: #f7f1e8 !important;
+  border-top: 1px solid #59616a !important;
+  border-bottom: 1px solid #59616a !important;
+  z-index: 1 !important;
+}
+.momentum-section .momentum-chart-event {
+  width: 25px !important;
+  height: 39px !important;
+  min-height: 39px !important;
+  box-sizing: border-box !important;
+  padding: 2px 1px !important;
+  overflow: visible !important;
+  line-height: 1 !important;
+}
+.momentum-section .momentum-chart-action,
+.momentum-section .momentum-chart-jersey {
+  display: block !important;
+  width: 100% !important;
+  min-height: 10px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+.momentum-section .momentum-chart-action {
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  line-height: 13px !important;
+}
+.momentum-section .momentum-chart-jersey {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  line-height: 11px !important;
+}
