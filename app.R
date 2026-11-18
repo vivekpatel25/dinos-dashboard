@@ -4884,9 +4884,9 @@ ui <- fluidPage(
   flex: 0 0 auto !important;
 }
 .momentum-section .momentum-chart-event {
-  /* Keep the same marker dimensions so equal score steps look equal. */
-  height: 39px !important;
-  min-height: 39px !important;
+  /* Match the one-point vertical score step exactly. */
+  height: 44px !important;
+  min-height: 44px !important;
   box-sizing: border-box !important;
 }
 .momentum-section .momentum-summary-subhead {
