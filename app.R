@@ -4935,7 +4935,10 @@ ui <- fluidPage(
   }
   .momentum-section .momentum-game-score { gap: 9px !important; }
 }
-\n"))\n  ),\n\n  uiOutput("app_header"),
+\n"))
+  ),
+
+  uiOutput("app_header"),
   uiOutput("page_body"),
 
   div(
