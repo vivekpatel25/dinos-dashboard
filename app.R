@@ -2950,6 +2950,7 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   # Do not use ending_action/ending_skill: the last contact can be a Dig or
   # Reception while the scoring action is a Kill, Ace, Block, or Error.
   scoring_action_col <- pick_col(c("point_scoring_action"))
+  scoring_team_col <- pick_col(c("point_scoring_team"))
   scoring_player_col <- pick_col(c("point_scoring_player"))
   scoring_jersey_col <- pick_col(c("point_scoring_jersey_number"))
 
@@ -2970,8 +2971,28 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
     } else ""
     if (is.na(jersey_text) || !nzchar(jersey_text)) jersey_text <- ""
 
-    # Official rally winner determines team colour.
-    is_calgary_play <- team_is_calgary(one$point_won_by[i])
+    # Colour identifies the team responsible for the displayed action/player,
+    # not automatically the team that won the point.
+    # For a scoring action, use point_scoring_team. On errors this field is
+    # commonly blank, so the responsible team is the opponent of point_won_by.
+    scoring_team <- if (nzchar(scoring_team_col)) {
+      as.character(one[[scoring_team_col]][i])
+    } else ""
+    if (is.na(scoring_team)) scoring_team <- ""
+
+    is_error_action <- grepl("error", action, ignore.case = TRUE)
+    if (!is_error_action && nzchar(trimws(scoring_team))) {
+      is_calgary_play <- team_is_calgary(scoring_team)
+    } else {
+      point_winner_is_calgary <- team_is_calgary(one$point_won_by[i])
+      is_calgary_play <- if (is_error_action) {
+        !point_winner_is_calgary
+      } else if (nzchar(trimws(scoring_team))) {
+        team_is_calgary(scoring_team)
+      } else {
+        point_winner_is_calgary
+      }
+    }
 
     # Fixed-width boxes are centred in their rally slots, leaving visible gaps.
     slot_width <- 97 / max(1, n_points)
