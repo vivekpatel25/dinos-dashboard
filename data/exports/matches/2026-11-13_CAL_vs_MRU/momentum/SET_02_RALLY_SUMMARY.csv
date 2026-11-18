@@ -1,0 +1,49 @@
+set_number,rally_number,point_id,serving_team,home_score_before,visiting_score_before,home_score_after,visiting_score_after,ending_skill,ending_action,ending_skill_team,ending_skill_player,ending_skill_jersey_number,point_scoring_action,point_scoring_team,point_scoring_player,point_scoring_jersey_number,point_type,point_won_by
+2,1,45,University of Calgary,0,0,0,1,Dig,Dig Error,University of Calgary,Evvia Belireau,4,Kill,Mount Royal University,Erika Bang,11,EARNED,Mount Royal University
+2,2,46,Mount Royal University,0,1,1,1,Serve,Serve Error,Mount Royal University,Erika Bang,11,Serve Error,,,,UNEARNED,University of Calgary
+2,3,47,University of Calgary,1,1,1,2,Attack,Attack Error,University of Calgary,Leni Blanke,1,Attack Error,,,,UNEARNED,Mount Royal University
+2,4,48,Mount Royal University,1,2,2,2,Dig,Dig Error,Mount Royal University,Raven Ogbodu,14,Kill,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+2,5,49,University of Calgary,2,2,3,2,Set,Set Error,Mount Royal University,Kennedy Williscroft,12,Set Error,,,,UNEARNED,University of Calgary
+2,6,50,University of Calgary,3,2,3,3,Serve,Serve Error,University of Calgary,Leni Blanke,1,Serve Error,,,,UNEARNED,Mount Royal University
+2,7,51,Mount Royal University,3,3,3,4,Reception,Reception Error,University of Calgary,Evvia Belireau,4,Ace,Mount Royal University,Awien Ngor,7,EARNED,Mount Royal University
+2,8,52,Mount Royal University,3,4,3,5,Dig,Dig Error,University of Calgary,Julia Tuckwood,15,Kill,Mount Royal University,Aurora Bentrim,9,EARNED,Mount Royal University
+2,9,53,Mount Royal University,3,5,4,5,Dig,Dig Error,Mount Royal University,Awien Ngor,7,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+2,10,54,University of Calgary,4,5,4,6,Freeball,Free-ball Error,University of Calgary,Jasmine Chretien,14,Free-ball Error,,,,UNEARNED,Mount Royal University
+2,11,55,Mount Royal University,4,6,4,7,Attack,Attack Error,University of Calgary,Anya Fehr,12,Attack Error,,,,UNEARNED,Mount Royal University
+2,12,56,Mount Royal University,4,7,5,7,Dig,Dig Error,Mount Royal University,Awien Ngor,7,Kill,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+2,13,57,University of Calgary,5,7,6,7,Attack,Kill,University of Calgary,Leni Blanke,1,Kill,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+2,14,58,University of Calgary,6,7,7,7,Reception,Reception Error,Mount Royal University,Erika Bang,11,Ace,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+2,15,59,University of Calgary,7,7,7,8,Serve,Serve Error,University of Calgary,Christine Abu,2,Serve Error,,,,UNEARNED,Mount Royal University
+2,17,61,Mount Royal University,7,8,8,8,Serve,Serve Error,Mount Royal University,Faith Obasi,4,Serve Error,,,,UNEARNED,University of Calgary
+2,18,62,University of Calgary,8,8,8,9,Dig,Dig Error,University of Calgary,Evvia Belireau,4,Kill,Mount Royal University,Taryn Sieben,5,EARNED,Mount Royal University
+2,19,63,Mount Royal University,8,9,9,9,Block,Block Error,Mount Royal University,Erika Bang,11,Block Error,,,,UNEARNED,University of Calgary
+2,20,64,University of Calgary,9,9,9,10,Dig,Dig Error,University of Calgary,Julia Tuckwood,15,Kill,Mount Royal University,Raven Ogbodu,14,EARNED,Mount Royal University
+2,21,65,Mount Royal University,9,10,10,10,Attack,Kill,University of Calgary,Jasmine Chretien,14,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+2,22,66,University of Calgary,10,10,10,11,Dig,Dig Error,University of Calgary,Narelle Arnold,6,Kill,Mount Royal University,Awien Ngor,7,EARNED,Mount Royal University
+2,23,67,Mount Royal University,10,11,11,11,Serve,Serve Error,Mount Royal University,Raven Ogbodu,14,Serve Error,,,,UNEARNED,University of Calgary
+2,24,68,University of Calgary,11,11,11,12,Block,Block Error,University of Calgary,Jasmine Chretien,14,Block Error,,,,UNEARNED,Mount Royal University
+2,25,69,Mount Royal University,11,12,12,12,Attack,Kill,University of Calgary,Jasmine Chretien,14,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+2,26,70,University of Calgary,12,12,13,12,Reception,Reception Error,Mount Royal University,Erika Bang,11,Ace,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+2,27,71,University of Calgary,13,12,14,12,Reception,Reception Error,Mount Royal University,Erika Bang,11,Ace,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+2,29,73,University of Calgary,14,12,14,13,Freeball,Free-ball Error,University of Calgary,Christine Abu,2,Free-ball Error,,,,UNEARNED,Mount Royal University
+2,30,74,Mount Royal University,14,13,14,14,Attack,Attack Error,University of Calgary,Julia Tuckwood,15,Attack Error,,,,UNEARNED,Mount Royal University
+2,31,75,Mount Royal University,14,14,15,14,Dig,Dig Error,Mount Royal University,Awien Ngor,7,Kill,University of Calgary,Julia Tuckwood,15,EARNED,University of Calgary
+2,32,76,University of Calgary,15,14,15,15,Attack,Kill,Mount Royal University,Awien Ngor,7,Kill,Mount Royal University,Awien Ngor,7,EARNED,Mount Royal University
+2,33,77,Mount Royal University,15,15,15,16,Reception,Reception Error,University of Calgary,Jasmine Chretien,14,Ace,Mount Royal University,Faith Obasi,4,EARNED,Mount Royal University
+2,35,79,Mount Royal University,15,16,15,17,Attack,Attack Error,University of Calgary,Julia Tuckwood,15,Attack Error,,,,UNEARNED,Mount Royal University
+2,36,80,Mount Royal University,15,17,16,17,Serve,Serve Error,Mount Royal University,Faith Obasi,4,Serve Error,,,,UNEARNED,University of Calgary
+2,37,81,University of Calgary,16,17,17,17,Attack,Attack Error,Mount Royal University,Erika Bang,11,Attack Error,,,,UNEARNED,University of Calgary
+2,38,82,University of Calgary,17,17,17,18,Freeball,Free-ball Error,University of Calgary,Jasmine Chretien,14,Free-ball Error,,,,UNEARNED,Mount Royal University
+2,39,83,Mount Royal University,17,18,17,19,Block,Block Error,University of Calgary,Narelle Arnold,6,Block Error,,,,UNEARNED,Mount Royal University
+2,41,85,Mount Royal University,17,19,18,19,Serve,Serve Error,Mount Royal University,Taryn Sieben,5,Serve Error,,,,UNEARNED,University of Calgary
+2,42,86,University of Calgary,18,19,18,20,Set,Set Error,University of Calgary,Evvia Belireau,4,Set Error,,,,UNEARNED,Mount Royal University
+2,43,87,Mount Royal University,18,20,18,21,Attack,Attack Error,University of Calgary,Narelle Arnold,6,Attack Error,,,,UNEARNED,Mount Royal University
+2,44,88,Mount Royal University,18,21,19,21,Attack,Kill,University of Calgary,Leni Blanke,1,Kill,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+2,45,89,University of Calgary,19,21,20,21,Attack,Attack Error,Mount Royal University,Aurora Bentrim,9,Attack Error,,,,UNEARNED,University of Calgary
+2,46,90,University of Calgary,20,21,20,22,Dig,Dig Error,University of Calgary,Julia Tuckwood,15,Kill,Mount Royal University,Awien Ngor,7,EARNED,Mount Royal University
+2,47,91,Mount Royal University,20,22,21,22,Block,Block,University of Calgary,Leni Blanke,1,Block,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+2,48,92,University of Calgary,21,22,22,22,Dig,Dig Error,Mount Royal University,Fiona Brown,16,Kill,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+2,50,94,University of Calgary,22,22,22,23,Serve,Serve Error,University of Calgary,Leni Blanke,1,Serve Error,,,,UNEARNED,Mount Royal University
+2,51,95,Mount Royal University,22,23,22,24,Dig,Dig Error,University of Calgary,Evvia Belireau,4,Dig Error,,,,UNEARNED,Mount Royal University
+2,53,97,Mount Royal University,22,24,23,24,Dig,Dig Error,Mount Royal University,Aleni Tsougrianis,6,Kill,University of Calgary,Anya Fehr,12,EARNED,University of Calgary
+2,54,98,University of Calgary,23,24,23,25,Attack,Attack Error,University of Calgary,Christine Abu,2,Attack Error,,,,UNEARNED,Mount Royal University

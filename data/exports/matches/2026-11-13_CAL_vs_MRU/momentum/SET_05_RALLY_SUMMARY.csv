@@ -1,0 +1,27 @@
+set_number,rally_number,point_id,serving_team,home_score_before,visiting_score_before,home_score_after,visiting_score_after,ending_skill,ending_action,ending_skill_team,ending_skill_player,ending_skill_jersey_number,point_scoring_action,point_scoring_team,point_scoring_player,point_scoring_jersey_number,point_type,point_won_by
+5,1,196,Mount Royal University,0,0,0,1,Attack,Kill,Mount Royal University,Faith Obasi,4,Kill,Mount Royal University,Faith Obasi,4,EARNED,Mount Royal University
+5,2,197,Mount Royal University,0,1,0,2,Block,Block,Mount Royal University,Faith Obasi,4,Block,Mount Royal University,Faith Obasi,4,EARNED,Mount Royal University
+5,3,198,Mount Royal University,0,2,0,3,Block,Block Error,University of Calgary,Leni Blanke,1,Block Error,,,,UNEARNED,Mount Royal University
+5,4,199,Mount Royal University,0,3,1,3,Attack,Attack Error,Mount Royal University,Awien Ngor,7,Attack Error,,,,UNEARNED,University of Calgary
+5,5,200,University of Calgary,1,3,2,3,Attack,Attack Error,Mount Royal University,Erika Bang,11,Attack Error,,,,UNEARNED,University of Calgary
+5,6,201,University of Calgary,2,3,2,4,Block,Block Error,University of Calgary,Christine Abu,2,Block Error,,,,UNEARNED,Mount Royal University
+5,7,202,Mount Royal University,2,4,2,5,Block,Block Error,University of Calgary,Anya Fehr,12,Block Error,,,,UNEARNED,Mount Royal University
+5,8,203,Mount Royal University,2,5,2,6,Reception,Reception Error,University of Calgary,Julia Tuckwood,15,Ace,Mount Royal University,Faith Obasi,4,EARNED,Mount Royal University
+5,10,205,Mount Royal University,2,6,3,6,Dig,Dig Error,Mount Royal University,Raven Ogbodu,14,Kill,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+5,11,206,University of Calgary,3,6,4,6,Attack,Kill,University of Calgary,Leni Blanke,1,Kill,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+5,12,207,University of Calgary,4,6,5,6,Block,Block,University of Calgary,Christine Abu,2,Block,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+5,13,208,University of Calgary,5,6,6,6,Dig,Dig Error,Mount Royal University,Erika Bang,11,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+5,14,209,University of Calgary,6,6,7,6,Dig,Dig Error,Mount Royal University,Erika Bang,11,Dig Error,,,,UNEARNED,University of Calgary
+5,15,210,University of Calgary,7,6,8,6,Reception,Reception Error,Mount Royal University,Megan Jones,2,Ace,University of Calgary,Julia Tuckwood,15,EARNED,University of Calgary
+5,16,211,University of Calgary,8,6,9,6,Dig,Dig Error,Mount Royal University,Fiona Brown,16,Kill,University of Calgary,Christine Abu,2,EARNED,University of Calgary
+5,17,212,University of Calgary,9,6,10,6,Dig,Dig Error,Mount Royal University,Raven Ogbodu,14,Dig Error,,,,UNEARNED,University of Calgary
+5,19,214,University of Calgary,10,6,10,7,Block,Block Error,University of Calgary,Jasmine Chretien,14,Block Error,,,,UNEARNED,Mount Royal University
+5,20,215,Mount Royal University,10,7,10,8,Attack,Attack Error,University of Calgary,Jasmine Chretien,14,Attack Error,,,,UNEARNED,Mount Royal University
+5,21,216,Mount Royal University,10,8,11,8,Serve,Serve Error,Mount Royal University,Kennedy Williscroft,12,Serve Error,,,,UNEARNED,University of Calgary
+5,22,217,University of Calgary,11,8,12,8,Attack,Attack Error,Mount Royal University,Awien Ngor,7,Attack Error,,,,UNEARNED,University of Calgary
+5,23,218,University of Calgary,12,8,12,9,Block,Block Error,University of Calgary,Narelle Arnold,6,Block Error,,,,UNEARNED,Mount Royal University
+5,24,219,Mount Royal University,12,9,13,9,Serve,Serve Error,Mount Royal University,Erika Bang,11,Serve Error,,,,UNEARNED,University of Calgary
+5,27,222,University of Calgary,13,9,13,10,Attack,Kill,Mount Royal University,Raven Ogbodu,14,Kill,Mount Royal University,Raven Ogbodu,14,EARNED,Mount Royal University
+5,28,223,Mount Royal University,13,10,14,10,Block,Block Error,Mount Royal University,Faith Obasi,4,Block Error,,,,UNEARNED,University of Calgary
+5,29,224,University of Calgary,14,10,14,11,Dig,Dig Error,University of Calgary,Jasmine Chretien,14,Kill,Mount Royal University,Megan Jones,2,EARNED,Mount Royal University
+5,30,225,Mount Royal University,14,11,15,11,Attack,Kill,University of Calgary,Narelle Arnold,6,Kill,University of Calgary,Narelle Arnold,6,EARNED,University of Calgary
