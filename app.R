@@ -2974,7 +2974,9 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
     play_team <- if (nzchar(team_col)) as.character(one[[team_col]][i]) else as.character(one$point_won_by[i])
     if (is.na(play_team) || !nzchar(play_team)) play_team <- as.character(one$point_won_by[i])
     is_calgary_play <- team_is_calgary(play_team)
-    left <- ((i - 0.5) / n_points) * 100
+    # Keep equal spacing while reserving clear margins at both chart edges.
+    # This prevents the final rally box from being clipped by the dashed end line.
+    left <- 2.5 + (((i - 0.5) / n_points) * 95)
     label <- momentum_action_label(action, skill)
     jersey_text <- if (!is.na(jersey) && nzchar(as.character(jersey))) {
       suppressWarnings(as.character(as.integer(as.numeric(jersey))))
