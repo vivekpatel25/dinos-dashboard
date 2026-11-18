@@ -2789,36 +2789,51 @@ if (!is.null(match_metadata) && nrow(match_metadata) &&
 
 # ----------------------------- MOMENTUM RUNS -----------------------------
 
-MOMENTUM_ROOT <- file.path("data", "exports", "momentum")
+MOMENTUM_ROOT <- MATCH_ROOT
 
 load_momentum_match <- function(match_id) {
   if (is.null(match_id) || !length(match_id) || !nrow(match_index)) return(data.frame())
   row <- match_index[as.character(match_index$match_id) == as.character(match_id), , drop = FALSE]
   if (!nrow(row)) return(data.frame())
+
   folder <- if ("match_folder" %in% names(row)) as.character(row$match_folder[1]) else ""
   candidates <- character(0)
-  if (!is.na(folder) && nzchar(folder)) candidates <- c(candidates, file.path(MOMENTUM_ROOT, folder))
-  # Also support an export folder named exactly like the source match folder.
-  if (dir.exists(MOMENTUM_ROOT)) {
-    dirs <- list.dirs(MOMENTUM_ROOT, recursive = FALSE, full.names = TRUE)
-    if (length(dirs) && nzchar(folder)) candidates <- c(candidates, dirs[basename(dirs) == folder])
-    # Date-based fallback handles exporter folder labels that differ from match_index.
-    match_date <- if ("match_date" %in% names(row)) as.character(row$match_date[1]) else ""
-    date_key <- gsub("[^0-9]", "", match_date)
-    if (nchar(date_key) >= 8 && length(dirs)) {
-      candidates <- c(candidates, dirs[grepl(substr(date_key, 1, 8), gsub("[^0-9]", "", basename(dirs)), fixed = TRUE)])
-    }
+
+  # First try the exact match folder supplied by the dashboard index.
+  if (!is.na(folder) && nzchar(folder)) {
+    candidates <- c(candidates, file.path(MATCH_ROOT, folder, "momentum"))
   }
+
+  # Then match the match-index date to the actual repository folder name.
+  match_date <- if ("match_date" %in% names(row)) as.character(row$match_date[1]) else ""
+  date_key <- gsub("[^0-9]", "", match_date)
+  match_dirs <- if (dir.exists(MATCH_ROOT)) {
+    list.dirs(MATCH_ROOT, recursive = FALSE, full.names = TRUE)
+  } else character(0)
+  if (length(match_dirs) && nchar(date_key) >= 8) {
+    folder_keys <- gsub("[^0-9]", "", basename(match_dirs))
+    candidates <- c(candidates, file.path(match_dirs[grepl(substr(date_key, 1, 8), folder_keys, fixed = TRUE)], "momentum"))
+  }
+
   candidates <- unique(candidates[dir.exists(candidates)])
   if (!length(candidates)) return(data.frame())
-  files <- list.files(candidates[1], pattern = "^SET_[0-9]+_RALLY_SUMMARY\\.csv$", full.names = TRUE, ignore.case = TRUE)
+
+  files <- list.files(candidates[1], pattern = "^SET_[0-9]+_RALLY_SUMMARY\\.csv$",
+                      full.names = TRUE, ignore.case = TRUE)
   if (!length(files)) return(data.frame())
   parts <- lapply(files, read_csv_safe)
   parts <- Filter(function(x) !is.null(x) && nrow(x), parts)
   if (!length(parts)) return(data.frame())
   out <- do.call(rbind, parts)
-  required <- c("set_number", "rally_number", "point_type", "point_won_by", "home_score_after", "visiting_score_after")
+
+  # Accept the sample/export schema: rally_number and point_id are both present.
+  if (!"rally_number" %in% names(out) && "point_id" %in% names(out)) {
+    out$rally_number <- out$point_id
+  }
+  required <- c("set_number", "rally_number", "point_type", "point_won_by",
+                "home_score_after", "visiting_score_after")
   if (!all(required %in% names(out))) return(data.frame())
+
   out$set_number <- suppressWarnings(as.integer(out$set_number))
   out$rally_number <- suppressWarnings(as.integer(out$rally_number))
   out$point_type <- toupper(trimws(as.character(out$point_type)))
