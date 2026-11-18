@@ -2935,8 +2935,8 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
   chart_height_px <- 700
   marker_height_px <- 44
   step_pct <- marker_height_px / chart_height_px * 100
-  previous_diff <- c(0, diff_after[-length(diff_after)])
-  step_top_pct <- 50 - (pmax(previous_diff, diff_after) * step_pct)
+  # Place the centre of each 44px marker at the score differential after the rally.
+  step_top_pct <- 50 - (diff_after * step_pct) - (step_pct / 2)
   n_points <- nrow(one)
 
   # These are the exact fields in SET_XX_RALLY_SUMMARY.csv.
@@ -2946,82 +2946,49 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
     hit <- candidates[candidates %in% names(one)]
     if (length(hit)) hit[1] else ""
   }
-  skill_col <- pick_col(c("ending_skill", "last_skill"))
-  ending_action_col <- pick_col(c("ending_action"))
-  ending_player_col <- pick_col(c("ending_skill_player", "last_skill_player"))
-  ending_jersey_col <- pick_col(c("ending_skill_jersey_number", "last_skill_jersey_number"))
+  # Rally labels always come from the point-scoring fields.
+  # Do not use ending_action/ending_skill: the last contact can be a Dig or
+  # Reception while the scoring action is a Kill, Ace, Block, or Error.
   scoring_action_col <- pick_col(c("point_scoring_action"))
   scoring_player_col <- pick_col(c("point_scoring_player"))
   scoring_jersey_col <- pick_col(c("point_scoring_jersey_number"))
-  sequence_col <- pick_col(c("skill_sequence"))
-  eval_col <- pick_col(c("last_skill_evaluation_code"))
 
   event_boxes <- lapply(seq_len(n_points), function(i) {
-    skill <- if (nzchar(skill_col)) as.character(one[[skill_col]][i]) else ""
-    ending_action <- if (nzchar(ending_action_col)) as.character(one[[ending_action_col]][i]) else ""
-    scoring_action <- if (nzchar(scoring_action_col)) as.character(one[[scoring_action_col]][i]) else ""
+    action <- if (nzchar(scoring_action_col)) as.character(one[[scoring_action_col]][i]) else ""
+    player_name <- if (nzchar(scoring_player_col)) as.character(one[[scoring_player_col]][i]) else ""
+    jersey <- if (nzchar(scoring_jersey_col)) one[[scoring_jersey_col]][i] else NA
 
-    # Error rallies use the ending-contact fields because point_scoring_* can be blank.
-    # Non-error rallies use point_scoring_* to identify the scoring action and player.
-    ending_is_error <- !is.na(ending_action) &&
-      grepl("error", trimws(ending_action), ignore.case = TRUE)
+    if (is.na(action)) action <- ""
+    if (is.na(player_name)) player_name <- ""
 
-    if (ending_is_error) {
-      action <- ending_action
-      player_col <- ending_player_col
-      jersey_col <- ending_jersey_col
-      label_skill <- skill
-      player_source <- "ending"
-    } else {
-      action <- scoring_action
-      player_col <- scoring_player_col
-      jersey_col <- scoring_jersey_col
-      label_skill <- ""
-      player_source <- "scoring"
-    }
+    # Only point_scoring_action determines the abbreviation. Passing an empty
+    # skill prevents an ending Dig/Reception from changing Kill into "Dig Error".
+    label <- momentum_action_label(action, "")
 
-    player_name <- if (nzchar(player_col)) as.character(one[[player_col]][i]) else ""
-    jersey <- if (nzchar(jersey_col)) one[[jersey_col]][i] else NA
-
-    # Older master exports may retain the jersey inside the terminal skill sequence.
-    if ((is.na(jersey) || !nzchar(as.character(jersey))) &&
-        identical(player_source, "ending") && nzchar(sequence_col)) {
-      seq_text <- as.character(one[[sequence_col]][i])
-      jersey_match <- regmatches(seq_text, gregexpr("#[0-9]+", seq_text))[[1]]
-      if (length(jersey_match) && jersey_match[1] != "") jersey <- sub("#", "", tail(jersey_match, 1))
-    }
-    if ((is.na(jersey) || !nzchar(as.character(jersey))) && nzchar(player_name)) {
-      jersey_match <- regmatches(player_name, regexpr("#[0-9]+", player_name))
-      if (length(jersey_match) && jersey_match != "") jersey <- sub("#", "", jersey_match)
-    }
-
-    if (!nzchar(trimws(action)) && ending_is_error && nzchar(eval_col)) {
-      action <- as.character(one[[eval_col]][i])
-    }
-    if (is.na(skill) || !nzchar(trimws(skill))) skill <- "PLAY"
-
-    # point_won_by is the authority for team colour and rally direction.
-    is_calgary_play <- team_is_calgary(one$point_won_by[i])
-
-    # Continuous step chart: each rally fills one equal-width slot.
-    # Reserve 3% at the right for separation from the dashed end line.
-    slot_width <- 97 / max(1, n_points)
-    left <- (i - 1) * slot_width
-    label <- momentum_action_label(action, label_skill)
     jersey_text <- if (!is.na(jersey) && nzchar(as.character(jersey))) {
       suppressWarnings(as.character(as.integer(as.numeric(jersey))))
     } else ""
     if (is.na(jersey_text) || !nzchar(jersey_text)) jersey_text <- ""
-    player_text <- if (!is.na(player_name) && nzchar(player_name)) player_name else "Player not identified"
+
+    # Official rally winner determines team colour.
+    is_calgary_play <- team_is_calgary(one$point_won_by[i])
+
+    # Fixed-width boxes are centred in their rally slots, leaving visible gaps.
+    slot_width <- 97 / max(1, n_points)
+    left <- (i - 0.5) * slot_width
+
+    # The box centre follows the score differential AFTER this rally.
+    # A tied score (0) is centred exactly on the dashed zero line.
+    player_text <- if (nzchar(player_name)) player_name else "Player not identified"
     tie_class <- if (diff_after[i] == 0) "momentum-tied-event" else ""
     title_text <- paste0("Rally ", one$rally_number[i], " · ", action,
                          " · ", player_text, " · #", jersey_text,
-                         " · Point: ", one$point_won_by[i],
-                         if (ending_is_error) " · Label source: ending error" else " · Label source: point scoring")
+                         " · Point: ", one$point_won_by[i])
+
     div(class = paste("momentum-chart-event",
                       if (is_calgary_play) "uoc-play" else "opp-play",
                       tie_class),
-        style = paste0("left:", left, "%;--momentum-slot-width:", slot_width, "%;top:", step_top_pct[i], "%;"),
+        style = paste0("left:", left, "%;top:", step_top_pct[i], "%;"),
         title = title_text,
         span(class = "momentum-chart-action", label),
         span(class = "momentum-chart-jersey", jersey_text))
@@ -4842,7 +4809,7 @@ ui <- fluidPage(
         .skill-grid{grid-template-columns:1fr;}
       }
     ")),
-    tags$style(HTML("\n/* Final momentum visual corrections: load after all legacy momentum rules */\n.momentum-section .momentum-game-banner,\n.momentum-section .momentum-match-card .momentum-game-banner {\n  background: #C8102E !important;\n  background-color: #C8102E !important;\n  color: #fff !important;\n}\n.momentum-section .momentum-tie-band {\n  top: calc(50% - 22px) !important;\n  height: 44px !important;\n  box-sizing: border-box !important;\n  background: #f7f1e8 !important;\n  border-top: 1px dashed #59616a !important;\n  border-bottom: 1px dashed #59616a !important;\n  z-index: 1 !important;\n}\n.momentum-section .momentum-chart-event.momentum-tied-event {\n  border-style: dashed !important;\n}\n.momentum-section .momentum-chart-event {\n  transform: none !important;\n  width: var(--momentum-slot-width) !important;\n  height: 44px !important;\n  min-height: 44px !important;\n  box-sizing: border-box !important;\n  padding: 2px 1px !important;\n  overflow: visible !important;\n  line-height: 1 !important;\n}\n.momentum-section .momentum-chart-action,\n.momentum-section .momentum-chart-jersey {\n  display: block !important;\n  width: 100% !important;\n  min-height: 10px !important;\n  text-align: center !important;\n  white-space: nowrap !important;\n  visibility: visible !important;\n  opacity: 1 !important;\n}\n.momentum-section .momentum-chart-action {\n  font-size: 11px !important;\n  font-weight: 900 !important;\n  line-height: 13px !important;\n}\n.momentum-section .momentum-chart-jersey {\n  font-size: 9px !important;\n  font-weight: 700 !important;\n  line-height: 11px !important;\n}
+    tags$style(HTML("\n/* Final momentum visual corrections: load after all legacy momentum rules */\n.momentum-section .momentum-game-banner,\n.momentum-section .momentum-match-card .momentum-game-banner {\n  background: #C8102E !important;\n  background-color: #C8102E !important;\n  color: #fff !important;\n}\n.momentum-section .momentum-tie-band {\n  top: 50% !important;\n  height: 0 !important;\n  box-sizing: border-box !important;\n  background: transparent !important;\n  border: 0 !important;\n  border-top: 2px dashed #59616a !important;\n  z-index: 1 !important;\n}\n.momentum-section .momentum-chart-event.momentum-tied-event {\n  border-style: dashed !important;\n}\n.momentum-section .momentum-chart-event {\n  transform: translateX(-50%) !important;\n  width: 20px !important;\n  height: 44px !important;\n  min-height: 44px !important;\n  box-sizing: border-box !important;\n  padding: 2px 1px !important;\n  overflow: visible !important;\n  line-height: 1 !important;\n}\n.momentum-section .momentum-chart-action,\n.momentum-section .momentum-chart-jersey {\n  display: block !important;\n  width: 100% !important;\n  min-height: 10px !important;\n  text-align: center !important;\n  white-space: nowrap !important;\n  visibility: visible !important;\n  opacity: 1 !important;\n}\n.momentum-section .momentum-chart-action {\n  font-size: 11px !important;\n  font-weight: 900 !important;\n  line-height: 13px !important;\n}\n.momentum-section .momentum-chart-jersey {\n  font-size: 9px !important;\n  font-weight: 700 !important;\n  line-height: 11px !important;\n}
 /* Team marks and earned/unearned table alignment */
 .momentum-section .momentum-game-score {
   display: flex !important;
