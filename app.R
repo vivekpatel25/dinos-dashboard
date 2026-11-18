@@ -2853,7 +2853,7 @@ momentum_team_logo <- function(team) {
 
   logo_file <- if (grepl("okanagan|ubco|heat", nm)) {
     "ubco.png"
-  } else if (grepl("university of british columbia|british columbia|thunderbirds|(^|[^a-z])ubc([^a-z]|$)", nm)) {
+  } else if (grepl("university of british columbia|british columbia|university of british colombia|british colombia|thunderbirds|(^|[^a-z])ubc([^a-z]|$)", nm)) {
     "ubc.png"
   } else if (grepl("mount royal|mount royal cougars|(^|[^a-z])mru([^a-z]|$)", nm)) {
     "mru.png"
