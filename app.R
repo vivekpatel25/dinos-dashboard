@@ -2974,10 +2974,11 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
     play_team <- if (nzchar(team_col)) as.character(one[[team_col]][i]) else as.character(one$point_won_by[i])
     if (is.na(play_team) || !nzchar(play_team)) play_team <- as.character(one$point_won_by[i])
     is_calgary_play <- team_is_calgary(play_team)
-    # Position each rally by its LEFT edge (not its centre).
-    # This gives every box the same start-to-start spacing and reserves a full
-    # box-width margin before the dashed end line, including the final rally.
-    left <- if (n_points == 1) 2.5 else 2.5 + (((i - 1) / (n_points - 1)) * 90)
+    # Continuous step chart: each rally fills one equal-width slot.
+    # The next box begins exactly at the previous box's right edge.
+    # Reserve 3% at the right for separation from the dashed end line.
+    slot_width <- 97 / max(1, n_points)
+    left <- (i - 1) * slot_width
     label <- momentum_action_label(action, skill)
     jersey_text <- if (!is.na(jersey) && nzchar(as.character(jersey))) {
       suppressWarnings(as.character(as.integer(as.numeric(jersey))))
@@ -2986,7 +2987,7 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
     title_text <- paste0("Rally ", one$rally_number[i], " · ", skill, " · ", action,
                          " · #", jersey_text, " · Point: ", one$point_won_by[i])
     div(class = paste("momentum-chart-event", if (is_calgary_play) "uoc-play" else "opp-play"),
-        style = paste0("left:", left, "%;top:", y_pct[i], "%;"),
+        style = paste0("left:", left, "%;width:", slot_width, "% !important;top:", y_pct[i], "%;"),
         title = title_text,
         span(class = "momentum-chart-action", label),
         span(class = "momentum-chart-jersey", jersey_text))
@@ -4807,7 +4808,7 @@ ui <- fluidPage(
         .skill-grid{grid-template-columns:1fr;}
       }
     ")),
-    tags$style(HTML("\n/* Final momentum visual corrections: load after all legacy momentum rules */\n.momentum-section .momentum-game-banner,\n.momentum-section .momentum-match-card .momentum-game-banner {\n  background: #C8102E !important;\n  background-color: #C8102E !important;\n  color: #fff !important;\n}\n.momentum-section .momentum-tie-band {\n  top: calc(50% - 19.5px) !important;\n  height: 39px !important;\n  box-sizing: border-box !important;\n  background: #f7f1e8 !important;\n  border-top: 1px solid #59616a !important;\n  border-bottom: 1px solid #59616a !important;\n  z-index: 1 !important;\n}\n.momentum-section .momentum-chart-event {\n  transform: translateY(-50%) !important;\n  width: 25px !important;\n  height: 39px !important;\n  min-height: 39px !important;\n  box-sizing: border-box !important;\n  padding: 2px 1px !important;\n  overflow: visible !important;\n  line-height: 1 !important;\n}\n.momentum-section .momentum-chart-action,\n.momentum-section .momentum-chart-jersey {\n  display: block !important;\n  width: 100% !important;\n  min-height: 10px !important;\n  text-align: center !important;\n  white-space: nowrap !important;\n  visibility: visible !important;\n  opacity: 1 !important;\n}\n.momentum-section .momentum-chart-action {\n  font-size: 11px !important;\n  font-weight: 900 !important;\n  line-height: 13px !important;\n}\n.momentum-section .momentum-chart-jersey {\n  font-size: 9px !important;\n  font-weight: 700 !important;\n  line-height: 11px !important;\n}
+    tags$style(HTML("\n/* Final momentum visual corrections: load after all legacy momentum rules */\n.momentum-section .momentum-game-banner,\n.momentum-section .momentum-match-card .momentum-game-banner {\n  background: #C8102E !important;\n  background-color: #C8102E !important;\n  color: #fff !important;\n}\n.momentum-section .momentum-tie-band {\n  top: calc(50% - 19.5px) !important;\n  height: 39px !important;\n  box-sizing: border-box !important;\n  background: #f7f1e8 !important;\n  border-top: 1px solid #59616a !important;\n  border-bottom: 1px solid #59616a !important;\n  z-index: 1 !important;\n}\n.momentum-section .momentum-chart-event {\n  transform: translateY(-50%) !important;\n  width: auto !important;\n  height: 39px !important;\n  min-height: 39px !important;\n  box-sizing: border-box !important;\n  padding: 2px 1px !important;\n  overflow: visible !important;\n  line-height: 1 !important;\n}\n.momentum-section .momentum-chart-action,\n.momentum-section .momentum-chart-jersey {\n  display: block !important;\n  width: 100% !important;\n  min-height: 10px !important;\n  text-align: center !important;\n  white-space: nowrap !important;\n  visibility: visible !important;\n  opacity: 1 !important;\n}\n.momentum-section .momentum-chart-action {\n  font-size: 11px !important;\n  font-weight: 900 !important;\n  line-height: 13px !important;\n}\n.momentum-section .momentum-chart-jersey {\n  font-size: 9px !important;\n  font-weight: 700 !important;\n  line-height: 11px !important;\n}
 /* Team marks and earned/unearned table alignment */
 .momentum-section .momentum-game-score {
   display: flex !important;
