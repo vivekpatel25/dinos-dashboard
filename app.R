@@ -3084,8 +3084,9 @@ momentum_match_panel_ui <- function(match_id, slot, selected_set = NULL) {
       span(class = "legend-opp", "OPPONENT PLAY")))
 }
 
-momentum_earned_table_ui <- function(ids) {
-  rows <- lapply(as.character(ids), function(id) {
+momentum_earned_table_ui <- function(ids, period_label = NULL) {
+  ids <- as.character(ids)
+  rows <- lapply(ids, function(id) {
     d <- load_momentum_match(id)
     if (!nrow(d)) return(NULL)
     idx <- match_index[as.character(match_index$match_id) == id, , drop = FALSE]
@@ -3097,6 +3098,7 @@ momentum_earned_table_ui <- function(ids) {
     data.frame(
       Match = c(match_label, match_label),
       Team = c("University of Calgary", opponent),
+      Is_Calgary = c(TRUE, FALSE),
       Earned = c(sum(uoc_won & earned, na.rm = TRUE), sum(!uoc_won & earned, na.rm = TRUE)),
       Unearned = c(sum(uoc_won & unearned, na.rm = TRUE), sum(!uoc_won & unearned, na.rm = TRUE)),
       check.names = FALSE,
@@ -3105,7 +3107,23 @@ momentum_earned_table_ui <- function(ids) {
   })
   rows <- Filter(Negate(is.null), rows)
   if (!length(rows)) return(div(class = "momentum-empty", "No momentum rally summaries found for this period."))
+
   out <- do.call(rbind, rows)
+  # Single-match views retain the two match rows. Multi-match periods show
+  # only accumulated Calgary and opponent totals across the selected folders.
+  if (length(ids) > 1) {
+    calgary <- out[out$Is_Calgary, , drop = FALSE]
+    opponents <- out[!out$Is_Calgary, , drop = FALSE]
+    out <- data.frame(
+      Match = c(if (is.null(period_label)) "PERIOD TOTAL" else period_label,
+                if (is.null(period_label)) "PERIOD TOTAL" else period_label),
+      Team = c("University of Calgary", "Opponents"),
+      Is_Calgary = c(TRUE, FALSE),
+      Earned = c(sum(calgary$Earned, na.rm = TRUE), sum(opponents$Earned, na.rm = TRUE)),
+      Unearned = c(sum(calgary$Unearned, na.rm = TRUE), sum(opponents$Unearned, na.rm = TRUE)),
+      stringsAsFactors = FALSE
+    )
+  }
 
   tags$table(
     class = "table momentum-earned-table",
@@ -3121,10 +3139,16 @@ momentum_earned_table_ui <- function(ids) {
     )),
     tags$tbody(lapply(seq_len(nrow(out)), function(i) {
       team <- as.character(out$Team[i])
-      logo_team <- if (momentum_team_is_uoc(team)) "University of Calgary" else team
+      team_node <- if (isTRUE(out$Is_Calgary[i])) {
+        momentum_logo_tag("University of Calgary", "momentum-table-logo")
+      } else if (length(ids) > 1) {
+        tags$span(class = "momentum-opponents-label", "OPPONENTS")
+      } else {
+        momentum_logo_tag(team, "momentum-table-logo")
+      }
       tags$tr(
         tags$td(as.character(out$Match[i])),
-        tags$td(momentum_logo_tag(logo_team, "momentum-table-logo")),
+        tags$td(team_node),
         tags$td(as.character(out$Earned[i])),
         tags$td(as.character(out$Unearned[i]))
       )
@@ -4983,6 +5007,7 @@ server <- function(input, output, session) {
   selected_attack_player <- reactiveVal("All")
   selected_athlete <- reactiveVal(NULL)
   momentum_recent_set <- reactiveVal(NULL)
+  momentum_previous_set <- reactiveVal(NULL)
 
   for (sn in 1:5) {
     local({ set_no <- sn
@@ -4990,10 +5015,19 @@ server <- function(input, output, session) {
         if (identical(momentum_recent_set(), set_no)) momentum_recent_set(NULL) else momentum_recent_set(set_no)
       }, ignoreInit = TRUE)
     })
+    local({ set_no <- sn
+      observeEvent(input[[paste0("momentum_previous_set_", set_no)]], {
+        if (identical(momentum_previous_set(), set_no)) momentum_previous_set(NULL) else momentum_previous_set(set_no)
+      }, ignoreInit = TRUE)
+    })
   }
 
   observeEvent(input$momentum_recent_close, {
     momentum_recent_set(NULL)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$momentum_previous_close, {
+    momentum_previous_set(NULL)
   }, ignoreInit = TRUE)
 
   observeEvent(input$nav_dashboard, {
@@ -5564,13 +5598,20 @@ server <- function(input, output, session) {
       div(
         class = "momentum-section",
         div(class = "momentum-section-heading", "MOMENTUM RUNS"),
-        div(class = "momentum-match-grid",
-          div(class = "momentum-slot", div(class = "momentum-slot-title", "MOST RECENT MATCH"),
-              momentum_match_panel_ui(match_index$match_id[1], "recent", momentum_recent_set()))
-        ),
+        if (active_period() == "MOST RECENT MATCH") {
+          div(class = "momentum-match-grid",
+            div(class = "momentum-slot", div(class = "momentum-slot-title", "MOST RECENT MATCH"),
+                momentum_match_panel_ui(match_index$match_id[1], "recent", momentum_recent_set()))
+          )
+        } else if (active_period() == "PREVIOUS MATCH" && nrow(match_index) >= 2) {
+          div(class = "momentum-match-grid",
+            div(class = "momentum-slot", div(class = "momentum-slot-title", "PREVIOUS MATCH"),
+                momentum_match_panel_ui(match_index$match_id[2], "previous", momentum_previous_set()))
+          )
+        },
         div(class = "momentum-earned-wrap",
           div(class = "momentum-earned-heading", "EARNED / UNEARNED POINTS · ", active_period()),
-          momentum_earned_table_ui(selected_ids)
+          momentum_earned_table_ui(selected_ids, active_period())
         )
       ),
 
