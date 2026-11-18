@@ -574,3 +574,40 @@ body {
 .metric-track-wrap { position:relative; padding-bottom:3px; }
 .metric-track { position:relative; overflow:visible; }
 .season-benchmark-label, .opponent-label { position:absolute; transform:translate(-50%,-100%); white-space:nowrap; }
+
+
+/* MOMENTUM RUNS — additions only */
+.momentum-section{background:#fff;border:1px solid #e1e7ed;border-radius:18px;padding:20px;margin:0 0 22px;box-shadow:0 5px 16px rgba(31,49,67,.045)}
+.momentum-section-heading{font-family:"Barlow Condensed",sans-serif;font-size:25px;font-weight:800;letter-spacing:1px;color:#263746;margin-bottom:16px}
+.momentum-match-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.momentum-slot{min-width:0}
+.momentum-slot-title,.momentum-earned-heading{font-size:12px;font-weight:800;letter-spacing:1.25px;color:#6e7d8c;margin:0 0 9px}
+.momentum-match-card{border:1px solid #e5e9ee;border-radius:14px;padding:14px;background:#fbfcfd;min-width:0}
+.momentum-match-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.momentum-team-identity{display:flex;align-items:center;gap:7px;min-width:0;font-size:10px;font-weight:800;letter-spacing:.7px;color:#536475}
+.momentum-team-logo{width:34px;height:34px;object-fit:contain}
+.momentum-team-logo-fallback{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e9edf1;color:#536475;font-size:10px;font-weight:800}
+.momentum-match-vs{font-size:10px;font-weight:800;letter-spacing:1px;color:#9aa5af;text-align:center}
+.momentum-set-buttons{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.momentum-set-btn{border:1px solid #dce3e9!important;background:#fff!important;color:#617181!important;border-radius:7px!important;padding:5px 11px!important;font-size:10px!important;font-weight:800!important;box-shadow:none!important}
+.momentum-set-btn.active{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}
+.momentum-score-line{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e8edf1;padding:9px 0 8px;color:#6b7b89;font-size:11px;font-weight:700}
+.momentum-score-line strong{font-size:19px;color:#263746;letter-spacing:.5px}
+.momentum-point-strip{display:flex;flex-wrap:wrap;gap:3px;align-items:center;padding:5px 0 9px}
+.momentum-point{height:19px;min-width:13px;flex:1 0 13px;max-width:25px;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800}
+.momentum-point-uoc{background:#C8102E}.momentum-point-opp{background:#334b60}
+.momentum-run-list{display:flex;gap:5px;flex-wrap:wrap;margin:2px 0 8px}
+.momentum-run-chip{border-radius:5px;padding:4px 7px;font-size:9px;font-weight:800;letter-spacing:.25px}
+.momentum-run-chip.uoc{background:#fbecef;color:#a50e26}.momentum-run-chip.opp{background:#eaf0f5;color:#334b60}
+.momentum-legend{display:flex;gap:13px;font-size:9px;font-weight:700;color:#84919d;letter-spacing:.4px}
+.momentum-legend span:before{content:"";display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px}
+.momentum-legend .legend-uoc:before{background:#C8102E}.momentum-legend .legend-opp:before{background:#334b60}
+.momentum-empty{padding:20px;text-align:center;border:1px dashed #dce3e9;border-radius:12px;color:#8995a0;font-size:12px}
+.momentum-earned-wrap{margin-top:18px}
+.momentum-earned-heading{margin-bottom:8px}
+.momentum-earned-table{font-size:11px;margin-bottom:0;background:#fff}
+.momentum-earned-table th{white-space:nowrap;color:#647586;font-size:9px;letter-spacing:.5px;text-transform:uppercase;background:#f5f7f9}
+.momentum-earned-table td,.momentum-earned-table th{padding:8px 9px!important;vertical-align:middle!important}
+.momentum-earned-table tbody tr:last-child{font-weight:800;background:#f8f9fa}
+@media(max-width:900px){.momentum-match-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.momentum-section{padding:13px}.momentum-match-card{padding:10px}.momentum-point{min-width:10px;flex-basis:10px}}
