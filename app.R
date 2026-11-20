@@ -4051,6 +4051,64 @@ draw_athlete_zone_map <- function(d, zone_col, subzone_col = NULL, title = "COUR
   invisible(NULL)
 }
 
+
+# ----------------------------- OUTSIDE HITTER ANALYSIS -----------------------------
+
+OH_EXPORT_ROOT <- "data/exports/oh"
+
+load_oh_summary_files <- function() {
+  if (!dir.exists(OH_EXPORT_ROOT)) return(data.frame())
+  files <- list.files(OH_EXPORT_ROOT, pattern = "_OH_SUMMARY\\.csv$",
+                      full.names = TRUE, recursive = TRUE)
+  if (!length(files)) return(data.frame())
+  rows <- lapply(files, function(path) {
+    d <- read_csv_safe(path)
+    required <- c("match_id", "outside_hitter", "player_number",
+                  "reception_total", "reception_plus", "reception_exclamation",
+                  "attack_total", "attack_kills", "attack_errors", "attack_blocked")
+    if (is.null(d) || !nrow(d) || !all(required %in% names(d))) return(NULL)
+    d
+  })
+  rows <- Filter(Negate(is.null), rows)
+  if (!length(rows)) return(data.frame())
+  do.call(rbind, rows)
+}
+
+aggregate_oh_by_player <- function(d) {
+  if (is.null(d) || !nrow(d)) return(data.frame())
+  count_cols <- c("reception_total", "reception_hash", "reception_plus",
+    "reception_exclamation", "reception_minus", "reception_slash",
+    "reception_error", "reception_other_or_missing", "attack_total",
+    "attack_kills", "attack_plus", "attack_exclamation", "attack_minus",
+    "attack_blocked", "attack_errors", "attack_other_or_missing")
+  for (nm in count_cols) {
+    if (!nm %in% names(d)) d[[nm]] <- 0
+    d[[nm]] <- suppressWarnings(as.numeric(d[[nm]]))
+    d[[nm]][is.na(d[[nm]])] <- 0
+  }
+  key <- paste(d$outside_hitter, d$player_number, sep = "|||")
+  result <- lapply(split(seq_len(nrow(d)), key), function(ix) {
+    x <- d[ix, , drop = FALSE]
+    z <- data.frame(outside_hitter = as.character(x$outside_hitter[1]),
+      player_number = as.character(x$player_number[1]),
+      matches = length(unique(as.character(x$match_id))), stringsAsFactors = FALSE)
+    for (nm in count_cols) z[[nm]] <- sum(x[[nm]], na.rm = TRUE)
+    z
+  })
+  ans <- do.call(rbind, result)
+  ans$reception_positive_rate <- ifelse(ans$reception_total > 0,
+    100 * (ans$reception_plus + ans$reception_exclamation) / ans$reception_total, NA_real_)
+  ans$reception_error_pct <- ifelse(ans$reception_total > 0,
+    100 * ans$reception_error / ans$reception_total, NA_real_)
+  ans$attack_kill_pct <- ifelse(ans$attack_total > 0,
+    100 * ans$attack_kills / ans$attack_total, NA_real_)
+  ans$attack_efficiency <- ifelse(ans$attack_total > 0,
+    (ans$attack_kills - ans$attack_errors - ans$attack_blocked) / ans$attack_total, NA_real_)
+  ans <- ans[order(ans$outside_hitter), , drop = FALSE]
+  rownames(ans) <- NULL
+  ans
+}
+
 # ----------------------------- UI -----------------------------
 
 ui <- fluidPage(
@@ -4058,6 +4116,22 @@ ui <- fluidPage(
   tags$head(
     tags$title("Dinos Coaches Dashboard"),
     tags$link(rel = "stylesheet", type = "text/css", href = "app.css"),
+    tags$style(HTML("
+.oh-analysis-section{background:#fff;border:1px solid #e0e6ec;border-radius:16px;padding:20px;margin:16px 0 22px}
+.oh-analysis-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.oh-analysis-title{font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:900;color:#263746;margin:0}
+.oh-analysis-subtitle{font-size:11px;color:#718096;margin-top:3px}
+.oh-analysis-controls{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;background:#f4f6f8;border-radius:10px;padding:12px;margin:12px 0}
+.oh-analysis-controls .form-group{margin:0;min-width:130px}
+.oh-analysis-controls label{font-size:9px;font-weight:900;letter-spacing:.8px;color:#718096}
+.oh-analysis-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:16px}
+.oh-analysis-card{border:1px solid #e5e9ed;border-radius:12px;padding:13px;min-width:0}
+.oh-analysis-card h4{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;margin:0 0 8px;color:#263746}
+.oh-analysis-note{font-size:10px;color:#718096;line-height:1.5;margin-top:8px}
+.oh-back-button{border:1px solid #C8102E!important;color:#C8102E!important;background:#fff!important;border-radius:7px!important;font-size:10px!important;font-weight:900!important;padding:7px 12px!important}
+@media(max-width:850px){.oh-analysis-grid{grid-template-columns:1fr}}
+")),
+
     tags$style(HTML("\n/* Dinos momentum final refinements */\n.momentum-section .momentum-game-banner{background:#C8102E!important;color:#fff!important}\n.momentum-section .momentum-chart-event.uoc-play{border-color:#C8102E!important;background:#fff0f2!important;color:#C8102E!important}\n.momentum-section .momentum-chart-legend .legend-uoc:before{background:#C8102E!important}\n.momentum-section .momentum-longest-card>strong,.momentum-section .momentum-longest-card>span{color:#C8102E!important}\n.momentum-section .momentum-summary-row:not(.opponent){color:#C8102E!important}\n.momentum-section .momentum-summary-row:not(.opponent) strong{color:#C8102E!important}\n.momentum-section .momentum-tie-band{top:49.1%!important;height:1.8%!important;background:#f7f1e8!important;border-top:1px solid #626262!important;border-bottom:1px solid #626262!important}\n.momentum-section .momentum-chart-event{width:25px!important;min-height:39px!important}\n.momentum-section .momentum-chart-action{font-size:11px!important;line-height:12px!important}\n.momentum-section .momentum-chart-jersey{font-size:9px!important;line-height:10px!important}\n.momentum-chart-controls{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}\n.momentum-close-btn{background:#fff!important;color:#C8102E!important;border:1px solid #C8102E!important;border-radius:7px!important;font-size:10px!important;font-weight:900!important;padding:7px 12px!important}\n.momentum-skill-legend{display:flex;flex-wrap:wrap;gap:8px 15px;margin-top:13px;padding:10px 2px 3px;border-top:1px solid #e6e9ec;color:#596979;font-size:10px}\n.momentum-skill-legend b{color:#C8102E;font-size:11px}\n.momentum-earned-table th:nth-child(1){width:15%}\n.momentum-earned-table th:nth-child(2){width:45%}\n.momentum-earned-table th:nth-child(3),.momentum-earned-table th:nth-child(4){width:20%}\n")),
 
     tags$style(HTML("/* MOMENTUM INLINE STYLE FIX\n/* Reference-style single-match momentum graphic */\n.momentum-match-grid{display:grid;grid-template-columns:1fr;gap:22px}\n.momentum-slot{width:100%;min-width:0}\n.momentum-match-card{width:100%;background:#fff;border:1px solid #e0e6ec;border-radius:16px;padding:16px;overflow:hidden}\n.momentum-set-buttons{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 14px}\n.momentum-set-btn{min-width:58px;border:1px solid #d8e0e7!important;background:#fff!important;color:#5e7082!important;border-radius:7px!important;font-size:11px!important;font-weight:800!important;padding:7px 12px!important;box-shadow:none!important}\n.momentum-set-btn.active{background:#c8102e!important;border-color:#c8102e!important;color:#fff!important}\n.momentum-game-banner{background:#C8102E;color:#fff;margin:-16px -16px 18px;padding:18px 22px;min-height:120px}\n.momentum-game-kicker{font-family:\"Barlow Condensed\",sans-serif;font-size:16px;font-weight:800;letter-spacing:2px;opacity:.95}\n.momentum-game-score{display:flex;align-items:baseline;gap:14px;font-family:\"Barlow Condensed\",sans-serif;font-size:clamp(25px,4vw,48px);font-weight:900;line-height:1.05}\n.momentum-game-score span:first-child{font-size:clamp(22px,3vw,38px)}\n.momentum-game-score span:last-child{font-size:clamp(22px,3vw,38px)}\n.momentum-game-date{font-size:13px;opacity:.9;margin-top:4px}\n.momentum-chart-area{height:520px;position:relative;overflow:hidden;border-bottom:2px solid #59616a;border-top:1px solid #edf0f2;background:#fff}\n.momentum-chart-gridline{position:absolute;left:0;right:0;height:1px;border-top:1px solid #e7e9eb;z-index:0}\n.momentum-chart-gridline span{position:absolute;left:0;top:-16px;font-size:11px;font-weight:800;color:#6f7780;background:#fff;padding-right:5px}\n.momentum-tie-band{position:absolute;left:0;right:0;top:43%;height:14%;background:#f7f1e8;border-top:2px solid #777;border-bottom:2px solid #777;z-index:1}\n.momentum-chart-event{position:absolute;z-index:3;transform:translate(-50%,-50%);width:25px;min-height:39px;border:2px solid #354b5e;background:#e8edf1;color:#253746;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:1px}\n.momentum-chart-event.uoc-play{border-color:#ad6b31;background:#fff4e7;color:#98551e}\n.momentum-chart-action{font-size:11px;font-weight:900;line-height:13px}\n.momentum-chart-jersey{font-size:9px;line-height:11px}\n.momentum-chart-endline{position:absolute;right:0;top:0;bottom:0;border-left:2px dashed #ad6b31;z-index:2}\n.momentum-chart-caption{font-size:13px;color:#777;line-height:1.5;padding:12px 8px 16px}\n.momentum-summary-cards{display:grid;grid-template-columns:1.1fr 1.1fr .8fr;gap:12px}\n.momentum-summary-card{background:#f5f2e9;border-radius:11px;padding:14px 16px;min-width:0}\n.momentum-summary-title{font-family:\"Barlow Condensed\",sans-serif;font-size:19px;font-weight:900;letter-spacing:1px;color:#303d48;border-bottom:1px solid #d9d6cd;padding-bottom:7px;margin-bottom:8px}\n.momentum-summary-subhead{display:grid;grid-template-columns:repeat(2,1fr);font-size:11px;color:#78818a;text-align:center;font-weight:700}\n.momentum-summary-card:nth-child(2) .momentum-summary-subhead{grid-template-columns:repeat(3,1fr)}\n.momentum-summary-row{display:grid;grid-template-columns:1.2fr repeat(2,1fr);align-items:center;gap:4px;font-size:25px;font-weight:900;color:#a8642d;text-align:center}\n.momentum-summary-card:nth-child(2) .momentum-summary-row{grid-template-columns:1.2fr repeat(3,1fr)}\n.momentum-summary-row strong{font-size:14px;text-align:left;color:#9a5c25}\n.momentum-summary-row.opponent{color:#334b60}\n.momentum-summary-row.opponent strong{color:#334b60}\n.momentum-longest-card>strong{display:block;font-family:\"Barlow Condensed\",sans-serif;font-size:42px;line-height:1.1;color:#a8642d}\n.momentum-longest-card>span{font-family:\"Barlow Condensed\",sans-serif;font-size:19px;font-weight:800;color:#a8642d}\n.momentum-chart-legend{display:flex;gap:15px;margin-top:12px;font-size:10px;font-weight:800;color:#82909b}\n.momentum-chart-legend span:before{content:\"\";display:inline-block;width:8px;height:8px;margin-right:5px;border-radius:2px}\n.momentum-chart-legend .legend-uoc:before{background:#ad6b31}\n.momentum-chart-legend .legend-opp:before{background:#354b5e}\n@media(max-width:760px){.momentum-chart-area{height:380px}.momentum-summary-cards{grid-template-columns:1fr}.momentum-game-score{flex-wrap:wrap;gap:8px}}\n\n")),
@@ -5036,6 +5110,39 @@ server <- function(input, output, session) {
   momentum_previous_set <- reactiveVal(NULL)
   momentum_report_set <- reactiveVal(NULL)
 
+  oh_raw_data <- reactive({
+    invalidateLater(10000, session)
+    load_oh_summary_files()
+  })
+
+  oh_period_data <- reactive({
+    d <- oh_raw_data()
+    if (!nrow(d)) return(data.frame())
+    period <- input$oh_period_filter
+    if (is.null(period) || !nzchar(period)) period <- active_period()
+    ids <- switch(period,
+      "MOST RECENT MATCH" = if (nrow(match_index)) match_index$match_id[1] else character(0),
+      "PREVIOUS MATCH" = if (nrow(match_index) >= 2) match_index$match_id[2] else if (nrow(match_index)) match_index$match_id[1] else character(0),
+      "LAST 5" = head(match_index$match_id, 5),
+      "LAST 10" = head(match_index$match_id, 10),
+      "FULL SEASON" = match_index$match_id,
+      match_index$match_id)
+    d <- d[as.character(d$match_id) %in% as.character(ids), , drop = FALSE]
+    aggregate_oh_by_player(d)
+  })
+
+  oh_filtered_data <- reactive({
+    d <- oh_period_data()
+    if (!nrow(d)) return(d)
+    min_rec <- suppressWarnings(as.numeric(input$oh_min_receptions))
+    min_att <- suppressWarnings(as.numeric(input$oh_min_attacks))
+    if (is.na(min_rec)) min_rec <- 0
+    if (is.na(min_att)) min_att <- 0
+    d[d$reception_total >= min_rec & d$attack_total >= min_att, , drop = FALSE]
+  })
+
+
+
   for (sn in 1:5) {
     local({ set_no <- sn
       observeEvent(input[[paste0("momentum_recent_set_", set_no)]], {
@@ -5068,6 +5175,14 @@ server <- function(input, output, session) {
 
   observeEvent(selected_match(), {
     momentum_report_set(NULL)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$open_oh_analysis, {
+    page("oh_analysis")
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$back_team_dashboard, {
+    page("dashboard")
   }, ignoreInit = TRUE)
 
   observeEvent(input$nav_dashboard, {
@@ -5233,6 +5348,35 @@ server <- function(input, output, session) {
   })
 
   output$page_body <- renderUI({
+
+    if (page() == "oh_analysis") {
+      return(tagList(
+        actionButton("back_team_dashboard", "← TEAM DASHBOARD", class = "oh-back-button"),
+        div(class = "page-heading",
+          div(div(class = "eyebrow", "PLAYER PERFORMANCE"),
+              h2("OUTSIDE HITTER ANALYSIS"),
+              p("Reception quality versus attacking output · weighted across selected matches"))),
+        div(class = "oh-analysis-section",
+          div(class = "oh-analysis-header",
+            div(div(class = "oh-analysis-title", "RECEPTION vs ATTACK"),
+                div(class = "oh-analysis-subtitle", "Each point represents one outside hitter")),
+            downloadButton("download_oh_data", "DOWNLOAD DATA", class = "btn-dinos")),
+          div(class = "oh-analysis-controls",
+            selectInput("oh_period_filter", "MATCH PERIOD",
+              choices = c("MOST RECENT MATCH", "PREVIOUS MATCH", "LAST 5", "LAST 10", "FULL SEASON"),
+              selected = active_period(), width = "190px"),
+            numericInput("oh_min_receptions", "MIN RECEPTIONS", 5, min = 0, max = 500, step = 1, width = "130px"),
+            numericInput("oh_min_attacks", "MIN ATTACKS", 5, min = 0, max = 500, step = 1, width = "130px"),
+            selectInput("oh_player_highlight", "HIGHLIGHT PLAYER",
+              choices = c("All players"), selected = "All players", width = "210px")),
+          div(class = "oh-analysis-grid",
+            div(class = "oh-analysis-card", h4("PLAYER PERFORMANCE MAP"),
+              plotOutput("oh_scatter_plot", height = "430px"),
+              div(class = "oh-analysis-note",
+                "X-axis: positive reception rate (Plus + Exclamation ÷ total receptions). Y-axis: attack kill rate (kills ÷ total attacks). Rates are recalculated from summed event counts, not averaged across matches.")),
+            div(class = "oh-analysis-card", h4("PLAYER STATISTICS"),
+              tableOutput("oh_stats_table")))))
+    }
 
     if (page() == "athlete_detail" && !is.null(selected_athlete())) {
       a <- selected_athlete()
@@ -5646,6 +5790,11 @@ server <- function(input, output, session) {
             "btn"
           }
         )
+      ),
+
+      div(
+        style = "display:flex;justify-content:flex-end;margin:0 0 14px;",
+        actionButton("open_oh_analysis", "OUTSIDE HITTER ANALYSIS  →", class = "btn-dinos")
       ),
 
       div(
@@ -6592,6 +6741,57 @@ server <- function(input, output, session) {
     rownames(tab) <- NULL
     tab
   }, striped = TRUE, bordered = FALSE, spacing = "s")
+
+
+  output$oh_scatter_plot <- renderPlot({
+    d <- oh_filtered_data()
+    validate(need(nrow(d) > 0, "No OH summary data found for this period and attempt filter."))
+    d <- d[is.finite(d$reception_positive_rate) & is.finite(d$attack_kill_pct), , drop = FALSE]
+    validate(need(nrow(d) > 0, "No players have both reception and attack attempts in this selection."))
+    selected <- input$oh_player_highlight
+    highlighted <- !is.null(selected) && selected != "All players" & d$outside_hitter == selected
+    point_col <- ifelse(highlighted, "#C8102E", "#64788A")
+    plot(d$reception_positive_rate, d$attack_kill_pct,
+      xlim = c(0, max(100, d$reception_positive_rate, na.rm = TRUE) + 5),
+      ylim = c(0, max(100, d$attack_kill_pct, na.rm = TRUE) + 5),
+      xlab = "POSITIVE RECEPTION RATE (%)", ylab = "ATTACK KILL RATE (%)",
+      pch = 19, cex = 1.25, col = point_col, las = 1, bty = "l",
+      col.axis = "#526273", col.lab = "#263746", cex.lab = 0.9)
+    abline(v = mean(d$reception_positive_rate, na.rm = TRUE),
+           h = mean(d$attack_kill_pct, na.rm = TRUE), lty = 2, col = "#AAB4BD")
+    text(d$reception_positive_rate, d$attack_kill_pct,
+      labels = paste0("#", d$player_number, " ", d$outside_hitter),
+      pos = 3, cex = 0.72, col = "#263746", xpd = NA)
+  })
+
+  output$oh_stats_table <- renderTable({
+    d <- oh_filtered_data()
+    if (!nrow(d)) return(data.frame(Message = "No data available"))
+    d$Player <- paste0("#", d$player_number, " ", d$outside_hitter)
+    d$`Positive Rec %` <- sprintf("%.1f%%", d$reception_positive_rate)
+    d$`Kill %` <- sprintf("%.1f%%", d$attack_kill_pct)
+    d$`Attack Eff.` <- sprintf("%.3f", d$attack_efficiency)
+    d$`Rec.` <- d$reception_total
+    d$`Att.` <- d$attack_total
+    d$Matches <- d$matches
+    d <- d[order(-d$reception_positive_rate, -d$attack_kill_pct), , drop = FALSE]
+    d[, c("Player", "Matches", "Rec.", "Positive Rec %", "Att.", "Kill %", "Attack Eff."), drop = FALSE]
+  }, striped = TRUE, bordered = FALSE, spacing = "s", hover = TRUE)
+
+  observe({
+    d <- oh_period_data()
+    choices <- if (nrow(d)) stats::setNames(d$outside_hitter,
+      paste0("#", d$player_number, " ", d$outside_hitter)) else character(0)
+    choices <- c("All players" = "All players", choices)
+    current <- isolate(input$oh_player_highlight)
+    if (is.null(current) || !current %in% unname(choices)) current <- "All players"
+    updateSelectInput(session, "oh_player_highlight", choices = choices, selected = current)
+  })
+
+  output$download_oh_data <- downloadHandler(
+    filename = function() paste0("UCalgary_OH_Analysis_", Sys.Date(), ".csv"),
+    content = function(file) write.csv(oh_filtered_data(), file, row.names = FALSE, na = "")
+  )
 
 
 }
