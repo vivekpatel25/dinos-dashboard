@@ -5375,7 +5375,7 @@ server <- function(input, output, session) {
               div(class = "oh-analysis-note",
                 "X-axis: positive reception rate (Plus + Exclamation ÷ total receptions). Y-axis: attack kill rate (kills ÷ total attacks). Rates are recalculated from summed event counts, not averaged across matches.")),
             div(class = "oh-analysis-card", h4("PLAYER STATISTICS"),
-              tableOutput("oh_stats_table")))))
+              tableOutput("oh_stats_table"))))))
     }
 
     if (page() == "athlete_detail" && !is.null(selected_athlete())) {
