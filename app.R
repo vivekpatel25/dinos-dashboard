@@ -6770,20 +6770,49 @@ server <- function(input, output, session) {
     validate(need(nrow(d) > 0, "No OH summary data found for this period and attempt filter."))
     d <- d[is.finite(d$reception_positive_rate) & is.finite(d$attack_kill_pct), , drop = FALSE]
     validate(need(nrow(d) > 0, "No players have both reception and attack attempts in this selection."))
+
     selected <- input$oh_player_highlight
     highlighted <- !is.null(selected) && selected != "All players" & d$outside_hitter == selected
-    point_col <- ifelse(highlighted, "#C8102E", "#64788A")
+    point_col <- ifelse(highlighted, "#C8102E", "#526D82")
+
+    x_lim <- c(0, max(100, d$reception_positive_rate, na.rm = TRUE) + 5)
+    y_lim <- c(0, max(100, d$attack_kill_pct, na.rm = TRUE) + 5)
+    avg_x <- mean(d$reception_positive_rate, na.rm = TRUE)
+    avg_y <- mean(d$attack_kill_pct, na.rm = TRUE)
+    old_par <- par(no.readonly = TRUE)
+    on.exit(par(old_par), add = TRUE)
+    par(bg = "#F5F8FC", mar = c(5.2, 5.2, 2.0, 1.5),
+        xaxs = "i", yaxs = "i", family = "sans")
+
     plot(d$reception_positive_rate, d$attack_kill_pct,
-      xlim = c(0, max(100, d$reception_positive_rate, na.rm = TRUE) + 5),
-      ylim = c(0, max(100, d$attack_kill_pct, na.rm = TRUE) + 5),
+      type = "n", xlim = x_lim, ylim = y_lim,
       xlab = "POSITIVE RECEPTION RATE (%)", ylab = "ATTACK KILL RATE (%)",
-      pch = 19, cex = 1.25, col = point_col, las = 1, bty = "l",
-      col.axis = "#526273", col.lab = "#263746", cex.lab = 0.9)
-    abline(v = mean(d$reception_positive_rate, na.rm = TRUE),
-           h = mean(d$attack_kill_pct, na.rm = TRUE), lty = 2, col = "#AAB4BD")
+      axes = FALSE, frame.plot = FALSE)
+
+    # Soft quadrant fills make the performance profile easier to scan.
+    rect(x_lim[1], y_lim[1], avg_x, avg_y, col = "#EEF2F6", border = NA)
+    rect(avg_x, y_lim[1], x_lim[2], avg_y, col = "#FFF5E8", border = NA)
+    rect(x_lim[1], avg_y, avg_x, y_lim[2], col = "#EEF5FA", border = NA)
+    rect(avg_x, avg_y, x_lim[2], y_lim[2], col = "#EAF4EF", border = NA)
+
+    abline(h = pretty(y_lim), v = pretty(x_lim), col = "#DCE5ED", lty = 1, lwd = 1)
+    abline(v = avg_x, h = avg_y, lty = 2, col = "#8798A8", lwd = 1.4)
+    axis(1, at = pretty(x_lim), col = "#AAB7C3", col.axis = "#526273",
+         lwd = 0, lwd.ticks = 1, cex.axis = 0.85)
+    axis(2, at = pretty(y_lim), las = 1, col = "#AAB7C3", col.axis = "#526273",
+         lwd = 0, lwd.ticks = 1, cex.axis = 0.85)
+    box(col = "#CAD5DF", lwd = 1)
+
+    points(d$reception_positive_rate, d$attack_kill_pct,
+      pch = 21, cex = ifelse(highlighted, 1.65, 1.4),
+      bg = point_col, col = "#FFFFFF", lwd = 1.5)
     text(d$reception_positive_rate, d$attack_kill_pct,
       labels = paste0("#", d$player_number, " ", d$outside_hitter),
-      pos = 3, cex = 0.72, col = "#263746", xpd = NA)
+      pos = 3, offset = 0.65, cex = 0.72, col = "#34495A", xpd = NA)
+
+    mtext(paste0("TEAM AVERAGE  ", round(avg_x, 1), "% reception  |  ",
+                 round(avg_y, 1), "% kill rate"),
+          side = 3, adj = 1, line = 0.25, cex = 0.72, col = "#718096")
   })
 
   output$oh_stats_table <- renderTable({
