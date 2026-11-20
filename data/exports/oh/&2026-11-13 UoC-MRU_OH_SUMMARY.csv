@@ -1,0 +1,8 @@
+match_id,match_file,team,opponent,outside_hitter,player_number,reception_total,reception_hash,reception_plus,reception_exclamation,reception_minus,reception_slash,reception_error,reception_other_or_missing,attack_total,attack_kills,attack_plus,attack_exclamation,attack_minus,attack_blocked,attack_errors,attack_other_or_missing,reception_hash_pct,reception_plus_pct,reception_positive_rate,reception_error_pct,attack_kill_pct,attack_error_pct,attack_blocked_pct,attack_efficiency
+e7d005a4329f2cf2a6e022a15d443cbe,&2026-11-13 UoC-MRU.dvw,University of Calgary,Mount Royal University,Julia Tuckwood,15,19,2,4,6,4,0,3,0,28,7,5,1,8,4,3,0,10.526315789473683,21.052631578947366,31.57894736842105,15.789473684210526,25,10.714285714285714,14.285714285714285,0
+e7d005a4329f2cf2a6e022a15d443cbe,&2026-11-13 UoC-MRU.dvw,University of Calgary,Mount Royal University,Reese Evjen,21,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,,,,,100,0,0,1
+e7d005a4329f2cf2a6e022a15d443cbe,&2026-11-13 UoC-MRU.dvw,University of Calgary,Mount Royal University,Kalyssa Komori,11,6,0,1,1,2,0,2,0,0,0,0,0,0,0,0,0,0,16.666666666666664,16.666666666666664,33.33333333333333,,,,
+e7d005a4329f2cf2a6e022a15d443cbe,&2026-11-13 UoC-MRU.dvw,University of Calgary,Mount Royal University,Abby Watts,23,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,,,,,,
+e7d005a4329f2cf2a6e022a15d443cbe,&2026-11-13 UoC-MRU.dvw,University of Calgary,Mount Royal University,Miranda Baines,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,,,,,,
+e7d005a4329f2cf2a6e022a15d443cbe,&2026-11-13 UoC-MRU.dvw,University of Calgary,Mount Royal University,Robyn McLean,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,,,,,,
+e7d005a4329f2cf2a6e022a15d443cbe,&2026-11-13 UoC-MRU.dvw,University of Calgary,Mount Royal University,Sophia Hansen,24,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,,,,,,,,
