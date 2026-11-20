@@ -4067,11 +4067,26 @@ load_oh_summary_files <- function() {
                   "reception_total", "reception_plus", "reception_exclamation",
                   "attack_total", "attack_kills", "attack_errors", "attack_blocked")
     if (is.null(d) || !nrow(d) || !all(required %in% names(d))) return(NULL)
+
+    # OH exports use their own match IDs. Keep the OH analysis independent
+    # of the dashboard match index and derive the match date from match_file.
+    match_file <- if ("match_file" %in% names(d)) {
+      as.character(d$match_file)
+    } else {
+      rep(basename(path), nrow(d))
+    }
+    has_match_date <- grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}", match_file)
+    date_text <- ifelse(has_match_date,
+      sub(".*?([0-9]{4}-[0-9]{2}-[0-9]{2}).*", "\\1", match_file, perl = TRUE),
+      NA_character_)
+    d$oh_match_date <- as.Date(date_text, format = "%Y-%m-%d")
     d
   })
   rows <- Filter(Negate(is.null), rows)
   if (!length(rows)) return(data.frame())
-  do.call(rbind, rows)
+  out <- do.call(rbind, rows)
+  out$match_id <- as.character(out$match_id)
+  out
 }
 
 aggregate_oh_by_player <- function(d) {
@@ -5120,14 +5135,21 @@ server <- function(input, output, session) {
     if (!nrow(d)) return(data.frame())
     period <- input$oh_period_filter
     if (is.null(period) || !nzchar(period)) period <- active_period()
+
+    # Build the period selector from OH exports only. The OH match_id values
+    # are not the same identifiers used by MATCH_DASHBOARD_SUMMARY.csv.
+    oh_matches <- unique(d[, c("match_id", "oh_match_date"), drop = FALSE])
+    oh_matches <- oh_matches[order(oh_matches$oh_match_date, decreasing = TRUE,
+                                   na.last = TRUE), , drop = FALSE]
+    oh_ids <- as.character(oh_matches$match_id)
     ids <- switch(period,
-      "MOST RECENT MATCH" = if (nrow(match_index)) match_index$match_id[1] else character(0),
-      "PREVIOUS MATCH" = if (nrow(match_index) >= 2) match_index$match_id[2] else if (nrow(match_index)) match_index$match_id[1] else character(0),
-      "LAST 5" = head(match_index$match_id, 5),
-      "LAST 10" = head(match_index$match_id, 10),
-      "FULL SEASON" = match_index$match_id,
-      match_index$match_id)
-    d <- d[as.character(d$match_id) %in% as.character(ids), , drop = FALSE]
+      "MOST RECENT MATCH" = head(oh_ids, 1),
+      "PREVIOUS MATCH" = if (length(oh_ids) >= 2) oh_ids[2] else head(oh_ids, 1),
+      "LAST 5" = head(oh_ids, 5),
+      "LAST 10" = head(oh_ids, 10),
+      "FULL SEASON" = oh_ids,
+      oh_ids)
+    d <- d[as.character(d$match_id) %in% ids, , drop = FALSE]
     aggregate_oh_by_player(d)
   })
 
