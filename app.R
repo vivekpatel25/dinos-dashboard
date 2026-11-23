@@ -3396,6 +3396,53 @@ metric_section_ui <- function(
                "University of Calgary metrics could not be identified in this file."))
   }
 
+  # For multi-match periods, pool each metric from its underlying numerator
+  # and denominator. This produces a true period rate instead of one bar per
+  # match or an unweighted average of match percentages. Single-match views
+  # retain their original row-level values.
+  selected_match_count <- if ("match_id" %in% names(data)) {
+    length(unique(as.character(data$match_id[!is.na(data$match_id)])))
+  } else 1L
+
+  if (selected_match_count > 1L) {
+    metric_groups <- split(
+      seq_len(nrow(uoc)),
+      interaction(uoc$metric_category, uoc$metric_name, drop = TRUE, lex.order = TRUE)
+    )
+
+    pooled_rows <- lapply(metric_groups, function(ix) {
+      z <- uoc[ix[1], , drop = FALSE]
+
+      if (all(c("numerator", "denominator") %in% names(uoc))) {
+        nums <- suppressWarnings(as.numeric(uoc$numerator[ix]))
+        dens <- suppressWarnings(as.numeric(uoc$denominator[ix]))
+        valid_pairs <- is.finite(nums) & is.finite(dens)
+        total_num <- sum(nums[valid_pairs], na.rm = TRUE)
+        total_den <- sum(dens[valid_pairs], na.rm = TRUE)
+
+        z$numerator <- total_num
+        z$denominator <- total_den
+        if (is.finite(total_den) && total_den > 0) {
+          z$metric_value <- if (is_efficiency_metric(as.character(z$metric_name[1]))) {
+            total_num / total_den
+          } else {
+            100 * total_num / total_den
+          }
+        } else {
+          z$metric_value <- NA_real_
+        }
+      } else {
+        values <- suppressWarnings(as.numeric(uoc$metric_value[ix]))
+        z$metric_value <- if (any(is.finite(values))) mean(values[is.finite(values)]) else NA_real_
+      }
+
+      z
+    })
+
+    uoc <- do.call(rbind, pooled_rows)
+    rownames(uoc) <- NULL
+  }
+
   categories <- unique(as.character(uoc$metric_category))
 
   tagList(
