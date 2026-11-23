@@ -1,0 +1,15 @@
+match_id,transition_trigger_type,linked_set_player_name,attack_attempts,rallies,kills,attack_errors_or_blocked,positive_attacks,attack_efficiency,uofc_rally_wins,rally_point_conversion,attack_record_rally_win_rate,phase_discrepancies
+_2026_11_20_uoc_uos,RECEPTION_FIRST_BALL,Anya Fehr,58,56,27,13,3,0.2413793103448276,37,0.6607142857142857,0.6551724137931034,2
+_2026_11_20_uoc_uos,DIG,Anya Fehr,25,22,12,3,4,0.36,15,0.6818181818181818,0.64,0
+_2026_11_20_uoc_uos,FREEBALL,Anya Fehr,10,10,5,2,0,0.3,7,0.7,0.7,0
+_2026_11_20_uoc_uos,DIG,Evvia Belireau,7,5,1,1,1,0,4,0.8,0.8571428571428571,0
+_2026_11_20_uoc_uos,RECEPTION_FIRST_BALL,Amelia Anderson,6,6,2,3,0,-0.16666666666666666,3,0.5,0.5,0
+_2026_11_20_uoc_uos,DIG,Christine Abu,4,4,1,0,0,0.25,2,0.5,0.5,0
+_2026_11_20_uoc_uos,DIG,Amelia Anderson,3,3,2,1,0,0.3333333333333333,2,0.6666666666666666,0.6666666666666666,0
+_2026_11_20_uoc_uos,RECEPTION_FIRST_BALL,Evvia Belireau,3,3,1,1,0,0,1,0.3333333333333333,0.3333333333333333,0
+_2026_11_20_uoc_uos,NO_LINKED_SET,,2,2,1,1,0,0,1,0.5,0.5,0
+_2026_11_20_uoc_uos,RECEPTION_FIRST_BALL,Leni Blanke,2,2,0,1,1,-0.5,1,0.5,0.5,0
+_2026_11_20_uoc_uos,DIG,Courtney Webber,1,1,0,0,0,0,1,1,1,0
+_2026_11_20_uoc_uos,DIG,Jasmine Chretien,1,1,0,1,0,-1,0,0,0,0
+_2026_11_20_uoc_uos,DIG,Kalyssa Komori,1,1,0,0,0,0,1,1,1,0
+_2026_11_20_uoc_uos,DIG,Narelle Arnold,1,1,0,0,0,0,1,1,1,0
