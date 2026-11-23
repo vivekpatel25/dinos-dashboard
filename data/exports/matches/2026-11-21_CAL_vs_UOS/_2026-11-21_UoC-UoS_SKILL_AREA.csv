@@ -1,0 +1,32 @@
+match_id,match_date,team,team_role,export_type,section,evaluation_code,outcome,event_count,denominator,percentage,opponent,metric_name,numerator,metric_value,metric_formula,benchmark_side
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Attack,!,In play,6,133,4.511278195488722,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Attack,#,Kills,55,133,41.35338345864662,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Attack,+,In play,7,133,5.2631578947368425,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Attack,-,In play,43,133,32.330827067669176,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Attack,/,Blocked,8,133,6.015037593984962,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Attack,=,Errors,14,133,10.526315789473685,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Reception,!,Medium,20,85,23.529411764705884,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Reception,#,Good pass,11,85,12.941176470588236,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Reception,+,Good pass,6,85,7.0588235294117645,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Reception,-,Out-of-system,33,85,38.8235294117647,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Reception,/,Overpass,6,85,7.0588235294117645,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Reception,=,Aced,9,85,10.588235294117647,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Block,!,Fulfilled,8,45,17.77777777777778,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Block,#,Stuff,3,45,6.666666666666667,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Block,+,Positive,10,45,22.22222222222222,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Block,-,Negative,3,45,6.666666666666667,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Block,=,Errors,21,45,46.666666666666664,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Serve,!,Medium,13,88,14.772727272727273,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Serve,#,Aces,3,88,3.409090909090909,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Serve,+,OOS Pass,33,88,37.5,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Serve,-,Good Pass,19,88,21.59090909090909,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Serve,/,Overpass,10,88,11.363636363636363,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Serve,=,Serve Error,10,88,11.363636363636363,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Dig,+,In play,41,82,50,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Dig,-,In play,3,82,3.658536585365854,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Dig,/,In play,10,82,12.195121951219512,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,skill_outcome,Dig,=,Dig errors,28,82,34.146341463414636,University of Saskatchewan,,,,,
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,benchmark,Serve,,,,88,,University of Saskatchewan,Disruption %,36,40.90909090909091,(Own aces + opponent '-' receptions while this team serves) / own total serves * 100,UofC value
+_2026_11_21_uoc_uos,2026-11-21,University of Calgary,UofC,benchmark,Defense,,,,54,,University of Saskatchewan,Conversion %,15,27.77777777777778,"Successful dig -> set -> kill sequences / playable digs (+, -, /) * 100",UofC value
+_2026_11_21_uoc_uos,2026-11-21,University of Saskatchewan,Opponent,benchmark,Serve,,,,96,,University of Calgary,Disruption %,42,43.75,(Own aces + opponent '-' receptions while this team serves) / own total serves * 100,Opponent value
+_2026_11_21_uoc_uos,2026-11-21,University of Saskatchewan,Opponent,benchmark,Defense,,,,58,,University of Calgary,Conversion %,20,34.48275862068966,"Successful dig -> set -> kill sequences / playable digs (+, -, /) * 100",Opponent value
