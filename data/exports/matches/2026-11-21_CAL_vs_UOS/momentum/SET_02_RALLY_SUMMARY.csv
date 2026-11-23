@@ -1,0 +1,44 @@
+set_number,rally_number,point_id,serving_team,home_score_before,visiting_score_before,home_score_after,visiting_score_after,ending_skill,ending_action,ending_skill_team,ending_skill_player,ending_skill_jersey_number,point_scoring_action,point_scoring_team,point_scoring_player,point_scoring_jersey_number,point_type,point_won_by
+2,1,53,University of Calgary,0,0,0,1,Attack,Kill,University of Saskatchewan,Ella Milne,18,Kill,University of Saskatchewan,Ella Milne,18,EARNED,University of Saskatchewan
+2,2,54,University of Saskatchewan,0,1,1,1,Block,Block Error,University of Saskatchewan,Jessica Bergstrom,4,Block Error,,,,UNEARNED,University of Calgary
+2,3,55,University of Calgary,1,1,2,1,Dig,Dig Error,University of Saskatchewan,Ella Milne,18,Kill,University of Calgary,Julia Tuckwood,15,EARNED,University of Calgary
+2,4,56,University of Calgary,2,1,2,2,Dig,Dig Error,University of Calgary,Leni Blanke,1,Kill,University of Saskatchewan,Jessica Bergstrom,4,EARNED,University of Saskatchewan
+2,5,57,University of Saskatchewan,2,2,2,3,Reception,Reception Error,University of Calgary,Julia Tuckwood,15,Ace,University of Saskatchewan,Mackenzie Lyburn,12,EARNED,University of Saskatchewan
+2,6,58,University of Saskatchewan,2,3,2,4,Attack,Attack Error,University of Calgary,Christine Abu,2,Attack Error,,,,UNEARNED,University of Saskatchewan
+2,7,59,University of Saskatchewan,2,4,3,4,Block,Block Error,University of Saskatchewan,Tielle Hagel,20,Block Error,,,,UNEARNED,University of Calgary
+2,8,60,University of Calgary,3,4,3,5,Dig,Dig Error,University of Calgary,Julia Tuckwood,15,Kill,University of Saskatchewan,Ella Milne,18,EARNED,University of Saskatchewan
+2,9,61,University of Saskatchewan,3,5,4,5,Attack,Attack Error,University of Saskatchewan,Mackenzie Lyburn,12,Attack Error,,,,UNEARNED,University of Calgary
+2,10,62,University of Calgary,4,5,4,6,Dig,Dig Error,University of Calgary,Christine Abu,2,Kill,University of Saskatchewan,Aidan Woloshyn,8,EARNED,University of Saskatchewan
+2,11,63,University of Saskatchewan,4,6,4,7,Block,Block Error,University of Calgary,Narelle Arnold,6,Block Error,,,,UNEARNED,University of Saskatchewan
+2,12,64,University of Saskatchewan,4,7,5,7,Attack,Kill,University of Calgary,Narelle Arnold,6,Kill,University of Calgary,Narelle Arnold,6,EARNED,University of Calgary
+2,13,65,University of Calgary,5,7,5,8,Dig,Dig Error,University of Calgary,Anya Fehr,12,Kill,University of Saskatchewan,Aidan Woloshyn,8,EARNED,University of Saskatchewan
+2,15,67,University of Saskatchewan,5,8,6,8,Block,Block Error,University of Saskatchewan,Mackenzie Lyburn,12,Block Error,,,,UNEARNED,University of Calgary
+2,16,68,University of Calgary,6,8,6,9,Dig,Dig Error,University of Calgary,Anya Fehr,12,Kill,University of Saskatchewan,Aidan Woloshyn,8,EARNED,University of Saskatchewan
+2,17,69,University of Saskatchewan,6,9,6,10,Attack,Attack Error,University of Calgary,Leni Blanke,1,Attack Error,,,,UNEARNED,University of Saskatchewan
+2,18,70,University of Saskatchewan,6,10,6,11,Dig,Dig Error,University of Calgary,Anya Fehr,12,Kill,University of Saskatchewan,Mackenzie Lyburn,12,EARNED,University of Saskatchewan
+2,19,71,University of Saskatchewan,6,11,7,11,Attack,Kill,University of Calgary,Narelle Arnold,6,Kill,University of Calgary,Narelle Arnold,6,EARNED,University of Calgary
+2,20,72,University of Calgary,7,11,7,12,Attack,Kill,University of Saskatchewan,Jessica Bergstrom,4,Kill,University of Saskatchewan,Jessica Bergstrom,4,EARNED,University of Saskatchewan
+2,21,73,University of Saskatchewan,7,12,8,12,Dig,Dig Error,University of Saskatchewan,Rosetta Cyr,17,Kill,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+2,22,74,University of Calgary,8,12,8,13,Serve,Serve Error,University of Calgary,Leni Blanke,1,Serve Error,,,,UNEARNED,University of Saskatchewan
+2,23,75,University of Saskatchewan,8,13,8,14,Dig,Dig Error,University of Calgary,Julia Tuckwood,15,Kill,University of Saskatchewan,Jessica Bergstrom,4,EARNED,University of Saskatchewan
+2,24,76,University of Saskatchewan,8,14,9,14,Attack,Kill,University of Calgary,Julia Tuckwood,15,Kill,University of Calgary,Julia Tuckwood,15,EARNED,University of Calgary
+2,25,77,University of Calgary,9,14,9,15,Attack,Attack Error,University of Calgary,Anya Fehr,12,Attack Error,,,,UNEARNED,University of Saskatchewan
+2,26,78,University of Saskatchewan,9,15,10,15,Attack,Kill,University of Calgary,Anya Fehr,12,Kill,University of Calgary,Anya Fehr,12,EARNED,University of Calgary
+2,27,79,University of Calgary,10,15,11,15,Attack,Kill,University of Calgary,Leni Blanke,1,Kill,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+2,28,80,University of Calgary,11,15,11,16,Dig,Dig Error,University of Calgary,Christine Abu,2,Kill,University of Saskatchewan,Mackenzie Lyburn,12,EARNED,University of Saskatchewan
+2,30,82,University of Saskatchewan,11,16,12,16,Attack,Attack Error,University of Saskatchewan,Rosetta Cyr,17,Attack Error,,,,UNEARNED,University of Calgary
+2,31,83,University of Calgary,12,16,12,17,Attack,Kill,University of Saskatchewan,Ella Milne,18,Kill,University of Saskatchewan,Ella Milne,18,EARNED,University of Saskatchewan
+2,32,84,University of Saskatchewan,12,17,13,17,Dig,Dig Error,University of Saskatchewan,Mackenzie Lyburn,12,Kill,University of Calgary,Kalyssa Komori,11,EARNED,University of Calgary
+2,33,85,University of Calgary,13,17,14,17,Dig,Dig Error,University of Saskatchewan,Aidan Woloshyn,8,Dig Error,,,,UNEARNED,University of Calgary
+2,34,86,University of Calgary,14,17,14,18,Set,Set Error,University of Calgary,Kalyssa Komori,11,Set Error,,,,UNEARNED,University of Saskatchewan
+2,37,89,University of Saskatchewan,14,18,14,19,Attack,Kill,University of Saskatchewan,Jessica Bergstrom,4,Kill,University of Saskatchewan,Jessica Bergstrom,4,EARNED,University of Saskatchewan
+2,38,90,University of Saskatchewan,14,19,15,19,Block,Block Error,University of Saskatchewan,Jessica Bergstrom,4,Block Error,,,,UNEARNED,University of Calgary
+2,39,91,University of Calgary,15,19,16,19,Attack,Kill,University of Calgary,Leni Blanke,1,Kill,University of Calgary,Leni Blanke,1,EARNED,University of Calgary
+2,40,92,University of Calgary,16,19,16,20,Block,Block Error,University of Calgary,Christine Abu,2,Block Error,,,,UNEARNED,University of Saskatchewan
+2,41,93,University of Saskatchewan,16,20,16,21,Block,Block,University of Saskatchewan,Mackenzie Lyburn,12,Block,University of Saskatchewan,Mackenzie Lyburn,12,EARNED,University of Saskatchewan
+2,42,94,University of Saskatchewan,16,21,16,22,Reception,Reception Error,University of Calgary,Jasmine Chretien,14,Ace,University of Saskatchewan,Ella Milne,18,EARNED,University of Saskatchewan
+2,43,95,University of Saskatchewan,16,22,17,22,Dig,Dig Error,University of Saskatchewan,Reese Stroeder,13,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+2,44,96,University of Calgary,17,22,18,22,Dig,Dig Error,University of Saskatchewan,Ella Milne,18,Kill,University of Calgary,Jasmine Chretien,14,EARNED,University of Calgary
+2,45,97,University of Calgary,18,22,18,23,Block,Block Error,University of Calgary,Anya Fehr,12,Block Error,,,,UNEARNED,University of Saskatchewan
+2,46,98,University of Saskatchewan,18,23,18,24,Attack,Attack Error,University of Calgary,Jasmine Chretien,14,Attack Error,,,,UNEARNED,University of Saskatchewan
+2,48,100,University of Saskatchewan,18,24,18,25,Reception,Reception Error,University of Calgary,Courtney Webber,16,Ace,University of Saskatchewan,Peyton Veenstra,16,EARNED,University of Saskatchewan
